@@ -398,3 +398,5 @@ FodyWeavers.xsd
 /_deps/
 /build_android/
 /build_win64/
+/build_ios/
+/build_mac/
