@@ -396,3 +396,4 @@ FodyWeavers.xsd
 **/.DS_Store
 **/CMakeFiles/
 /_deps/
+/build_android/
