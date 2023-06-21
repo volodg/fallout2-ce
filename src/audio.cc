@@ -43,7 +43,7 @@ static Audio* gAudioList;
 static bool defaultCompressionFunc(char* filePath)
 {
     char* pch = strrchr(filePath, '.');
-    if (pch != NULL) {
+    if (pch != nullptr) {
         strcpy(pch + 1, "raw");
     }
 
