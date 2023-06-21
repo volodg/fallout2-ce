@@ -397,3 +397,4 @@ FodyWeavers.xsd
 **/CMakeFiles/
 /_deps/
 /build_android/
+/build_win64/
