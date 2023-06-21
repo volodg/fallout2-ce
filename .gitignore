@@ -391,3 +391,6 @@ FodyWeavers.xsd
 # CMake
 /out
 /build
+/cmake-build-debug/
+/cmake-build-release/
+**/.DS_Store
