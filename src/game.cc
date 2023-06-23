@@ -127,15 +127,9 @@ MessageList gMiscMessageList;
 // CE: Sonora folks like to store objects in global variables.
 static void** gGameGlobalPointers = nullptr;
 
-extern "C" {
-    void hello();
-}
-
 // 0x442580
 int gameInitWithOptions(const char* windowTitle, bool isMapper, int font, int a4, int argc, char** argv)
 {
-    hello(); // TODO(vlg): remove
-
     char path[COMPAT_MAX_PATH];
 
     if (gameMemoryInit() == -1) {

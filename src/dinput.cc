@@ -1,5 +1,12 @@
 #include "dinput.h"
 
+extern "C"
+{
+    bool c_direct_input_init();
+    void c_direct_input_free();
+}
+
+// TODO migrate
 namespace fallout {
 
 static int gMouseWheelDeltaX = 0;
@@ -8,31 +15,13 @@ static int gMouseWheelDeltaY = 0;
 // 0x4E0400
 bool directInputInit()
 {
-    if (SDL_InitSubSystem(SDL_INIT_EVENTS) != 0) {
-        return false;
-    }
-
-    if (!mouseDeviceInit()) {
-        goto err;
-    }
-
-    if (!keyboardDeviceInit()) {
-        goto err;
-    }
-
-    return true;
-
-err:
-
-    directInputFree();
-
-    return false;
+    return c_direct_input_init();
 }
 
 // 0x4E0478
 void directInputFree()
 {
-    SDL_QuitSubSystem(SDL_INIT_EVENTS);
+    c_direct_input_free();
 }
 
 // 0x4E04E8
@@ -70,51 +59,11 @@ bool mouseDeviceGetData(MouseData* mouseState)
     return true;
 }
 
-// 0x4E05A8
-bool keyboardDeviceAcquire()
-{
-    return true;
-}
-
-// 0x4E05D4
-bool keyboardDeviceUnacquire()
-{
-    return true;
-}
-
 // 0x4E05FC
 bool keyboardDeviceReset()
 {
     SDL_FlushEvents(SDL_KEYDOWN, SDL_TEXTINPUT);
     return true;
-}
-
-// 0x4E0650
-bool keyboardDeviceGetData(KeyboardData* keyboardData)
-{
-    return true;
-}
-
-// 0x4E070C
-bool mouseDeviceInit()
-{
-    return SDL_SetRelativeMouseMode(SDL_TRUE) == 0;
-}
-
-// 0x4E078C
-void mouseDeviceFree()
-{
-}
-
-// 0x4E07B8
-bool keyboardDeviceInit()
-{
-    return true;
-}
-
-// 0x4E0874
-void keyboardDeviceFree()
-{
 }
 
 void handleMouseEvent(SDL_Event* event)

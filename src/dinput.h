@@ -23,17 +23,9 @@ void directInputFree();
 bool mouseDeviceAcquire();
 bool mouseDeviceUnacquire();
 bool mouseDeviceGetData(MouseData* mouseData);
-bool keyboardDeviceAcquire();
-bool keyboardDeviceUnacquire();
 bool keyboardDeviceReset();
-bool keyboardDeviceGetData(KeyboardData* keyboardData);
-bool mouseDeviceInit();
-void mouseDeviceFree();
-bool keyboardDeviceInit();
-void keyboardDeviceFree();
 
 void handleMouseEvent(SDL_Event* event);
-void handleTouchEvent(SDL_Event* event);
 
 } // namespace fallout
 
