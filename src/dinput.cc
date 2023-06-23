@@ -6,7 +6,6 @@ extern "C"
     void c_direct_input_free();
 }
 
-// TODO migrate
 namespace fallout {
 
 static int gMouseWheelDeltaX = 0;
