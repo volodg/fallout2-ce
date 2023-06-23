@@ -1,2 +1,2 @@
-mod version;
 mod dinput;
+mod version;

@@ -1,9 +1,8 @@
-
 extern crate libc;
 
-use std::ffi::CString;
 use libc::c_char;
 use libc::c_short;
+use std::ffi::CString;
 
 // The size of buffer for version string.
 const VERSION_MAX: u8 = 32;
@@ -64,14 +63,10 @@ mod tests {
     fn test_c_get_version() {
         const BUFFER_SIZE: usize = 20;
 
-        let buf = unsafe {
-            libc::malloc(BUFFER_SIZE) as *mut c_char
-        };
+        let buf = unsafe { libc::malloc(BUFFER_SIZE) as *mut c_char };
 
         c_get_version(buf, BUFFER_SIZE);
-        let version_c_string = unsafe {
-            CString::from_raw(buf)
-        };
+        let version_c_string = unsafe { CString::from_raw(buf) };
 
         let version = version_c_string.to_str().expect("valid c string");
 
