@@ -1,14 +1,15 @@
 use std::cell::Cell;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
-static PROGRAM_IS_ACTIVE: Mutex<Cell<bool>> = Mutex::new(Cell::new(false));
+static PROGRAM_IS_ACTIVE: AtomicBool = AtomicBool::new(false);
 
 #[no_mangle]
 pub extern "C" fn c_set_program_is_active(value: bool) {
-    PROGRAM_IS_ACTIVE.lock().expect("locked").set(value)
+    PROGRAM_IS_ACTIVE.store(value, Ordering::Relaxed)
 }
 
 #[no_mangle]
 pub extern "C" fn c_get_program_is_active() -> bool {
-    PROGRAM_IS_ACTIVE.lock().expect("locked").get()
+    PROGRAM_IS_ACTIVE.load(Ordering::Relaxed)
 }

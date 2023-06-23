@@ -431,7 +431,7 @@ void _refreshSoundBuffers(Sound* sound)
         }
     }
 
-    audioEngineSoundBufferUnlock(sound->soundBuffer, audioPtr1, audioBytes1, audioPtr2, audioBytes2);
+    audioEngineSoundBufferUnlock(sound->soundBuffer);
 
     sound->lastUpdate = v6;
 }
@@ -680,7 +680,7 @@ int _addSoundData(Sound* sound, unsigned char* buf, int size)
         memcpy(audioPtr2, buf + audioBytes1, audioBytes2);
     }
 
-    hr = audioEngineSoundBufferUnlock(sound->soundBuffer, audioPtr1, audioBytes1, audioPtr2, audioBytes2);
+    hr = audioEngineSoundBufferUnlock(sound->soundBuffer);
     if (!hr) {
         gSoundLastError = SOUND_UNKNOWN_ERROR;
         return gSoundLastError;

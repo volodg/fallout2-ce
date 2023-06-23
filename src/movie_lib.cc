@@ -1379,7 +1379,7 @@ static void _CallsSndBuff_Loc(unsigned char* a1, int a2)
         dword_6B36A4 = 0;
     }
 
-    audioEngineSoundBufferUnlock(gMveSoundBuffer, lpvAudioPtr1, dwAudioBytes1, lpvAudioPtr2, dwAudioBytes2);
+    audioEngineSoundBufferUnlock(gMveSoundBuffer);
 
     dword_6B39E0[dword_6B3AE4] = dwCurrentWriteCursor;
 
