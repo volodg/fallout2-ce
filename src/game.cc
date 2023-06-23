@@ -67,6 +67,12 @@
 #include "window_manager.h"
 #include "worldmap.h"
 
+extern "C"
+{
+    short c_get_version_max();
+    const char* c_get_version_build_time();
+}
+
 namespace fallout {
 
 #define HELP_SCREEN_WIDTH (640)
@@ -87,7 +93,7 @@ static void showSplash();
 static char _aGame_0[] = "game\\";
 
 // 0x5020B8
-static char _aDec11199816543[] = VERSION_BUILD_TIME;
+static char* _aDec11199816543 = (char*)c_get_version_build_time();
 
 // 0x5186B4
 static bool gGameUiDisabled = false;
@@ -912,10 +918,10 @@ int gameHandleKey(int eventCode, bool isInCombatMode)
         }
         break;
     case KEY_CTRL_V:
-        if (1) {
+        {
             soundPlayFile("ib1p1xx1");
 
-            char version[VERSION_MAX];
+            char version[c_get_version_max()];
             versionGetVersion(version, sizeof(version));
             displayMonitorAddMessage(version);
             displayMonitorAddMessage(_aDec11199816543);

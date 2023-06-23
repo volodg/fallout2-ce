@@ -18,6 +18,11 @@
 #include "version.h"
 #include "window_manager.h"
 
+extern "C"
+{
+    short c_get_version_max();
+}
+
 namespace fallout {
 
 #define MAIN_MENU_WINDOW_WIDTH 640
@@ -149,7 +154,7 @@ int mainMenuWindowInit()
 
     // TODO: Allow to move version text
     // Version.
-    char version[VERSION_MAX];
+    char version[c_get_version_max()];
     versionGetVersion(version, sizeof(version));
     len = fontGetStringWidth(version);
     windowDrawText(gMainMenuWindow, version, 0, 615 - len, 460, fontSettings | 0x06000000);

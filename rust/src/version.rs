@@ -5,8 +5,14 @@ use std::ffi::CString;
 use libc::c_char;
 use libc::c_short;
 
+// The size of buffer for version string.
+const VERSION_MAX: u8 = 32;
+
 const VERSION_MAJOR: u8 = 1;
 const VERSION_MINOR: u8 = 2;
+
+const VERSION_RELEASE: c_char = 'R' as c_char;
+const VERSION_BUILD_TIME: &str = "Dec 11 1998 16:54:30";
 
 #[no_mangle]
 pub extern "C" fn c_get_version(dest: *mut c_char, size: usize) {
@@ -24,6 +30,21 @@ pub extern "C" fn c_get_major_version() -> c_short {
 #[no_mangle]
 pub extern "C" fn c_get_minor_version() -> c_short {
     VERSION_MAJOR as c_short
+}
+
+#[no_mangle]
+pub extern "C" fn c_get_version_max() -> c_short {
+    VERSION_MAX as c_short
+}
+
+#[no_mangle]
+pub extern "C" fn c_get_version_release() -> c_char {
+    VERSION_RELEASE
+}
+
+#[no_mangle]
+pub extern "C" fn c_get_version_build_time() -> *const c_char {
+    VERSION_BUILD_TIME.as_ptr() as *const c_char
 }
 
 fn get_version() -> String {
