@@ -1818,8 +1818,8 @@ static int lsgSaveHeaderInSlot(int slot)
         return -1;
     }
 
-    ptr->versionRelease = VERSION_RELEASE;
-    if (fileWriteUInt8(_flptr, VERSION_RELEASE) == -1) {
+    ptr->versionRelease = 'R';
+    if (fileWriteUInt8(_flptr, 'R') == -1) {
         return -1;
     }
 
@@ -2011,7 +2011,7 @@ static int _GetSlotList()
         } else {
             _flptr = fileOpen(_str, "rb");
 
-            if (_flptr == NULL) {
+            if (_flptr == nullptr) {
                 debugPrint("\nLOADSAVE: ** Error opening save  game for reading! **\n");
                 return -1;
             }

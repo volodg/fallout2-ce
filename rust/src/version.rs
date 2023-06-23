@@ -29,7 +29,7 @@ pub extern "C" fn c_get_major_version() -> c_short {
 
 #[no_mangle]
 pub extern "C" fn c_get_minor_version() -> c_short {
-    VERSION_MAJOR as c_short
+    VERSION_MINOR as c_short
 }
 
 #[no_mangle]
