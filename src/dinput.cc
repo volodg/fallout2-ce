@@ -11,6 +11,8 @@ extern "C"
     int c_get_g_mouse_wheel_delta_x();
     void c_set_g_mouse_wheel_delta_y(int value);
     int c_get_g_mouse_wheel_delta_y();
+
+    bool c_mouse_device_get_data(fallout::MouseData* mouseState);
 }
 
 namespace fallout {
@@ -42,24 +44,7 @@ bool mouseDeviceUnacquire()
 // 0x4E053C
 bool mouseDeviceGetData(MouseData* mouseState)
 {
-    // CE: This function is sometimes called outside loops calling `get_input`
-    // and subsequently `GNW95_process_message`, so mouse events might not be
-    // handled by SDL yet.
-    //
-    // TODO: Move mouse events processing into `GNW95_process_message` and
-    // update mouse position manually.
-    SDL_PumpEvents();
-
-    Uint32 buttons = SDL_GetRelativeMouseState(&(mouseState->x), &(mouseState->y));
-    mouseState->buttons[0] = (buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
-    mouseState->buttons[1] = (buttons & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
-    mouseState->wheelX = c_get_g_mouse_wheel_delta_x();
-    mouseState->wheelY = c_get_g_mouse_wheel_delta_y();
-
-    c_set_g_mouse_wheel_delta_x(0);
-    c_set_g_mouse_wheel_delta_y(0);
-
-    return true;
+    return c_mouse_device_get_data(mouseState);
 }
 
 // 0x4E05FC
