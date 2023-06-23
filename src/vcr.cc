@@ -6,7 +6,6 @@
 #include "kb.h"
 #include "memory.h"
 #include "mouse.h"
-#include "svga.h"
 
 namespace fallout {
 

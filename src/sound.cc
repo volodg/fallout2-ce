@@ -1,8 +1,6 @@
 #include "sound.h"
 
 #include <fcntl.h>
-#include <limits.h>
-#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -11,8 +9,6 @@
 #else
 #include <unistd.h>
 #endif
-
-#include <algorithm>
 
 #include <SDL.h>
 

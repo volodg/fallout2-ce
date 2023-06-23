@@ -12,7 +12,6 @@
 #include "game_sound.h"
 #include "interface.h"
 #include "item.h"
-#include "memory.h"
 #include "message.h"
 #include "object.h"
 #include "party_member.h"
@@ -22,8 +21,6 @@
 #include "random.h"
 #include "scripts.h"
 #include "skill.h"
-#include "svga.h"
-#include "tile.h"
 #include "trait.h"
 
 namespace fallout {

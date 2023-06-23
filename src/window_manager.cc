@@ -13,12 +13,10 @@
 #include "input.h"
 #include "memory.h"
 #include "mouse.h"
-#include "palette.h"
 #include "pointer_registry.h"
 #include "svga.h"
 #include "text_font.h"
 #include "vcr.h"
-#include "win32.h"
 #include "window_manager_private.h"
 
 namespace fallout {
