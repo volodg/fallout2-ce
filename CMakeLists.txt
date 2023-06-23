@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.19)
 
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
@@ -399,3 +399,27 @@ if(APPLE)
 
     include(CPack)
 endif()
+
+# Include rust
+
+#include(FetchContent)
+#
+#FetchContent_Declare(
+#        Corrosion
+#        GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+#        GIT_TAG v0.4 # Optionally specify a commit hash, version tag or branch here
+#)
+## Set any global configuration variables such as `Rust_TOOLCHAIN` before this line!
+#FetchContent_MakeAvailable(Corrosion)
+#
+#corrosion_import_crate(MANIFEST_PATH rust/Cargo.toml)
+#target_link_libraries(${EXECUTABLE_NAME} rust)
+
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+enable_language(Rust)
+include(CMakeCargo)
+
+# add_subdirectory(hello_world)
+add_subdirectory(rust)
+target_link_libraries(${EXECUTABLE_NAME} rust)
