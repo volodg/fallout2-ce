@@ -243,7 +243,7 @@ bool messageListLoad(MessageList* messageList, const char* path)
     entry.audio = audio;
     entry.text = text;
 
-    while (1) {
+    while (true) {
         rc = _message_load_field(file_ptr, num);
         if (rc != 0) {
             break;
@@ -478,7 +478,7 @@ static int _message_load_field(File* file, char* str)
 
     len = 0;
 
-    while (1) {
+    while (true) {
         ch = fileReadChar(file);
         if (ch == -1) {
             return 1;
@@ -494,7 +494,7 @@ static int _message_load_field(File* file, char* str)
         }
     }
 
-    while (1) {
+    while (true) {
         ch = fileReadChar(file);
 
         if (ch == -1) {

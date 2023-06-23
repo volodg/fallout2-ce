@@ -129,7 +129,7 @@ int _gzdecompress_file(const char* existingFilePath, const char* newFilePath)
             return -1;
         }
 
-        while (1) {
+        while (true) {
             int ch = gzgetc(gzstream);
             if (ch == -1) {
                 break;

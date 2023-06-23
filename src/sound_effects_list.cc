@@ -416,7 +416,7 @@ static int soundEffectsListPopulateFileSizes()
             entry->dataSize = fileSize;
             break;
         case 1:
-            if (1) {
+            {
                 File* stream = fileOpen(path, "rb");
                 if (stream == NULL) {
                     internal_free(path);

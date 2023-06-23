@@ -154,7 +154,7 @@ int lipsStart()
     }
 
     int v2 = _head_marker_current;
-    while (1) {
+    while (true) {
         _head_marker_current = v2;
 
         SpeechMarker* speechEntry = &(gLipsData.markers[v2]);

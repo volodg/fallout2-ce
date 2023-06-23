@@ -1357,7 +1357,7 @@ static int animationRunSequence(int animationSequenceIndex)
         return -1;
     }
 
-    while (1) {
+    while (true) {
         if (animationSequence->field_0 >= animationSequence->length) {
             return 0;
         }
@@ -1748,7 +1748,7 @@ int pathfinderFindPath(Object* object, int from, int to, unsigned char* rotation
     int openPathNodeListLength = 1;
     PathNode temp;
 
-    while (1) {
+    while (true) {
         int v63 = -1;
 
         PathNode* prev = NULL;

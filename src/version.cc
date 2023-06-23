@@ -1,7 +1,5 @@
 #include "version.h"
 
-#include <stdio.h>
-
 extern "C"
 {
     void c_get_version(char* dest, size_t size);

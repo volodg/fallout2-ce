@@ -852,7 +852,7 @@ LABEL_5:
         return v6;
     }
 
-    while (1) {
+    while (true) {
         v5 = *(unsigned int*)((unsigned char*)v1 + v0);
         v1 = (unsigned short*)((unsigned char*)v1 + v0 + 4);
         v0 = v5 & 0xFFFF;
@@ -1192,7 +1192,7 @@ static void _MVE_sndSync()
         return;
     }
 
-    while (1) {
+    while (true) {
         if (!audioEngineSoundBufferGetStatus(gMveSoundBuffer, &dwStatus)) {
             return;
         }

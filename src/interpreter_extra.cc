@@ -1973,7 +1973,7 @@ static void opMetarule3(Program* program)
 
     switch (rule) {
     case METARULE3_CLR_FIXED_TIMED_EVENTS:
-        if (1) {
+        {
             _scrSetQueueTestVals(static_cast<Object*>(param1.pointerValue), param2.integerValue);
             _queue_clear_type(EVENT_TYPE_SCRIPT, _scrQueueRemoveFixed);
         }
@@ -1988,7 +1988,7 @@ static void opMetarule3(Program* program)
         result.integerValue = wmMapMarkMapEntranceState(param1.integerValue, param2.integerValue, param3.integerValue);
         break;
     case METARULE3_WM_SUBTILE_STATE:
-        if (1) {
+        {
             int state;
             if (wmSubTileGetVisitedState(param1.integerValue, param2.integerValue, &state) == 0) {
                 result.integerValue = state;
@@ -1996,7 +1996,7 @@ static void opMetarule3(Program* program)
         }
         break;
     case METARULE3_TILE_GET_NEXT_CRITTER:
-        if (1) {
+        {
             int tile = param1.integerValue;
             int elevation = param2.integerValue;
             Object* previousCritter = static_cast<Object*>(param3.pointerValue);
@@ -2022,7 +2022,7 @@ static void opMetarule3(Program* program)
         }
         break;
     case METARULE3_ART_SET_BASE_FID_NUM:
-        if (1) {
+        {
             Object* obj = static_cast<Object*>(param1.pointerValue);
             int frmId = param2.integerValue;
 
@@ -2862,7 +2862,7 @@ static void opCritterAddTrait(Program* program)
         if (PID_TYPE(object->pid) == OBJ_TYPE_CRITTER) {
             switch (kind) {
             case CRITTER_TRAIT_PERK:
-                if (1) {
+                {
                     char* critterName = critterGetName(object);
                     char* perkName = perkGetName(param);
                     debugPrint("\nintextra::critter_add_trait: Adding Perk %s to %s", perkName, critterName);
@@ -3239,7 +3239,7 @@ static void opMetarule(Program* program)
         result = skillIsTagged(param.integerValue);
         break;
     case METARULE_DROP_ALL_INVEN:
-        if (1) {
+        {
             Object* object = static_cast<Object*>(param.pointerValue);
             result = itemDropAll(object, object->tile);
             if (gDude == object) {
@@ -3249,7 +3249,7 @@ static void opMetarule(Program* program)
         }
         break;
     case METARULE_INVEN_UNWIELD_WHO:
-        if (1) {
+        {
             Object* object = static_cast<Object*>(param.pointerValue);
 
             int hand = HAND_RIGHT;
@@ -3290,7 +3290,7 @@ static void opMetarule(Program* program)
         result = settings.preferences.violence_level;
         break;
     case METARULE_WEAPON_DAMAGE_TYPE:
-        if (1) {
+        {
             Object* object = static_cast<Object*>(param.pointerValue);
             if (PID_TYPE(object->pid) == OBJ_TYPE_ITEM) {
                 if (itemGetType(object) == ITEM_TYPE_WEAPON) {
@@ -3309,7 +3309,7 @@ static void opMetarule(Program* program)
         }
         break;
     case METARULE_CRITTER_BARTERS:
-        if (1) {
+        {
             Object* object = static_cast<Object*>(param.pointerValue);
             if (PID_TYPE(object->pid) == OBJ_TYPE_CRITTER) {
                 Proto* proto;
@@ -3324,7 +3324,7 @@ static void opMetarule(Program* program)
         result = critterGetKillType(static_cast<Object*>(param.pointerValue));
         break;
     case METARULE_SET_CAR_CARRY_AMOUNT:
-        if (1) {
+        {
             Proto* proto;
             if (protoGetProto(PROTO_ID_CAR_TRUNK, &proto) != -1) {
                 proto->item.data.container.maxSize = param.integerValue;
@@ -3333,7 +3333,7 @@ static void opMetarule(Program* program)
         }
         break;
     case METARULE_GET_CAR_CARRY_AMOUNT:
-        if (1) {
+        {
             Proto* proto;
             if (protoGetProto(PROTO_ID_CAR_TRUNK, &proto) != -1) {
                 result = proto->item.data.container.maxSize;

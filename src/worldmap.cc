@@ -1635,7 +1635,7 @@ static int wmReadEncBaseType(char* name, int* valuePtr)
 
     strncpy(encounter->name, name, 40);
 
-    while (1) {
+    while (true) {
         if (wmParseEncBaseSubTypeStr(&(encounter->entries[encounter->entriesLength]), &string) == -1) {
             return -1;
         }

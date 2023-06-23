@@ -292,7 +292,7 @@ void gameTimeGetDate(int* monthPtr, int* dayPtr, int* yearPtr)
     int month = gStartMonth;
     int day = (gGameTime / GAME_TIME_TICKS_PER_DAY + gStartDay) % 365;
 
-    while (1) {
+    while (true) {
         int daysInMonth = gGameTimeDaysPerMonth[month];
         if (day < daysInMonth) {
             break;
@@ -1766,7 +1766,7 @@ static int _scr_header_load()
         return -1;
     }
 
-    while (1) {
+    while (true) {
         int ch = fileReadChar(stream);
         if (ch == -1) {
             break;

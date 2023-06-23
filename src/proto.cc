@@ -1260,7 +1260,7 @@ static int _proto_header_load()
         }
 
         int ch = '\0';
-        while (1) {
+        while (true) {
             ch = fileReadChar(stream);
             if (ch == -1) {
                 break;

@@ -1391,7 +1391,7 @@ int actionUseSkill(Object* a1, Object* a2, int skill)
         }
 
         // SFALL: Science on critters patch.
-        if (1) {
+        if (true) {
             int targetType = SCIENCE_REPAIR_TARGET_TYPE_DEFAULT;
             configGetInt(&gSfallConfig, SFALL_CONFIG_MISC_KEY, SFALL_CONFIG_SCIENCE_REPAIR_TARGET_TYPE_KEY, &targetType);
             if (targetType == SCIENCE_REPAIR_TARGET_TYPE_DUDE) {
@@ -2091,7 +2091,7 @@ int actionPush(Object* a1, Object* a2)
         }
 
         return -1;
-    } while (0);
+    } while (false);
 
     int actionPoints;
     if (isInCombat()) {

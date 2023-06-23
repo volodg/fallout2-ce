@@ -53,10 +53,17 @@
 #include "text_font.h"
 #include "tile.h"
 #include "trait.h"
-#include "version.h"
 #include "window_manager.h"
 #include "word_wrap.h"
 #include "worldmap.h"
+
+// Migrated
+#include "version.h"
+
+extern "C"
+{
+    char c_get_version_release();
+}
 
 namespace fallout {
 
@@ -548,7 +555,7 @@ int lsgSaveGame(int mode)
                 scrollDirection = LOAD_SAVE_SCROLL_DIRECTION_DOWN;
                 break;
             case 502:
-                if (1) {
+                {
                     int mouseX;
                     int mouseY;
                     mouseGetPositionInWindow(gLoadSaveWindow, &mouseX, &mouseY);
@@ -1053,7 +1060,7 @@ int lsgLoadGame(int mode)
                 scrollDirection = LOAD_SAVE_SCROLL_DIRECTION_DOWN;
                 break;
             case 502:
-                if (1) {
+                {
                     int mouseX;
                     int mouseY;
                     mouseGetPositionInWindow(gLoadSaveWindow, &mouseX, &mouseY);
@@ -1764,7 +1771,7 @@ static int lsgLoadGameInSlot(int slot)
             }
 
             // TODO: For now silently ignore remaining sections.
-        } while (0);
+        } while (false);
 
         fileClose(_flptr);
     }
@@ -1818,8 +1825,8 @@ static int lsgSaveHeaderInSlot(int slot)
         return -1;
     }
 
-    ptr->versionRelease = 'R';
-    if (fileWriteUInt8(_flptr, 'R') == -1) {
+    ptr->versionRelease = c_get_version_release();
+    if (fileWriteUInt8(_flptr, c_get_version_release()) == -1) {
         return -1;
     }
 
@@ -2087,7 +2094,7 @@ static void _DrawInfoBox(int slot)
 
     switch (_LSstatus[slot]) {
     case SLOT_STATE_OCCUPIED:
-        if (1) {
+        {
             LoadSaveSlotData* ptr = &(_LSData[slot]);
             fontDrawText(gLoadSaveWindowBuffer + LS_WINDOW_WIDTH * 254 + 396, ptr->characterName, LS_WINDOW_WIDTH, LS_WINDOW_WIDTH, color);
 

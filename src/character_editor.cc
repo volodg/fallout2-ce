@@ -3873,7 +3873,7 @@ static int characterEditorShowOptions()
                 if (btn != -1) {
                     buttonSetCallbacks(btn, _gsound_lrg_butt_press, NULL);
                 }
-            } while (0);
+            } while (false);
 
             y += height + 3;
         }

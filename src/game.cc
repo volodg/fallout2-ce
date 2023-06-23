@@ -63,9 +63,11 @@
 #include "text_font.h"
 #include "tile.h"
 #include "trait.h"
-#include "version.h"
 #include "window_manager.h"
 #include "worldmap.h"
+
+// Migrated
+#include "version.h"
 
 extern "C"
 {
@@ -93,6 +95,7 @@ static void showSplash();
 static char _aGame_0[] = "game\\";
 
 // 0x5020B8
+// TODO
 static char* _aDec11199816543 = (char*)c_get_version_build_time();
 
 // 0x5186B4

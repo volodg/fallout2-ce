@@ -15,8 +15,10 @@
 #include "sfall_config.h"
 #include "svga.h"
 #include "text_font.h"
-#include "version.h"
 #include "window_manager.h"
+
+// Migrated
+#include "version.h"
 
 extern "C"
 {

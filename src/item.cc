@@ -830,7 +830,7 @@ int itemGetCost(Object* obj)
         cost += objectGetCost(obj);
         break;
     case ITEM_TYPE_WEAPON:
-        if (1) {
+        {
             // NOTE: Uninline.
             int ammoQuantity = ammoGetQuantity(obj);
             if (ammoQuantity > 0) {
@@ -846,7 +846,7 @@ int itemGetCost(Object* obj)
         }
         break;
     case ITEM_TYPE_AMMO:
-        if (1) {
+        {
             // NOTE: Uninline.
             int ammoQuantity = ammoGetQuantity(obj);
             cost *= ammoQuantity;

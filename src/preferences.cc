@@ -648,7 +648,7 @@ static void _UpdateThing(int index)
         blitBufferToBuffer(_preferencesFrmImages[PREFERENCES_WINDOW_FRM_BACKGROUND].getData() + 640 * (meta->knobY - 12) + 384, 240, 24, 640, gPreferencesWindowBuffer + 640 * (meta->knobY - 12) + 384, 640);
         switch (index) {
         case PREF_COMBAT_SPEED:
-            if (1) {
+            {
                 double value = *meta->valuePtr;
                 value = std::clamp(value, 0.0, 50.0);
 
@@ -657,7 +657,7 @@ static void _UpdateThing(int index)
             }
             break;
         case PREF_TEXT_BASE_DELAY:
-            if (1) {
+            {
                 gPreferencesTextBaseDelay1 = std::clamp(gPreferencesTextBaseDelay1, 1.0, 6.0);
 
                 int x = (int)((6.0 - gPreferencesTextBaseDelay1) * 43.8 + 384.0);
@@ -674,7 +674,7 @@ static void _UpdateThing(int index)
         case PREF_MUSIC_VOLUME:
         case PREF_SFX_VOLUME:
         case PREF_SPEECH_VOLUME:
-            if (1) {
+            {
                 double value = *meta->valuePtr;
                 value = std::clamp(value, meta->minValue, meta->maxValue);
 
@@ -698,7 +698,7 @@ static void _UpdateThing(int index)
             }
             break;
         case PREF_BRIGHTNESS:
-            if (1) {
+            {
                 gPreferencesBrightness1 = std::clamp(gPreferencesBrightness1, 1.0, 1.17999267578125);
 
                 int x = (int)((gPreferencesBrightness1 - meta->minValue) * (219.0 / (meta->maxValue - meta->minValue)) + 384.0);
@@ -708,7 +708,7 @@ static void _UpdateThing(int index)
             }
             break;
         case PREF_MOUSE_SENSITIVIY:
-            if (1) {
+            {
                 gPreferencesMouseSensitivity1 = std::clamp(gPreferencesMouseSensitivity1, 1.0, 2.5);
 
                 int x = (int)((gPreferencesMouseSensitivity1 - meta->minValue) * (219.0 / (meta->maxValue - meta->minValue)) + 384.0);
