@@ -12,6 +12,8 @@ extern "C"
 
     void c_set_audio_engine_device_id(SDL_AudioDeviceID value);
     SDL_AudioDeviceID c_get_audio_engine_device_id();
+
+    bool c_audio_engine_ss_initialized();
 }
 
 namespace fallout {
@@ -41,7 +43,7 @@ static AudioEngineSoundBuffer gAudioEngineSoundBuffers[AUDIO_ENGINE_SOUND_BUFFER
 
 static bool audioEngineIsInitialized()
 {
-    return c_get_audio_engine_device_id() != -1;
+    return c_audio_engine_ss_initialized();
 }
 
 static bool soundBufferIsValid(int soundBufferIndex)
@@ -112,7 +114,7 @@ bool audioEngineInit()
     desiredSpec.callback = audioEngineMixin;
 
     c_set_audio_engine_device_id(SDL_OpenAudioDevice(NULL, 0, &desiredSpec, &gAudioEngineSpec, SDL_AUDIO_ALLOW_ANY_CHANGE));
-    if (c_get_audio_engine_device_id() == -1) {
+    if (!audioEngineIsInitialized()) {
         return false;
     }
 

@@ -12,3 +12,8 @@ pub extern "C" fn c_set_audio_engine_device_id(value: SDL_AudioDeviceID) {
 pub extern "C" fn c_get_audio_engine_device_id() -> SDL_AudioDeviceID {
     AUDIO_ENGINE_DEVICE_ID.load(Ordering::Relaxed)
 }
+
+#[no_mangle]
+pub extern "C" fn c_audio_engine_ss_initialized() -> bool {
+    AUDIO_ENGINE_DEVICE_ID.load(Ordering::Relaxed) != u32::MAX
+}

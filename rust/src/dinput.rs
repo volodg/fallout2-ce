@@ -3,13 +3,11 @@ use sdl2::sys::SDL_EventType::{SDL_KEYDOWN, SDL_MOUSEWHEEL, SDL_TEXTINPUT};
 use sdl2::sys::SDL_bool::SDL_TRUE;
 use sdl2::sys::{
     SDL_Event, SDL_FlushEvents, SDL_GetRelativeMouseState, SDL_InitSubSystem, SDL_PumpEvents,
-    SDL_QuitSubSystem, SDL_SetRelativeMouseMode, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_X1,
+    SDL_QuitSubSystem, SDL_SetRelativeMouseMode, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT,
     SDL_INIT_EVENTS,
 };
-use std::cell::Cell;
-use std::ptr::{null, null_mut};
+use std::ptr::null_mut;
 use std::sync::atomic::{AtomicI32, Ordering};
-use std::sync::Mutex;
 
 static MOUSE_WHEEL_DELTA_X: AtomicI32 = AtomicI32::new(0);
 static MOUSE_WHEEL_DELTA_Y: AtomicI32 = AtomicI32::new(0);

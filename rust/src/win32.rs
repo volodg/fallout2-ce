@@ -1,6 +1,4 @@
-use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
 
 static PROGRAM_IS_ACTIVE: AtomicBool = AtomicBool::new(false);
 
