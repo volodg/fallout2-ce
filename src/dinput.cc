@@ -4,12 +4,16 @@ extern "C"
 {
     bool c_direct_input_init();
     void c_direct_input_free();
+    bool c_mouse_device_acquire();
+    bool c_mouse_device_unacquire();
+
+    void c_set_g_mouse_wheel_delta_x(int value);
+    int c_get_g_mouse_wheel_delta_x();
+    void c_set_g_mouse_wheel_delta_y(int value);
+    int c_get_g_mouse_wheel_delta_y();
 }
 
 namespace fallout {
-
-static int gMouseWheelDeltaX = 0;
-static int gMouseWheelDeltaY = 0;
 
 // 0x4E0400
 bool directInputInit()
@@ -26,13 +30,13 @@ void directInputFree()
 // 0x4E04E8
 bool mouseDeviceAcquire()
 {
-    return true;
+    return c_mouse_device_acquire();
 }
 
 // 0x4E0514
 bool mouseDeviceUnacquire()
 {
-    return true;
+    return c_mouse_device_unacquire();
 }
 
 // 0x4E053C
@@ -49,11 +53,11 @@ bool mouseDeviceGetData(MouseData* mouseState)
     Uint32 buttons = SDL_GetRelativeMouseState(&(mouseState->x), &(mouseState->y));
     mouseState->buttons[0] = (buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
     mouseState->buttons[1] = (buttons & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
-    mouseState->wheelX = gMouseWheelDeltaX;
-    mouseState->wheelY = gMouseWheelDeltaY;
+    mouseState->wheelX = c_get_g_mouse_wheel_delta_x();
+    mouseState->wheelY = c_get_g_mouse_wheel_delta_y();
 
-    gMouseWheelDeltaX = 0;
-    gMouseWheelDeltaY = 0;
+    c_set_g_mouse_wheel_delta_x(0);
+    c_set_g_mouse_wheel_delta_y(0);
 
     return true;
 }
@@ -71,8 +75,8 @@ void handleMouseEvent(SDL_Event* event)
     // processed later in `mouseDeviceGetData` via `SDL_GetRelativeMouseState`.
 
     if (event->type == SDL_MOUSEWHEEL) {
-        gMouseWheelDeltaX += event->wheel.x;
-        gMouseWheelDeltaY += event->wheel.y;
+        c_set_g_mouse_wheel_delta_x(c_get_g_mouse_wheel_delta_x() + event->wheel.x);
+        c_set_g_mouse_wheel_delta_y(c_get_g_mouse_wheel_delta_y() + event->wheel.y);
     }
 }
 
