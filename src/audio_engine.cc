@@ -9,6 +9,9 @@
 extern "C"
 {
     bool c_get_program_is_active();
+
+    void c_set_audio_engine_device_id(SDL_AudioDeviceID value);
+    SDL_AudioDeviceID c_get_audio_engine_device_id();
 }
 
 namespace fallout {
@@ -34,12 +37,11 @@ static bool soundBufferIsValid(int soundBufferIndex);
 static void audioEngineMixin(void* userData, Uint8* stream, int length);
 
 static SDL_AudioSpec gAudioEngineSpec;
-static SDL_AudioDeviceID gAudioEngineDeviceId = -1;
 static AudioEngineSoundBuffer gAudioEngineSoundBuffers[AUDIO_ENGINE_SOUND_BUFFERS];
 
 static bool audioEngineIsInitialized()
 {
-    return gAudioEngineDeviceId != -1;
+    return c_get_audio_engine_device_id() != -1;
 }
 
 static bool soundBufferIsValid(int soundBufferIndex)
@@ -109,12 +111,12 @@ bool audioEngineInit()
     desiredSpec.samples = 1024;
     desiredSpec.callback = audioEngineMixin;
 
-    gAudioEngineDeviceId = SDL_OpenAudioDevice(NULL, 0, &desiredSpec, &gAudioEngineSpec, SDL_AUDIO_ALLOW_ANY_CHANGE);
-    if (gAudioEngineDeviceId == -1) {
+    c_set_audio_engine_device_id(SDL_OpenAudioDevice(NULL, 0, &desiredSpec, &gAudioEngineSpec, SDL_AUDIO_ALLOW_ANY_CHANGE));
+    if (c_get_audio_engine_device_id() == -1) {
         return false;
     }
 
-    SDL_PauseAudioDevice(gAudioEngineDeviceId, 0);
+    SDL_PauseAudioDevice(c_get_audio_engine_device_id(), 0);
 
     return true;
 }
@@ -122,8 +124,8 @@ bool audioEngineInit()
 void audioEngineExit()
 {
     if (audioEngineIsInitialized()) {
-        SDL_CloseAudioDevice(gAudioEngineDeviceId);
-        gAudioEngineDeviceId = -1;
+        SDL_CloseAudioDevice(c_get_audio_engine_device_id());
+        c_set_audio_engine_device_id(-1);
     }
 
     if (SDL_WasInit(SDL_INIT_AUDIO)) {
@@ -134,14 +136,14 @@ void audioEngineExit()
 void audioEnginePause()
 {
     if (audioEngineIsInitialized()) {
-        SDL_PauseAudioDevice(gAudioEngineDeviceId, 1);
+        SDL_PauseAudioDevice(c_get_audio_engine_device_id(), 1);
     }
 }
 
 void audioEngineResume()
 {
     if (audioEngineIsInitialized()) {
-        SDL_PauseAudioDevice(gAudioEngineDeviceId, 0);
+        SDL_PauseAudioDevice(c_get_audio_engine_device_id(), 0);
     }
 }
 
@@ -435,7 +437,7 @@ bool audioEngineSoundBufferLock(int soundBufferIndex, unsigned int writePos, uns
     return true;
 }
 
-bool audioEngineSoundBufferUnlock(int soundBufferIndex, void* audioPtr1, unsigned int audioBytes1, void* audioPtr2, unsigned int audioBytes2)
+bool audioEngineSoundBufferUnlock(int soundBufferIndex)
 {
     if (!audioEngineIsInitialized()) {
         return false;
