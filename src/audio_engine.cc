@@ -6,6 +6,11 @@
 
 #include <SDL.h>
 
+extern "C"
+{
+    bool c_get_program_is_active();
+}
+
 namespace fallout {
 
 #define AUDIO_ENGINE_SOUND_BUFFERS 8
@@ -24,8 +29,6 @@ struct AudioEngineSoundBuffer {
     SDL_AudioStream* stream;
     std::recursive_mutex mutex;
 };
-
-extern bool gProgramIsActive;
 
 static bool soundBufferIsValid(int soundBufferIndex);
 static void audioEngineMixin(void* userData, Uint8* stream, int length);
@@ -48,7 +51,7 @@ static void audioEngineMixin(void* userData, Uint8* stream, int length)
 {
     memset(stream, gAudioEngineSpec.silence, length);
 
-    if (!gProgramIsActive) {
+    if (!c_get_program_is_active()) {
         return;
     }
 

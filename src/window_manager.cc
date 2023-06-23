@@ -8,7 +8,6 @@
 
 #include "color.h"
 #include "debug.h"
-#include "dinput.h"
 #include "draw.h"
 #include "input.h"
 #include "memory.h"
@@ -18,6 +17,9 @@
 #include "text_font.h"
 #include "vcr.h"
 #include "window_manager_private.h"
+
+// Migrated
+#include "dinput.h"
 
 namespace fallout {
 

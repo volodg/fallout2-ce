@@ -16,11 +16,15 @@
 #include "platform/ios/paths.h"
 #endif
 
+extern "C"
+{
+    void c_set_program_is_active(bool value);
+}
+
 namespace fallout {
 
 #ifdef _WIN32
 // 0x51E444
-bool gProgramIsActive = false;
 
 // GNW95MUTEX
 HANDLE _GNW95_mutex = NULL;
@@ -32,7 +36,7 @@ int main(int argc, char* argv[])
     if (GetLastError() == ERROR_SUCCESS) {
         SDL_ShowCursor(SDL_DISABLE);
 
-        gProgramIsActive = true;
+        c_set_program_is_active(true);
         falloutMain(argc, argv);
 
         CloseHandle(_GNW95_mutex);
@@ -40,7 +44,6 @@ int main(int argc, char* argv[])
     return 0;
 }
 #else
-bool gProgramIsActive = false;
 
 int main(int argc, char* argv[])
 {
@@ -63,7 +66,7 @@ int main(int argc, char* argv[])
 #endif
 
     SDL_ShowCursor(SDL_DISABLE);
-    gProgramIsActive = true;
+    c_set_program_is_active(true);
     return falloutMain(argc, argv);
 }
 #endif

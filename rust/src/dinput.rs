@@ -8,9 +8,10 @@ use sdl2::sys::{
 };
 use std::cell::Cell;
 use std::ptr::{null, null_mut};
+use std::sync::Mutex;
 
-const MOUSE_WHEEL_DELTA_X: Cell<c_int> = Cell::new(0);
-const MOUSE_WHEEL_DELTA_Y: Cell<c_int> = Cell::new(0);
+static MOUSE_WHEEL_DELTA_X: Mutex<Cell<c_int>> = Mutex::new(Cell::new(0));
+static MOUSE_WHEEL_DELTA_Y: Mutex<Cell<c_int>> = Mutex::new(Cell::new(0));
 
 #[no_mangle]
 pub extern "C" fn c_direct_input_init() -> bool {
@@ -88,12 +89,20 @@ pub extern "C" fn c_mouse_device_get_data(mouse_state: *mut MouseData) -> bool {
     unsafe {
         (*mouse_state).buttons[0] = ((buttons & sdl_button(SDL_BUTTON_LEFT)) != 0) as c_uchar;
         (*mouse_state).buttons[1] = ((buttons & sdl_button(SDL_BUTTON_RIGHT)) != 0) as c_uchar;
-        (*mouse_state).wheel_x = MOUSE_WHEEL_DELTA_X.get();
-        (*mouse_state).wheel_y = MOUSE_WHEEL_DELTA_Y.get();
+        {
+            (*mouse_state).wheel_x = MOUSE_WHEEL_DELTA_X.lock().expect("locked").get();
+        }
+        {
+            (*mouse_state).wheel_y = MOUSE_WHEEL_DELTA_Y.lock().expect("locked").get();
+        }
     }
 
-    MOUSE_WHEEL_DELTA_X.set(0);
-    MOUSE_WHEEL_DELTA_Y.set(0);
+    {
+        MOUSE_WHEEL_DELTA_X.lock().expect("locked").set(0);
+    }
+    {
+        MOUSE_WHEEL_DELTA_Y.lock().expect("locked").set(0);
+    }
 
     true
 }
@@ -116,8 +125,18 @@ pub extern "C" fn c_handle_mouse_event(event: *mut SDL_Event) {
 
     unsafe {
         if (*event).type_ == SDL_MOUSEWHEEL as sdl2::sys::Uint32 {
-            MOUSE_WHEEL_DELTA_X.set(MOUSE_WHEEL_DELTA_X.get() + (*event).wheel.x);
-            MOUSE_WHEEL_DELTA_Y.set(MOUSE_WHEEL_DELTA_Y.get() + (*event).wheel.y);
+            let x_value = {
+                MOUSE_WHEEL_DELTA_X.lock().expect("locked").get()
+            };
+            {
+                MOUSE_WHEEL_DELTA_X.lock().expect("locked").set(x_value + (*event).wheel.x);
+            }
+            let y_value = {
+                MOUSE_WHEEL_DELTA_Y.lock().expect("locked").get()
+            };
+            {
+                MOUSE_WHEEL_DELTA_Y.lock().expect("locked").set(y_value + (*event).wheel.y);
+            }
         }
     }
 }

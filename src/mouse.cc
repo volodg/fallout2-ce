@@ -1,13 +1,15 @@
 #include "mouse.h"
 
 #include "color.h"
-#include "dinput.h"
 #include "input.h"
 #include "kb.h"
 #include "memory.h"
 #include "svga.h"
 #include "touch.h"
 #include "vcr.h"
+
+// Migrated
+#include "dinput.h"
 
 namespace fallout {
 

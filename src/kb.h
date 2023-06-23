@@ -3,6 +3,7 @@
 
 #include <SDL.h>
 
+// Migrated
 #include "dinput.h"
 
 namespace fallout {

@@ -4,7 +4,6 @@
 
 #include "audio_engine.h"
 #include "color.h"
-#include "dinput.h"
 #include "draw.h"
 #include "kb.h"
 #include "memory.h"
@@ -13,7 +12,15 @@
 #include "text_font.h"
 #include "touch.h"
 #include "vcr.h"
-#include "win32.h"
+
+// Migrated
+#include "dinput.h"
+
+extern "C"
+{
+    void c_set_program_is_active(bool value);
+    bool c_get_program_is_active();
+}
 
 namespace fallout {
 
@@ -182,7 +189,7 @@ int inputGetInput()
 
     _GNW95_process_message();
 
-    if (!gProgramIsActive) {
+    if (!c_get_program_is_active()) {
         _GNW95_lost_focus();
     }
 
@@ -1110,12 +1117,12 @@ void _GNW95_process_message()
                 handleWindowSizeChanged();
                 break;
             case SDL_WINDOWEVENT_FOCUS_GAINED:
-                gProgramIsActive = true;
+                c_set_program_is_active(true);
                 windowRefreshAll(&_scr_size);
                 audioEngineResume();
                 break;
             case SDL_WINDOWEVENT_FOCUS_LOST:
-                gProgramIsActive = false;
+                c_set_program_is_active(false);
                 audioEnginePause();
                 break;
             }
@@ -1128,7 +1135,7 @@ void _GNW95_process_message()
 
     touch_process_gesture();
 
-    if (gProgramIsActive && !keyboardIsDisabled()) {
+    if (c_get_program_is_active() && !keyboardIsDisabled()) {
         // NOTE: Uninline
         int tick = getTicks();
 
@@ -1198,7 +1205,7 @@ void _GNW95_lost_focus()
         _focus_func(false);
     }
 
-    while (!gProgramIsActive) {
+    while (!c_get_program_is_active()) {
         _GNW95_process_message();
 
         if (_idle_func != NULL) {
