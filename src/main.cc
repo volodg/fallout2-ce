@@ -36,7 +36,6 @@
 #include "sfall_global_scripts.h"
 #include "svga.h"
 #include "text_font.h"
-#include "window.h"
 #include "window_manager.h"
 #include "window_manager_private.h"
 #include "word_wrap.h"

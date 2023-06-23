@@ -6,7 +6,6 @@
 #include "mouse.h"
 #include "movie.h"
 #include "platform_compat.h"
-#include "svga.h"
 #include "text_font.h"
 #include "window_manager.h"
 

@@ -12,7 +12,6 @@
 #include "combat_ai.h"
 #include "critter.h"
 #include "debug.h"
-#include "dialog.h"
 #include "display_monitor.h"
 #include "endgame.h"
 #include "game.h"

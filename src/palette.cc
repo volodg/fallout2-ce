@@ -7,7 +7,6 @@
 #include "debug.h"
 #include "game_sound.h"
 #include "input.h"
-#include "svga.h"
 
 namespace fallout {
 

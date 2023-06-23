@@ -24,7 +24,6 @@
 #include "mouse.h"
 #include "object.h"
 #include "palette.h"
-#include "pipboy.h"
 #include "platform_compat.h"
 #include "random.h"
 #include "settings.h"

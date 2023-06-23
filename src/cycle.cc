@@ -4,7 +4,6 @@
 #include "input.h"
 #include "palette.h"
 #include "settings.h"
-#include "svga.h"
 
 namespace fallout {
 

@@ -7,8 +7,6 @@
 #include "art.h"
 #include "automap.h"
 #include "color.h"
-#include "combat.h"
-#include "config.h"
 #include "critter.h"
 #include "cycle.h"
 #include "dbox.h"

@@ -7,7 +7,6 @@
 
 #include "art.h"
 #include "color.h"
-#include "config.h"
 #include "dbox.h"
 #include "debug.h"
 #include "draw.h"

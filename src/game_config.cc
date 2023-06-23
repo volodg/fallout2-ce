@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "main.h"
 #include "platform_compat.h"
 
 namespace fallout {

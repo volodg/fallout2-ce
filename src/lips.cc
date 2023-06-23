@@ -11,7 +11,6 @@
 #include "memory.h"
 #include "platform_compat.h"
 #include "sound.h"
-#include "svga.h"
 
 namespace fallout {
 

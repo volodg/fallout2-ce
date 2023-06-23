@@ -3,8 +3,6 @@
 #include <limits.h>
 #include <stdlib.h>
 
-#include <random>
-
 #include "debug.h"
 #include "platform_compat.h"
 #include "scripts.h"

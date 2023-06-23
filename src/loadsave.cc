@@ -25,7 +25,6 @@
 #include "game_mouse.h"
 #include "game_movie.h"
 #include "game_sound.h"
-#include "geometry.h"
 #include "input.h"
 #include "interface.h"
 #include "item.h"
@@ -1790,6 +1789,12 @@ static int lsgLoadGameInSlot(int slot)
     return 0;
 }
 
+extern "C"
+{
+    short c_get_major_version();
+    short c_get_minor_version();
+}
+
 // 0x47DF10
 static int lsgSaveHeaderInSlot(int slot)
 {
@@ -1803,8 +1808,8 @@ static int lsgSaveHeaderInSlot(int slot)
     }
 
     short temp[3];
-    temp[0] = VERSION_MAJOR;
-    temp[1] = VERSION_MINOR;
+    temp[0] = c_get_major_version();
+    temp[1] = c_get_minor_version();
 
     ptr->versionMinor = temp[0];
     ptr->versionMajor = temp[1];

@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "color.h"
-#include "svga.h"
 
 namespace fallout {
 

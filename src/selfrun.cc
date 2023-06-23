@@ -1,7 +1,5 @@
 #include "selfrun.h"
 
-#include <stdlib.h>
-
 #include "db.h"
 #include "game.h"
 #include "input.h"

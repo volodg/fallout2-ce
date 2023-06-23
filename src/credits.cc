@@ -8,7 +8,6 @@
 #include "color.h"
 #include "cycle.h"
 #include "db.h"
-#include "debug.h"
 #include "draw.h"
 #include "game_mouse.h"
 #include "input.h"

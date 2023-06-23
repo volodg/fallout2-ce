@@ -15,7 +15,6 @@
 #include "interface.h"
 #include "memory.h"
 #include "sfall_config.h"
-#include "svga.h"
 #include "text_font.h"
 #include "window_manager.h"
 

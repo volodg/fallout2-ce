@@ -6,7 +6,6 @@
 #include "art.h"
 #include "color.h"
 #include "combat.h"
-#include "combat_ai.h"
 #include "critter.h"
 #include "debug.h"
 #include "display_monitor.h"
@@ -30,9 +29,7 @@
 #include "settings.h"
 #include "stat.h"
 #include "svga.h"
-#include "text_object.h"
 #include "tile.h"
-#include "trait.h"
 #include "vcr.h"
 
 namespace fallout {

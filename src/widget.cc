@@ -16,9 +16,9 @@ void _showRegion(int a1)
 // 0x4B5C24
 int _update_widgets()
 {
-    for (int index = 0; index < 32; index++) {
-        if (_updateRegions[index]) {
-            _showRegion(_updateRegions[index]);
+    for (int _updateRegion : _updateRegions) {
+        if (_updateRegion) {
+            _showRegion(_updateRegion);
         }
     }
 

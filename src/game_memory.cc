@@ -1,9 +1,7 @@
 #include "game_memory.h"
 
-#include "db.h"
 #include "dictionary.h"
 #include "memory.h"
-#include "memory_defs.h"
 #include "memory_manager.h"
 
 namespace fallout {

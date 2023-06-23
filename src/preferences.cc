@@ -11,7 +11,6 @@
 #include "game.h"
 #include "game_mouse.h"
 #include "game_sound.h"
-#include "graph_lib.h"
 #include "input.h"
 #include "kb.h"
 #include "message.h"

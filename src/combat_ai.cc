@@ -31,7 +31,6 @@
 #include "settings.h"
 #include "skill.h"
 #include "stat.h"
-#include "svga.h"
 #include "text_object.h"
 #include "tile.h"
 

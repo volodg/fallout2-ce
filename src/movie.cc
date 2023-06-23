@@ -11,7 +11,6 @@
 #include "geometry.h"
 #include "input.h"
 #include "memory_manager.h"
-#include "movie_effect.h"
 #include "movie_lib.h"
 #include "platform_compat.h"
 #include "pointer_registry.h"

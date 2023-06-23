@@ -15,7 +15,6 @@
 #include "memory_manager.h"
 #include "platform_compat.h"
 #include "sfall_global_scripts.h"
-#include "svga.h"
 
 namespace fallout {
 

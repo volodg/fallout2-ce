@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "input.h"
-#include "svga.h"
 #include "vcr.h"
 
 namespace fallout {

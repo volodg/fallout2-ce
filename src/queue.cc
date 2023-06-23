@@ -6,12 +6,10 @@
 #include "game.h"
 #include "game_sound.h"
 #include "item.h"
-#include "map.h"
 #include "memory.h"
 #include "message.h"
 #include "object.h"
 #include "perk.h"
-#include "proto.h"
 #include "proto_instance.h"
 #include "scripts.h"
 

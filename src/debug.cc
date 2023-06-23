@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <SDL.h>
-
 #include "memory.h"
 #include "platform_compat.h"
 #include "window_manager_private.h"
