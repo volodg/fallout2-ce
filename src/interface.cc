@@ -1396,7 +1396,7 @@ void interfaceBarEndButtonsShow(bool animated)
         int time = 0;
         int frame = 0;
         while (frame < frameCount) {
-            sharedFpsLimiter.mark();
+            fps_limiter_mark(sharedFpsLimiter);
 
             if (getTicksSince(time) >= delay) {
                 unsigned char* src = artGetFrameData(art, frame, 0);
@@ -1411,7 +1411,7 @@ void interfaceBarEndButtonsShow(bool animated)
             gameMouseRefresh();
 
             renderPresent();
-            sharedFpsLimiter.throttle();
+            fps_limiter_throttle(sharedFpsLimiter);
         }
     } else {
         unsigned char* src = artGetFrameData(art, frameCount - 1, 0);
@@ -1455,7 +1455,7 @@ void interfaceBarEndButtonsHide(bool animated)
         int frame = artGetFrameCount(art);
 
         while (frame != 0) {
-            sharedFpsLimiter.mark();
+            fps_limiter_mark(sharedFpsLimiter);
 
             if (getTicksSince(time) >= delay) {
                 unsigned char* src = artGetFrameData(art, frame - 1, 0);
@@ -1471,7 +1471,7 @@ void interfaceBarEndButtonsHide(bool animated)
             gameMouseRefresh();
 
             renderPresent();
-            sharedFpsLimiter.throttle();
+            fps_limiter_throttle(sharedFpsLimiter);
         }
     } else {
         unsigned char* dest = gInterfaceWindowBuffer + gInterfaceBarWidth * 38 + 580 + gInterfaceBarContentOffset;
@@ -1851,7 +1851,7 @@ static void interfaceBarSwapHandsAnimatePutAwayTakeOutSequence(int previousWeapo
     gameMouseSetCursor(MOUSE_CURSOR_WAIT_WATCH);
 
     while (gInterfaceBarSwapHandsInProgress) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         if (_game_user_wants_to_quit) {
             break;
@@ -1860,7 +1860,7 @@ static void interfaceBarSwapHandsAnimatePutAwayTakeOutSequence(int previousWeapo
         inputGetInput();
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     gameMouseSetCursor(MOUSE_CURSOR_NONE);

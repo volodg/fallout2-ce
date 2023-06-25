@@ -147,7 +147,7 @@ void creditsOpen(const char* filePath, int backgroundFid, bool useReversedStyle)
                                     unsigned char* dest = intermediateBuffer + windowWidth * windowHeight - windowWidth + (windowWidth - stringWidth) / 2;
                                     unsigned char* src = stringBuffer;
                                     for (int index = 0; index < lineHeight; index++) {
-                                        sharedFpsLimiter.mark();
+                                        fps_limiter_mark(sharedFpsLimiter);
 
                                         if (inputGetInput() != -1) {
                                             stop = true;
@@ -180,7 +180,7 @@ void creditsOpen(const char* filePath, int backgroundFid, bool useReversedStyle)
 
                                         src += windowWidth;
 
-                                        sharedFpsLimiter.throttle();
+                                        fps_limiter_throttle(sharedFpsLimiter);
                                         renderPresent();
                                     }
 
@@ -191,7 +191,7 @@ void creditsOpen(const char* filePath, int backgroundFid, bool useReversedStyle)
 
                                 if (!stop) {
                                     for (int index = 0; index < windowHeight; index++) {
-                                        sharedFpsLimiter.mark();
+                                        fps_limiter_mark(sharedFpsLimiter);
 
                                         if (inputGetInput() != -1) {
                                             break;
@@ -221,7 +221,7 @@ void creditsOpen(const char* filePath, int backgroundFid, bool useReversedStyle)
 
                                         windowRefresh(window);
 
-                                        sharedFpsLimiter.throttle();
+                                        fps_limiter_throttle(sharedFpsLimiter);
                                         renderPresent();
                                     }
                                 }

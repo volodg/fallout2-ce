@@ -524,7 +524,7 @@ int showDialogBox(const char* title, const char** body, int bodyLength, int x, i
 
     int rc = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -550,7 +550,7 @@ int showDialogBox(const char* title, const char** body, int bodyLength, int x, i
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     windowDestroy(win);
@@ -729,7 +729,7 @@ int showLoadFileDialog(char* title, char** fileList, char* dest, int fileListLen
 
     int rc = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         unsigned int tick = getTicks();
         int keyCode = inputGetInput();
@@ -918,7 +918,7 @@ int showLoadFileDialog(char* title, char** fileList, char* dest, int fileListLen
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     windowDestroy(win);
@@ -1125,7 +1125,7 @@ int showSaveFileDialog(char* title, char** fileList, char* dest, int fileListLen
 
     int rc = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         unsigned int tick = getTicks();
         int keyCode = inputGetInput();
@@ -1378,7 +1378,7 @@ int showSaveFileDialog(char* title, char** fileList, char* dest, int fileListLen
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     endTextInput();

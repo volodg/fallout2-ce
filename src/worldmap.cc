@@ -2980,7 +2980,7 @@ static int wmWorldMapFunc(int a1)
     int rc = 0;
 
     while (true) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -3257,7 +3257,7 @@ static int wmWorldMapFunc(int a1)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (wmInterfaceExit() == -1) {
@@ -5727,7 +5727,7 @@ static int wmTownMapFunc(int* mapIdxPtr)
     CityInfo* city = &(wmAreaInfoList[wmGenData.currentAreaId]);
 
     for (;;) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
         if (keyCode == KEY_CTRL_Q || keyCode == KEY_CTRL_X || keyCode == KEY_F10) {
@@ -5805,7 +5805,7 @@ static int wmTownMapFunc(int* mapIdxPtr)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (wmTownMapExit() == -1) {

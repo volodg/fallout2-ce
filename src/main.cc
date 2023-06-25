@@ -357,7 +357,7 @@ static void mainLoop()
     scriptsEnable();
 
     while (_game_user_wants_to_quit == 0) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -381,7 +381,7 @@ static void mainLoop()
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     scriptsDisable();
@@ -535,12 +535,12 @@ static void showDeath()
             }
 
             while (mouseGetEvent() != 0) {
-                sharedFpsLimiter.mark();
+                fps_limiter_mark(sharedFpsLimiter);
 
                 inputGetInput();
 
                 renderPresent();
-                sharedFpsLimiter.throttle();
+                fps_limiter_throttle(sharedFpsLimiter);
             }
 
             keyboardReset();
@@ -594,12 +594,12 @@ static void showDeath()
             unsigned int time = getTicks();
             int keyCode;
             do {
-                sharedFpsLimiter.mark();
+                fps_limiter_mark(sharedFpsLimiter);
 
                 keyCode = inputGetInput();
 
                 renderPresent();
-                sharedFpsLimiter.throttle();
+                fps_limiter_throttle(sharedFpsLimiter);
             } while (keyCode == -1 && !_main_death_voiceover_done && getTicksSince(time) < delay);
 
             speechSetEndCallback(NULL);
@@ -607,12 +607,12 @@ static void showDeath()
             speechDelete();
 
             while (mouseGetEvent() != 0) {
-                sharedFpsLimiter.mark();
+                fps_limiter_mark(sharedFpsLimiter);
 
                 inputGetInput();
 
                 renderPresent();
-                sharedFpsLimiter.throttle();
+                fps_limiter_throttle(sharedFpsLimiter);
             }
 
             if (keyCode == -1) {

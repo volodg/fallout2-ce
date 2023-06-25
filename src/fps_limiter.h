@@ -2,18 +2,14 @@
 #define FPS_LIMITER_H
 
 namespace fallout {
-
-class FpsLimiter {
-public:
-    FpsLimiter(unsigned int fps = 60);
-    void mark();
-    void throttle() const;
-
-private:
-    const unsigned int _fps;
-    unsigned int _ticks;
-};
-
+struct FpsLimiter;
 } // namespace fallout
+
+extern "C"
+{
+    fallout::FpsLimiter* rust_create_default_fps_limiter();
+    void fps_limiter_mark(fallout::FpsLimiter*);
+    void fps_limiter_throttle(fallout::FpsLimiter*);
+}
 
 #endif /* FPS_LIMITER_H */

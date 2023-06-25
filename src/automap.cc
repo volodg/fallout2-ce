@@ -398,7 +398,7 @@ void automapShow(bool isInGame, bool isUsingScanner)
 
     bool done = false;
     while (!done) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         bool needsRefresh = false;
 
@@ -482,7 +482,7 @@ void automapShow(bool isInGame, bool isUsingScanner)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (isoWasEnabled) {

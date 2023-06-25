@@ -3,8 +3,10 @@
 
 #include <SDL.h>
 
-#include "fps_limiter.h"
 #include "geometry.h"
+
+// Migrated
+#include "fps_limiter.h"
 
 namespace fallout {
 
@@ -17,7 +19,7 @@ extern SDL_Surface* gSdlSurface;
 extern SDL_Renderer* gSdlRenderer;
 extern SDL_Texture* gSdlTexture;
 extern SDL_Surface* gSdlTextureSurface;
-extern FpsLimiter sharedFpsLimiter;
+extern FpsLimiter* sharedFpsLimiter;
 
 int _init_mode_320_200();
 int _init_mode_320_400();

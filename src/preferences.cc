@@ -1219,7 +1219,7 @@ int doPreferences(bool animated)
 
     int rc = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         int eventCode = inputGetInput();
 
@@ -1262,7 +1262,7 @@ int doPreferences(bool animated)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (animated) {
@@ -1429,7 +1429,7 @@ static void _DoThing(int eventCode)
         int sfxVolumeExample = 0;
         int speechVolumeExample = 0;
         while (true) {
-            sharedFpsLimiter.mark();
+            fps_limiter_mark(sharedFpsLimiter);
 
             inputGetInput();
 
@@ -1573,7 +1573,7 @@ static void _DoThing(int eventCode)
                 ;
 
             renderPresent();
-            sharedFpsLimiter.throttle();
+            fps_limiter_throttle(sharedFpsLimiter);
         }
     } else if (preferenceIndex == 19) {
         gPreferencesPlayerSpeedup1 ^= 1;

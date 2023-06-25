@@ -820,7 +820,7 @@ int characterEditorShow(bool isCreationMode)
 
     int rc = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         _frame_time = getTicks();
         int keyCode = inputGetInput();
@@ -1173,7 +1173,7 @@ int characterEditorShow(bool isCreationMode)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (rc == 0) {
@@ -1939,7 +1939,7 @@ static int _get_input_str(int win, int cancelKeyCode, char* text, int maxLength,
 
     int rc = 1;
     while (rc == 1) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         _frame_time = getTicks();
 
@@ -1994,7 +1994,7 @@ static int _get_input_str(int win, int cancelKeyCode, char* text, int maxLength,
         while (getTicksSince(_frame_time) < 1000 / 24) { }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     endTextInput();
@@ -3420,7 +3420,7 @@ static int characterEditorEditAge()
     }
 
     while (true) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         _frame_time = getTicks();
         change = 0;
@@ -3485,7 +3485,7 @@ static int characterEditorEditAge()
             _repFtime = 4;
 
             while (true) {
-                sharedFpsLimiter.mark();
+                fps_limiter_mark(sharedFpsLimiter);
 
                 _frame_time = getTicks();
 
@@ -3543,7 +3543,7 @@ static int characterEditorEditAge()
                 }
 
                 renderPresent();
-                sharedFpsLimiter.throttle();
+                fps_limiter_throttle(sharedFpsLimiter);
             }
         } else {
             windowRefresh(win);
@@ -3553,7 +3553,7 @@ static int characterEditorEditAge()
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     critterSetBaseStat(gDude, STAT_AGE, savedAge);
@@ -3658,7 +3658,7 @@ static void characterEditorEditGender()
     _win_set_button_rest_state(btns[savedGender], 1, 0);
 
     while (true) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         _frame_time = getTicks();
 
@@ -3703,7 +3703,7 @@ static void characterEditorEditGender()
             ;
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     characterEditorDrawGender();
@@ -3728,7 +3728,7 @@ static void characterEditorAdjustPrimaryStat(int eventCode)
 
     bool cont = true;
     do {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         _frame_time = getTicks();
         if (v11 <= 19.2) {
@@ -3787,7 +3787,7 @@ static void characterEditorAdjustPrimaryStat(int eventCode)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     } while (inputGetInput() != 518 && cont);
 
     characterEditorDrawCard();
@@ -3895,7 +3895,7 @@ static int characterEditorShowOptions()
 
         int rc = 0;
         while (rc == 0) {
-            sharedFpsLimiter.mark();
+            fps_limiter_mark(sharedFpsLimiter);
 
             int keyCode = inputGetInput();
 
@@ -4186,7 +4186,7 @@ static int characterEditorShowOptions()
             windowRefresh(win);
 
             renderPresent();
-            sharedFpsLimiter.throttle();
+            fps_limiter_throttle(sharedFpsLimiter);
         }
 
         windowDestroy(win);
@@ -5201,7 +5201,7 @@ static void characterEditorHandleAdjustSkillButtonPressed(int keyCode)
 
     int repeatDelay = 0;
     for (;;) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         _frame_time = getTicks();
         if (repeatDelay <= dbl_5018F0) {
@@ -5289,7 +5289,7 @@ static void characterEditorHandleAdjustSkillButtonPressed(int keyCode)
             int keyCode = inputGetInput();
             if (keyCode != 522 && keyCode != 524 && rc != -1) {
                 renderPresent();
-                sharedFpsLimiter.throttle();
+                fps_limiter_throttle(sharedFpsLimiter);
                 continue;
             }
         }
@@ -5998,7 +5998,7 @@ static int perkDialogHandleInput(int count, void (*refreshProc)())
 
     int rc = 0;
     while (rc == 0) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
         int v19 = 0;
@@ -6113,7 +6113,7 @@ static int perkDialogHandleInput(int count, void (*refreshProc)())
                 gPerkDialogPreviousCurrentLine = -2;
 
                 do {
-                    sharedFpsLimiter.mark();
+                    fps_limiter_mark(sharedFpsLimiter);
 
                     _frame_time = getTicks();
                     if (v19 <= dbl_5019BE) {
@@ -6149,7 +6149,7 @@ static int perkDialogHandleInput(int count, void (*refreshProc)())
                     }
 
                     renderPresent();
-                    sharedFpsLimiter.throttle();
+                    fps_limiter_throttle(sharedFpsLimiter);
                 } while (inputGetInput() != 574);
 
                 break;
@@ -6159,7 +6159,7 @@ static int perkDialogHandleInput(int count, void (*refreshProc)())
 
                 if (count > 11) {
                     do {
-                        sharedFpsLimiter.mark();
+                        fps_limiter_mark(sharedFpsLimiter);
 
                         _frame_time = getTicks();
                         if (v19 <= dbl_5019BE) {
@@ -6196,11 +6196,11 @@ static int perkDialogHandleInput(int count, void (*refreshProc)())
                         }
 
                         renderPresent();
-                        sharedFpsLimiter.throttle();
+                        fps_limiter_throttle(sharedFpsLimiter);
                     } while (inputGetInput() != 575);
                 } else {
                     do {
-                        sharedFpsLimiter.mark();
+                        fps_limiter_mark(sharedFpsLimiter);
 
                         _frame_time = getTicks();
                         if (v19 <= dbl_5019BE) {
@@ -6232,7 +6232,7 @@ static int perkDialogHandleInput(int count, void (*refreshProc)())
                         }
 
                         renderPresent();
-                        sharedFpsLimiter.throttle();
+                        fps_limiter_throttle(sharedFpsLimiter);
                     } while (inputGetInput() != 575);
                 }
                 break;
@@ -6262,7 +6262,7 @@ static int perkDialogHandleInput(int count, void (*refreshProc)())
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     return rc;

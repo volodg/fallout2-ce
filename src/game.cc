@@ -1224,18 +1224,18 @@ static void showHelp()
                 windowShow(win);
 
                 while (inputGetInput() == -1 && _game_user_wants_to_quit == 0) {
-                    sharedFpsLimiter.mark();
+                    fps_limiter_mark(sharedFpsLimiter);
                     renderPresent();
-                    sharedFpsLimiter.throttle();
+                    fps_limiter_throttle(sharedFpsLimiter);
                 }
 
                 while (mouseGetEvent() != 0) {
-                    sharedFpsLimiter.mark();
+                    fps_limiter_mark(sharedFpsLimiter);
 
                     inputGetInput();
 
                     renderPresent();
-                    sharedFpsLimiter.throttle();
+                    fps_limiter_throttle(sharedFpsLimiter);
                 }
 
                 paletteSetEntries(gPaletteBlack);

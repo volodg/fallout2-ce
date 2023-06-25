@@ -588,7 +588,7 @@ void inventoryOpen()
     inventorySetCursor(INVENTORY_WINDOW_CURSOR_HAND);
 
     for (;;) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -687,7 +687,7 @@ void inventoryOpen()
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     _inven_dude = _stack[0];
@@ -2354,13 +2354,13 @@ static void _inven_pickup(int keyCode, int a2)
     }
 
     do {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         inputGetInput();
         _display_body(-1, INVENTORY_WINDOW_TYPE_NORMAL);
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     } while ((mouseGetEvent() & MOUSE_EVENT_LEFT_BUTTON_REPEAT) != 0);
 
     if (itemInventoryFrmImage.isLocked()) {
@@ -2626,7 +2626,7 @@ void inventoryOpenUseItemOn(Object* a1)
     _display_inventory(_stack_offset[_curr_stack], -1, INVENTORY_WINDOW_TYPE_USE_ITEM_ON);
     inventorySetCursor(INVENTORY_WINDOW_CURSOR_HAND);
     for (;;) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         if (_game_user_wants_to_quit != 0) {
             break;
@@ -2742,7 +2742,7 @@ void inventoryOpenUseItemOn(Object* a1)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     _exit_inventory(isoWasEnabled);
@@ -3704,7 +3704,7 @@ static void inventoryWindowOpenContextMenu(int keyCode, int inventoryWindowType)
 
     int mouseState;
     do {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         inputGetInput();
 
@@ -3724,7 +3724,7 @@ static void inventoryWindowOpenContextMenu(int keyCode, int inventoryWindowType)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     } while ((mouseState & MOUSE_EVENT_LEFT_BUTTON_DOWN_REPEAT) != MOUSE_EVENT_LEFT_BUTTON_DOWN_REPEAT);
 
     inventorySetCursor(INVENTORY_WINDOW_CURSOR_BLANK);
@@ -3829,7 +3829,7 @@ static void inventoryWindowOpenContextMenu(int keyCode, int inventoryWindowType)
     int menuItemIndex = 0;
     int previousMouseY = y;
     while ((mouseGetEvent() & MOUSE_EVENT_LEFT_BUTTON_UP) == 0) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         inputGetInput();
 
@@ -3854,7 +3854,7 @@ static void inventoryWindowOpenContextMenu(int keyCode, int inventoryWindowType)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     buttonDestroy(btn);
@@ -4228,7 +4228,7 @@ int inventoryOpenLooting(Object* a1, Object* a2)
     int stealingXp = 0;
     int stealingXpBonus = 10;
     for (;;) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         if (_game_user_wants_to_quit != 0) {
             break;
@@ -4420,7 +4420,7 @@ int inventoryOpenLooting(Object* a1, Object* a2)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (critterCount != 0) {
@@ -4574,12 +4574,12 @@ static int _move_inventory(Object* a1, int a2, Object* a3, bool a4)
     }
 
     do {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         inputGetInput();
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     } while ((mouseGetEvent() & MOUSE_EVENT_LEFT_BUTTON_REPEAT) != 0);
 
     if (itemInventoryFrmImage.isLocked()) {
@@ -4794,12 +4794,12 @@ static void _barter_move_inventory(Object* a1, int quantity, int a3, int a4, Obj
     }
 
     do {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         inputGetInput();
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     } while ((mouseGetEvent() & MOUSE_EVENT_LEFT_BUTTON_REPEAT) != 0);
 
     if (itemInventoryFrmImage.isLocked()) {
@@ -4881,12 +4881,12 @@ static void _barter_move_from_table_inventory(Object* a1, int quantity, int a3, 
     }
 
     do {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         inputGetInput();
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     } while ((mouseGetEvent() & MOUSE_EVENT_LEFT_BUTTON_REPEAT) != 0);
 
     if (itemInventoryFrmImage.isLocked()) {
@@ -5098,7 +5098,7 @@ void inventoryOpenTrade(int win, Object* a2, Object* a3, Object* a4, int a5)
 
     int keyCode = -1;
     for (;;) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         if (keyCode == KEY_ESCAPE || _game_user_wants_to_quit != 0) {
             break;
@@ -5324,7 +5324,7 @@ void inventoryOpenTrade(int win, Object* a2, Object* a3, Object* a4, int a5)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     itemMoveAll(a1a, a2);
@@ -5595,7 +5595,7 @@ static int inventoryQuantitySelect(int inventoryWindowType, Object* item, int ma
 
     bool v5 = false;
     for (;;) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
         if (keyCode == KEY_ESCAPE) {
@@ -5625,7 +5625,7 @@ static int inventoryQuantitySelect(int inventoryWindowType, Object* item, int ma
 
                         unsigned int delay = 100;
                         while ((mouseGetEvent() & MOUSE_EVENT_LEFT_BUTTON_REPEAT) != 0) {
-                            sharedFpsLimiter.mark();
+                            fps_limiter_mark(sharedFpsLimiter);
 
                             if (value < max) {
                                 value++;
@@ -5640,7 +5640,7 @@ static int inventoryQuantitySelect(int inventoryWindowType, Object* item, int ma
                             }
 
                             renderPresent();
-                            sharedFpsLimiter.throttle();
+                            fps_limiter_throttle(sharedFpsLimiter);
                         }
                     } else {
                         if (value < max) {
@@ -5663,7 +5663,7 @@ static int inventoryQuantitySelect(int inventoryWindowType, Object* item, int ma
 
                         unsigned int delay = 100;
                         while ((mouseGetEvent() & MOUSE_EVENT_LEFT_BUTTON_REPEAT) != 0) {
-                            sharedFpsLimiter.mark();
+                            fps_limiter_mark(sharedFpsLimiter);
 
                             if (value > min) {
                                 value--;
@@ -5678,7 +5678,7 @@ static int inventoryQuantitySelect(int inventoryWindowType, Object* item, int ma
                             }
 
                             renderPresent();
-                            sharedFpsLimiter.throttle();
+                            fps_limiter_throttle(sharedFpsLimiter);
                         }
                     } else {
                         if (value > min) {
@@ -5720,7 +5720,7 @@ static int inventoryQuantitySelect(int inventoryWindowType, Object* item, int ma
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     inventoryQuantityWindowFree(inventoryWindowType);

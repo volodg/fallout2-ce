@@ -163,7 +163,7 @@ int characterSelectorOpen()
     int rc = 0;
     bool done = false;
     while (!done) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         if (_game_user_wants_to_quit != 0) {
             break;
@@ -241,7 +241,7 @@ int characterSelectorOpen()
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     paletteFadeTo(gPaletteBlack);

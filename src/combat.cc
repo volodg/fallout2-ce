@@ -3109,12 +3109,12 @@ static void combatAttemptEnd()
 void _combat_turn_run()
 {
     while (_combat_turn_running > 0) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         _process_bk();
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 }
 
@@ -3124,7 +3124,7 @@ static int _combat_input()
     ScopedGameMode gm(GameMode::kPlayerTurn);
 
     while ((gCombatState & COMBAT_STATE_0x02) != 0) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         if ((gCombatState & COMBAT_STATE_0x08) != 0) {
             break;
@@ -3168,7 +3168,7 @@ static int _combat_input()
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     int v4 = _game_user_wants_to_quit;
@@ -5584,7 +5584,7 @@ static int calledShotSelectHitLocation(Object* critter, int* hitLocation, int hi
 
     int eventCode;
     while (true) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         eventCode = inputGetInput();
 
@@ -5601,7 +5601,7 @@ static int calledShotSelectHitLocation(Object* critter, int* hitLocation, int hi
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     _gmouse_enable();

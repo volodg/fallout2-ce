@@ -509,7 +509,7 @@ int lsgSaveGame(int mode)
     int rc = -1;
     int doubleClickSlot = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         unsigned int tick = getTicks();
         int keyCode = inputGetInput();
@@ -623,7 +623,7 @@ int lsgSaveGame(int mode)
             bool isScrolling = false;
             int scrollCounter = 0;
             do {
-                sharedFpsLimiter.mark();
+                fps_limiter_mark(sharedFpsLimiter);
 
                 unsigned int start = getTicks();
                 scrollCounter += 1;
@@ -687,7 +687,7 @@ int lsgSaveGame(int mode)
                 keyCode = inputGetInput();
 
                 renderPresent();
-                sharedFpsLimiter.throttle();
+                fps_limiter_throttle(sharedFpsLimiter);
             } while (keyCode != 505 && keyCode != 503);
         } else {
             if (selectionChanged) {
@@ -823,7 +823,7 @@ int lsgSaveGame(int mode)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     gameMouseSetCursor(MOUSE_CURSOR_ARROW);
@@ -1014,7 +1014,7 @@ int lsgLoadGame(int mode)
     int rc = -1;
     int doubleClickSlot = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         unsigned int time = getTicks();
         int keyCode = inputGetInput();
@@ -1121,7 +1121,7 @@ int lsgLoadGame(int mode)
             bool isScrolling = false;
             int scrollCounter = 0;
             do {
-                sharedFpsLimiter.mark();
+                fps_limiter_mark(sharedFpsLimiter);
 
                 unsigned int start = getTicks();
                 scrollCounter += 1;
@@ -1190,7 +1190,7 @@ int lsgLoadGame(int mode)
                 keyCode = inputGetInput();
 
                 renderPresent();
-                sharedFpsLimiter.throttle();
+                fps_limiter_throttle(sharedFpsLimiter);
             } while (keyCode != 505 && keyCode != 503);
         } else {
             if (selectionChanged) {
@@ -1270,7 +1270,7 @@ int lsgLoadGame(int mode)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     lsgWindowFree(mode == LOAD_SAVE_MODE_FROM_MAIN_MENU
@@ -2345,7 +2345,7 @@ static int _get_input_str2(int win, int doneKeyCode, int cancelKeyCode, char* de
 
     int rc = 1;
     while (rc == 1) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         int tick = getTicks();
 
@@ -2404,7 +2404,7 @@ static int _get_input_str2(int win, int doneKeyCode, int cancelKeyCode, char* de
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     endTextInput();

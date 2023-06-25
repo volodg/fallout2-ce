@@ -319,7 +319,7 @@ int mainMenuWindowHandleEvents()
 
     int rc = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -373,7 +373,7 @@ int mainMenuWindowHandleEvents()
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (oldCursorIsHidden) {
