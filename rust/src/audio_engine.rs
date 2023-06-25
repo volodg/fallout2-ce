@@ -1,7 +1,6 @@
 use lazy_static::lazy_static;
 use libc::{c_uchar, c_uint, free, malloc, memset, size_t};
 use std::ffi::{c_int, c_void};
-use std::mem::forget;
 use std::ptr::{null, null_mut};
 use std::cell::RefCell;
 use std::sync::Mutex;
@@ -14,7 +13,9 @@ use crate::win32::program_is_active;
 const AUDIO_ENGINE_SOUND_BUFFER_LOCK_FROM_WRITE_POS: c_uint = 0x00000001;
 const AUDIO_ENGINE_SOUND_BUFFER_LOCK_ENTIRE_BUFFER: c_uint = 0x00000002;
 
+const AUDIO_ENGINE_SOUND_BUFFER_STATUS_PLAYING: c_uint = 0x00000001;
 const AUDIO_ENGINE_SOUND_BUFFER_PLAY_LOOPING: c_uint = 0x00000001;
+const AUDIO_ENGINE_SOUND_BUFFER_STATUS_LOOPING: c_uint = 0x00000004;
 
 static AUDIO_ENGINE_DEVICE_ID: AtomicU32 = AtomicU32::new(u32::MAX);
 
@@ -108,37 +109,7 @@ fn audio_engine_is_initialized() -> bool {
     AUDIO_ENGINE_DEVICE_ID.load(Ordering::Relaxed) != u32::MAX
 }
 
-#[no_mangle]
-pub extern "C" fn c_audio_engine_is_initialized() -> bool {
-    audio_engine_is_initialized()
-}
-
-#[no_mangle]
-pub extern "C" fn c_get_locked_audio_engine_sound_buffers(index: c_uint) -> *const AudioEngineSoundBuffer {
-    let buffer = &AUDIO_ENGINE_SOUND_BUFFER[index as usize];
-
-    let lock = buffer.lock();
-
-    let result = lock.as_ptr();
-
-    forget(lock);
-
-    result
-}
-
-#[no_mangle]
-pub extern "C" fn c_release_audio_engine_sound_buffers(index: c_uint) {
-    unsafe {
-        AUDIO_ENGINE_SOUND_BUFFER[index as usize].force_unlock();
-    }
-}
-
 fn sound_buffer_is_valid(sound_buffer_index: c_int) -> bool {
-    sound_buffer_index >= 0 && (sound_buffer_index as usize) < AUDIO_ENGINE_SOUND_BUFFERS
-}
-
-#[no_mangle]
-pub extern "C" fn c_sound_buffer_is_valid(sound_buffer_index: c_int) -> bool {
     sound_buffer_index >= 0 && (sound_buffer_index as usize) < AUDIO_ENGINE_SOUND_BUFFERS
 }
 
@@ -356,7 +327,7 @@ pub extern "C" fn rust_audio_engine_sound_buffer_get_volume(sound_buffer_index: 
 
     let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
     let sound_buffer_lock = sound_buffer_ref.lock();
-    let sound_buffer = sound_buffer_lock.borrow_mut();
+    let sound_buffer = sound_buffer_lock.borrow();
 
     if !sound_buffer.active {
         return false;
@@ -381,7 +352,7 @@ pub extern "C" fn rust_audio_engine_sound_buffer_set_pan(sound_buffer_index: c_i
 
     let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
     let sound_buffer_lock = sound_buffer_ref.lock();
-    let sound_buffer = sound_buffer_lock.borrow_mut();
+    let sound_buffer = sound_buffer_lock.borrow();
 
     if !sound_buffer.active {
         return false;
@@ -455,7 +426,7 @@ pub extern "C" fn rust_audio_engine_sound_buffer_get_current_position(sound_buff
 
     let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
     let sound_buffer_lock = sound_buffer_ref.lock();
-    let sound_buffer = sound_buffer_lock.borrow_mut();
+    let sound_buffer = sound_buffer_lock.borrow();
 
     if !sound_buffer.active {
         return false;
@@ -520,96 +491,127 @@ pub extern "C" fn rust_audio_engine_sound_buffer_lock(sound_buffer_index: c_int,
 
     let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
     let sound_buffer_lock = sound_buffer_ref.lock();
-    let sound_buffer = sound_buffer_lock.borrow_mut();
+    let sound_buffer = sound_buffer_lock.borrow();
 
     if !sound_buffer.active {
         return false;
     }
 
-    // if audio_bytes1 == null_mut() {
-    //     return false;
-    // }
-    //
-    // if (flags & AUDIO_ENGINE_SOUND_BUFFER_LOCK_FROM_WRITE_POS) != 0 {
-    //     if !rust_audio_engine_sound_buffer_get_current_position(sound_buffer_index, null_mut(), &mut write_pos) {
-    //         return false;
-    //     }
-    // }
-    //
-    // if (flags & AUDIO_ENGINE_SOUND_BUFFER_LOCK_ENTIRE_BUFFER) != 0 {
-    //     write_bytes = sound_buffer.size;
-    // }
-    //
-    // if (write_pos + write_bytes) <= sound_buffer.size {
-    //     unsafe {
-    //         *audio_ptr1 = sound_buffer.data.add(write_pos as usize);
-    //         *audio_bytes1 = write_bytes;
-    //     }
-    //
-    //     if audio_ptr2 != null_mut() {
-    //         unsafe {
-    //             *audio_ptr2 = null_mut();
-    //         }
-    //     }
-    //
-    //     if audio_bytes2 != null_mut() {
-    //         unsafe {
-    //             *audio_bytes2 = 0;
-    //         }
-    //     }
-    // } else {
-    //     unsafe {
-    //         *audio_ptr1 = sound_buffer.data.add(write_pos as usize);
-    //         *audio_bytes1 = sound_buffer.size - write_pos;
-    //     }
-    //
-    //     if audio_ptr2 != null_mut() {
-    //         unsafe {
-    //             *audio_ptr2 = sound_buffer.data;
-    //         }
-    //     }
-    //
-    //     if audio_bytes2 != null_mut() {
-    //         unsafe {
-    //             *audio_bytes2 = write_bytes - (sound_buffer.size - write_pos);
-    //         }
-    //     }
-    // }
+    if audio_bytes1 == null_mut() {
+        return false;
+    }
+
+    if (flags & AUDIO_ENGINE_SOUND_BUFFER_LOCK_FROM_WRITE_POS) != 0 {
+        if !rust_audio_engine_sound_buffer_get_current_position(sound_buffer_index, null_mut(), &mut write_pos) {
+            return false;
+        }
+    }
+
+    if (flags & AUDIO_ENGINE_SOUND_BUFFER_LOCK_ENTIRE_BUFFER) != 0 {
+        write_bytes = sound_buffer.size;
+    }
+
+    unsafe {
+        *audio_ptr1 = sound_buffer.data.add(write_pos as usize);
+    }
+
+    if (write_pos + write_bytes) <= sound_buffer.size {
+        unsafe {
+            *audio_bytes1 = write_bytes;
+        }
+
+        if audio_ptr2 != null_mut() {
+            unsafe {
+                *audio_ptr2 = null_mut();
+            }
+        }
+
+        if audio_bytes2 != null_mut() {
+            unsafe {
+                *audio_bytes2 = 0;
+            }
+        }
+    } else {
+        unsafe {
+            *audio_bytes1 = sound_buffer.size - write_pos;
+        }
+
+        if audio_ptr2 != null_mut() {
+            unsafe {
+                *audio_ptr2 = sound_buffer.data;
+            }
+        }
+
+        if audio_bytes2 != null_mut() {
+            unsafe {
+                *audio_bytes2 = write_bytes - (sound_buffer.size - write_pos);
+            }
+        }
+    }
 
     // TODO: Mark range as locked.
 
     true
 }
 
-/*
-bool audioEngineSoundBufferLock(int soundBufferIndex, unsigned int writePos, unsigned int writeBytes, void** audioPtr1, unsigned int* audioBytes1, void** audioPtr2, unsigned int* audioBytes2, unsigned int flags)
-{
-    if (writePos + writeBytes <= soundBuffer->size) {
-        *(unsigned char**)audioPtr1 = (unsigned char*)soundBuffer->data + writePos;
-        *audioBytes1 = writeBytes;
+#[no_mangle]
+pub extern "C" fn rust_audio_engine_sound_buffer_unlock(sound_buffer_index: c_int) -> bool {
+    if !audio_engine_is_initialized() {
+        return false;
+    }
 
-        if (audioPtr2 != nullptr) {
-            *audioPtr2 = nullptr;
-        }
+    if !sound_buffer_is_valid(sound_buffer_index) {
+        return false;
+    }
 
-        if (audioBytes2 != nullptr) {
-            *audioBytes2 = 0;
-        }
-    } else {
-        *(unsigned char**)audioPtr1 = (unsigned char*)soundBuffer->data + writePos;
-        *audioBytes1 = soundBuffer->size - writePos;
+    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
+    let sound_buffer_lock = sound_buffer_ref.lock();
+    let sound_buffer = sound_buffer_lock.borrow();
 
-        if (audioPtr2 != nullptr) {
-            *(unsigned char**)audioPtr2 = (unsigned char*)soundBuffer->data;
-        }
+    if !sound_buffer.active {
+        return false;
+    }
 
-        if (audioBytes2 != nullptr) {
-            *audioBytes2 = writeBytes - (soundBuffer->size - writePos);
+    // TODO: Mark range as unlocked.
+
+    true
+}
+
+#[no_mangle]
+pub extern "C" fn rust_audio_engine_sound_buffer_get_status(sound_buffer_index: c_int, status_ptr: *mut c_uint) -> bool {
+    if !audio_engine_is_initialized() {
+        return false;
+    }
+
+    if !sound_buffer_is_valid(sound_buffer_index) {
+        return false;
+    }
+
+    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
+    let sound_buffer_lock = sound_buffer_ref.lock();
+    let sound_buffer = sound_buffer_lock.borrow();
+
+    if !sound_buffer.active {
+        return false;
+    }
+
+    if status_ptr == null_mut() {
+        return false;
+    }
+
+    unsafe {
+        *status_ptr = 0;
+    }
+
+    if sound_buffer.playing {
+        unsafe {
+            *status_ptr |= AUDIO_ENGINE_SOUND_BUFFER_STATUS_PLAYING;
+
+            if sound_buffer.looping {
+                *status_ptr |= AUDIO_ENGINE_SOUND_BUFFER_STATUS_LOOPING;
+            }
         }
     }
 
-    // TODO: Mark range as locked.
-
-    return true;
+    true
 }
- */

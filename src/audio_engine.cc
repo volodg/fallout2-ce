@@ -9,13 +9,6 @@ struct AudioEngineSoundBuffer;
 } // namespace fallout
 
 extern "C" {
-    bool c_audio_engine_is_initialized();
-
-    fallout::AudioEngineSoundBuffer* c_get_locked_audio_engine_sound_buffers(unsigned int index);
-    void c_release_audio_engine_sound_buffers(unsigned int index);
-
-    bool c_sound_buffer_is_valid(int);
-
     bool rust_audio_engine_init();
     void rust_audio_engine_exit();
     void rust_audio_engine_pause();
@@ -30,7 +23,8 @@ extern "C" {
     bool rust_audio_engine_sound_buffer_get_current_position(int soundBufferIndex, unsigned int* readPosPtr, unsigned int* writePosPtr);
     bool rust_audio_engine_sound_buffer_set_current_position(int soundBufferIndex, unsigned int pos);
     bool rust_audio_engine_sound_buffer_lock(int soundBufferIndex, unsigned int writePos, unsigned int writeBytes, void** audioPtr1, unsigned int* audioBytes1, void** audioPtr2, unsigned int* audioBytes2, unsigned int flags);
-    // rust_audio_engine_sound_buffer_lock
+    bool rust_audio_engine_sound_buffer_unlock(int soundBufferIndex);
+    bool rust_audio_engine_sound_buffer_get_status(int soundBufferIndex, unsigned int* statusPtr);
 }
 
 namespace fallout {
@@ -127,116 +121,17 @@ bool audioEngineSoundBufferSetCurrentPosition(int soundBufferIndex, unsigned int
 
 bool audioEngineSoundBufferLock(int soundBufferIndex, unsigned int writePos, unsigned int writeBytes, void** audioPtr1, unsigned int* audioBytes1, void** audioPtr2, unsigned int* audioBytes2, unsigned int flags)
 {
-    if (!rust_audio_engine_sound_buffer_lock(soundBufferIndex, writePos, writeBytes, audioPtr1, audioBytes1, audioPtr2, audioBytes2, flags)) {
-        return false;
-    }
-
-    AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(soundBufferIndex);
-    OnExit onExit([soundBufferIndex]() {
-        c_release_audio_engine_sound_buffers(soundBufferIndex);
-    });
-
-    if (audioBytes1 == nullptr) {
-        return false;
-    }
-
-    if ((flags & AUDIO_ENGINE_SOUND_BUFFER_LOCK_FROM_WRITE_POS) != 0) {
-        if (!audioEngineSoundBufferGetCurrentPosition(soundBufferIndex, NULL, &writePos)) {
-            return false;
-        }
-    }
-
-    if ((flags & AUDIO_ENGINE_SOUND_BUFFER_LOCK_ENTIRE_BUFFER) != 0) {
-        writeBytes = soundBuffer->size;
-    }
-
-    if (writePos + writeBytes <= soundBuffer->size) {
-        *(unsigned char**)audioPtr1 = (unsigned char*)soundBuffer->data + writePos;
-        *audioBytes1 = writeBytes;
-
-        if (audioPtr2 != nullptr) {
-            *audioPtr2 = nullptr;
-        }
-
-        if (audioBytes2 != nullptr) {
-            *audioBytes2 = 0;
-        }
-    } else {
-        *(unsigned char**)audioPtr1 = (unsigned char*)soundBuffer->data + writePos;
-        *audioBytes1 = soundBuffer->size - writePos;
-
-        if (audioPtr2 != nullptr) {
-            *(unsigned char**)audioPtr2 = (unsigned char*)soundBuffer->data;
-        }
-
-        if (audioBytes2 != nullptr) {
-            *audioBytes2 = writeBytes - (soundBuffer->size - writePos);
-        }
-    }
-
-    // TODO: Mark range as locked.
-
-    return true;
+    return rust_audio_engine_sound_buffer_lock(soundBufferIndex, writePos, writeBytes, audioPtr1, audioBytes1, audioPtr2, audioBytes2, flags);
 }
 
 bool audioEngineSoundBufferUnlock(int soundBufferIndex)
 {
-    if (!c_audio_engine_is_initialized()) {
-        return false;
-    }
-
-    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
-        return false;
-    }
-
-    AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(soundBufferIndex);
-    OnExit onExit([soundBufferIndex]() {
-        c_release_audio_engine_sound_buffers(soundBufferIndex);
-    });
-
-    if (!soundBuffer->active) {
-        return false;
-    }
-
-    // TODO: Mark range as unlocked.
-
-    return true;
+    return rust_audio_engine_sound_buffer_unlock(soundBufferIndex);
 }
 
 bool audioEngineSoundBufferGetStatus(int soundBufferIndex, unsigned int* statusPtr)
 {
-    if (!c_audio_engine_is_initialized()) {
-        return false;
-    }
-
-    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
-        return false;
-    }
-
-    AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(soundBufferIndex);
-    OnExit onExit([soundBufferIndex]() {
-        c_release_audio_engine_sound_buffers(soundBufferIndex);
-    });
-
-    if (!soundBuffer->active) {
-        return false;
-    }
-
-    if (statusPtr == nullptr) {
-        return false;
-    }
-
-    *statusPtr = 0;
-
-    if (soundBuffer->playing) {
-        *statusPtr |= AUDIO_ENGINE_SOUND_BUFFER_STATUS_PLAYING;
-
-        if (soundBuffer->looping) {
-            *statusPtr |= AUDIO_ENGINE_SOUND_BUFFER_STATUS_LOOPING;
-        }
-    }
-
-    return true;
+    return rust_audio_engine_sound_buffer_get_status(soundBufferIndex, statusPtr);
 }
 
 } // namespace fallout
