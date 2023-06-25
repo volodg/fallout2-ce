@@ -54,59 +54,6 @@ struct AudioEngineSoundBuffer {
     SDL_AudioStream* stream;
 };
 
-static void audioEngineMixin(void* userData, Uint8* stream, int length);
-
-static void audioEngineMixin(void* userData, Uint8* stream, int length)
-{
-    memset(stream, c_get_audio_engine_spec()->silence, length);
-
-    if (!c_get_program_is_active()) {
-        return;
-    }
-
-    for (int index = 0; index < c_get_audio_engine_sound_buffers_count(); index++) {
-        AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(index);
-        OnExit onExit([soundBuffer]() {
-            c_release_audio_engine_sound_buffers(soundBuffer);
-        });
-
-        if (soundBuffer->active && soundBuffer->playing) {
-            int srcFrameSize = soundBuffer->bitsPerSample / 8 * soundBuffer->channels;
-
-            unsigned char buffer[1024];
-            int pos = 0;
-            while (pos < length) {
-                int remaining = length - pos;
-                if (remaining > sizeof(buffer)) {
-                    remaining = sizeof(buffer);
-                }
-
-                // TODO: Make something better than frame-by-frame convertion.
-                SDL_AudioStreamPut(soundBuffer->stream, (unsigned char*)soundBuffer->data + soundBuffer->pos, srcFrameSize);
-                soundBuffer->pos += srcFrameSize;
-
-                int bytesRead = SDL_AudioStreamGet(soundBuffer->stream, buffer, remaining);
-                if (bytesRead == -1) {
-                    break;
-                }
-
-                SDL_MixAudioFormat(stream + pos, buffer, c_get_audio_engine_spec()->format, bytesRead, soundBuffer->volume);
-
-                if (soundBuffer->pos >= soundBuffer->size) {
-                    if (soundBuffer->looping) {
-                        soundBuffer->pos %= soundBuffer->size;
-                    } else {
-                        soundBuffer->playing = false;
-                        break;
-                    }
-                }
-
-                pos += bytesRead;
-            }
-        }
-    }
-}
-
 bool audioEngineInit()
 {
     if (SDL_InitSubSystem(SDL_INIT_AUDIO) == -1) {
@@ -118,7 +65,7 @@ bool audioEngineInit()
     desiredSpec.format = AUDIO_S16;
     desiredSpec.channels = 2;
     desiredSpec.samples = 1024;
-    desiredSpec.callback = audioEngineMixin;
+    desiredSpec.callback = c_audio_engine_mixin;
 
     c_set_audio_engine_device_id(SDL_OpenAudioDevice(nullptr, 0, &desiredSpec, c_get_audio_engine_spec(), SDL_AUDIO_ALLOW_ANY_CHANGE));
     if (!c_audio_engine_is_initialized()) {
