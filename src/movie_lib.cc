@@ -7,8 +7,10 @@
 #include <assert.h>
 #include <string.h>
 
-#include "audio_engine.h"
 #include "platform_compat.h"
+
+// Migrated
+#include "audio_engine.h"
 
 namespace fallout {
 

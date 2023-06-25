@@ -12,9 +12,11 @@
 
 #include <SDL.h>
 
-#include "audio_engine.h"
 #include "debug.h"
 #include "platform_compat.h"
+
+// Migrated
+#include "audio_engine.h"
 
 namespace fallout {
 

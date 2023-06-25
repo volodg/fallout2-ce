@@ -1,13 +1,5 @@
 #include "audio_engine.h"
 
-#include <string>
-
-#include <SDL.h>
-
-namespace fallout {
-struct AudioEngineSoundBuffer;
-} // namespace fallout
-
 extern "C" {
     bool rust_audio_engine_init();
     void rust_audio_engine_exit();
@@ -28,31 +20,6 @@ extern "C" {
 }
 
 namespace fallout {
-
-class OnExit {
-public:
-    OnExit(std::function<void(void)>&& onExit): onExit_(onExit) {}
-
-    ~OnExit() {
-        onExit_();
-    }
-private:
-    std::function<void(void)> onExit_;
-};
-
-struct AudioEngineSoundBuffer {
-    bool active;
-    unsigned int size;
-    int _reserved;
-    int channels;
-    int rate;
-    int volume;
-    bool playing;
-    bool looping;
-    unsigned int pos;
-    void* data;
-    SDL_AudioStream* stream;
-};
 
 bool audioEngineInit()
 {

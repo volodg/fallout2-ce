@@ -2,7 +2,6 @@
 
 #include <SDL.h>
 
-#include "audio_engine.h"
 #include "color.h"
 #include "draw.h"
 #include "kb.h"
@@ -14,6 +13,7 @@
 #include "vcr.h"
 
 // Migrated
+#include "audio_engine.h"
 #include "dinput.h"
 
 extern "C"
