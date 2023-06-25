@@ -11,6 +11,9 @@ use parking_lot::ReentrantMutex;
 use sdl2::sys::{SDL_AudioDeviceID, SDL_AudioStream};
 use crate::win32::program_is_active;
 
+const AUDIO_ENGINE_SOUND_BUFFER_LOCK_FROM_WRITE_POS: c_uint = 0x00000001;
+const AUDIO_ENGINE_SOUND_BUFFER_LOCK_ENTIRE_BUFFER: c_uint = 0x00000002;
+
 const AUDIO_ENGINE_SOUND_BUFFER_PLAY_LOOPING: c_uint = 0x00000001;
 
 static AUDIO_ENGINE_DEVICE_ID: AtomicU32 = AtomicU32::new(u32::MAX);
@@ -482,27 +485,131 @@ pub extern "C" fn rust_audio_engine_sound_buffer_get_current_position(sound_buff
     true
 }
 
+#[no_mangle]
+pub extern "C" fn rust_audio_engine_sound_buffer_set_current_position(sound_buffer_index: c_int, pos: c_uint) -> bool {
+    if !audio_engine_is_initialized() {
+        return false;
+    }
+
+    if !sound_buffer_is_valid(sound_buffer_index) {
+        return false;
+    }
+
+    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
+    let sound_buffer_lock = sound_buffer_ref.lock();
+    let mut sound_buffer = sound_buffer_lock.borrow_mut();
+
+    if !sound_buffer.active {
+        return false;
+    }
+
+    sound_buffer.pos = pos % sound_buffer.size;
+
+    true
+}
+
+#[no_mangle]
+pub extern "C" fn rust_audio_engine_sound_buffer_lock(sound_buffer_index: c_int, mut write_pos: c_uint, mut write_bytes: c_uint, audio_ptr1: *mut *const c_void, audio_bytes1: *mut c_uint, audio_ptr2: *mut *const c_void, audio_bytes2: *mut c_uint, flags: c_uint) -> bool {
+    if !audio_engine_is_initialized() {
+        return false;
+    }
+
+    if !sound_buffer_is_valid(sound_buffer_index) {
+        return false;
+    }
+
+    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
+    let sound_buffer_lock = sound_buffer_ref.lock();
+    let sound_buffer = sound_buffer_lock.borrow_mut();
+
+    if !sound_buffer.active {
+        return false;
+    }
+
+    // if audio_bytes1 == null_mut() {
+    //     return false;
+    // }
+    //
+    // if (flags & AUDIO_ENGINE_SOUND_BUFFER_LOCK_FROM_WRITE_POS) != 0 {
+    //     if !rust_audio_engine_sound_buffer_get_current_position(sound_buffer_index, null_mut(), &mut write_pos) {
+    //         return false;
+    //     }
+    // }
+    //
+    // if (flags & AUDIO_ENGINE_SOUND_BUFFER_LOCK_ENTIRE_BUFFER) != 0 {
+    //     write_bytes = sound_buffer.size;
+    // }
+    //
+    // if (write_pos + write_bytes) <= sound_buffer.size {
+    //     unsafe {
+    //         *audio_ptr1 = sound_buffer.data.add(write_pos as usize);
+    //         *audio_bytes1 = write_bytes;
+    //     }
+    //
+    //     if audio_ptr2 != null_mut() {
+    //         unsafe {
+    //             *audio_ptr2 = null_mut();
+    //         }
+    //     }
+    //
+    //     if audio_bytes2 != null_mut() {
+    //         unsafe {
+    //             *audio_bytes2 = 0;
+    //         }
+    //     }
+    // } else {
+    //     unsafe {
+    //         *audio_ptr1 = sound_buffer.data.add(write_pos as usize);
+    //         *audio_bytes1 = sound_buffer.size - write_pos;
+    //     }
+    //
+    //     if audio_ptr2 != null_mut() {
+    //         unsafe {
+    //             *audio_ptr2 = sound_buffer.data;
+    //         }
+    //     }
+    //
+    //     if audio_bytes2 != null_mut() {
+    //         unsafe {
+    //             *audio_bytes2 = write_bytes - (sound_buffer.size - write_pos);
+    //         }
+    //     }
+    // }
+
+    // TODO: Mark range as locked.
+
+    true
+}
+
 /*
-bool audioEngineSoundBufferGetCurrentPosition(int soundBufferIndex, unsigned int* readPosPtr, unsigned int* writePosPtr)
+bool audioEngineSoundBufferLock(int soundBufferIndex, unsigned int writePos, unsigned int writeBytes, void** audioPtr1, unsigned int* audioBytes1, void** audioPtr2, unsigned int* audioBytes2, unsigned int flags)
 {
-    if (!c_audio_engine_is_initialized()) {
-        return false;
+    if (writePos + writeBytes <= soundBuffer->size) {
+        *(unsigned char**)audioPtr1 = (unsigned char*)soundBuffer->data + writePos;
+        *audioBytes1 = writeBytes;
+
+        if (audioPtr2 != nullptr) {
+            *audioPtr2 = nullptr;
+        }
+
+        if (audioBytes2 != nullptr) {
+            *audioBytes2 = 0;
+        }
+    } else {
+        *(unsigned char**)audioPtr1 = (unsigned char*)soundBuffer->data + writePos;
+        *audioBytes1 = soundBuffer->size - writePos;
+
+        if (audioPtr2 != nullptr) {
+            *(unsigned char**)audioPtr2 = (unsigned char*)soundBuffer->data;
+        }
+
+        if (audioBytes2 != nullptr) {
+            *audioBytes2 = writeBytes - (soundBuffer->size - writePos);
+        }
     }
 
-    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
-        return false;
-    }
-
-    AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(soundBufferIndex);
-    OnExit onExit([soundBufferIndex]() {
-        c_release_audio_engine_sound_buffers(soundBufferIndex);
-    });
-
-    if (!soundBuffer->active) {
-        return false;
-    }
+    // TODO: Mark range as locked.
 
     return true;
-}
 }
  */

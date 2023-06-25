@@ -28,7 +28,9 @@ extern "C" {
     bool rust_audio_engine_sound_buffer_play(int soundBufferIndex, unsigned int flags);
     bool rust_audio_engine_sound_buffer_stop(int soundBufferIndex);
     bool rust_audio_engine_sound_buffer_get_current_position(int soundBufferIndex, unsigned int* readPosPtr, unsigned int* writePosPtr);
-    // rust_audio_engine_sound_buffer_get_current_position
+    bool rust_audio_engine_sound_buffer_set_current_position(int soundBufferIndex, unsigned int pos);
+    bool rust_audio_engine_sound_buffer_lock(int soundBufferIndex, unsigned int writePos, unsigned int writeBytes, void** audioPtr1, unsigned int* audioBytes1, void** audioPtr2, unsigned int* audioBytes2, unsigned int flags);
+    // rust_audio_engine_sound_buffer_lock
 }
 
 namespace fallout {
@@ -120,35 +122,12 @@ bool audioEngineSoundBufferGetCurrentPosition(int soundBufferIndex, unsigned int
 
 bool audioEngineSoundBufferSetCurrentPosition(int soundBufferIndex, unsigned int pos)
 {
-    if (!c_audio_engine_is_initialized()) {
-        return false;
-    }
-
-    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
-        return false;
-    }
-
-    AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(soundBufferIndex);
-    OnExit onExit([soundBufferIndex]() {
-        c_release_audio_engine_sound_buffers(soundBufferIndex);
-    });
-
-    if (!soundBuffer->active) {
-        return false;
-    }
-
-    soundBuffer->pos = pos % soundBuffer->size;
-
-    return true;
+    return rust_audio_engine_sound_buffer_set_current_position(soundBufferIndex, pos);
 }
 
 bool audioEngineSoundBufferLock(int soundBufferIndex, unsigned int writePos, unsigned int writeBytes, void** audioPtr1, unsigned int* audioBytes1, void** audioPtr2, unsigned int* audioBytes2, unsigned int flags)
 {
-    if (!c_audio_engine_is_initialized()) {
-        return false;
-    }
-
-    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
+    if (!rust_audio_engine_sound_buffer_lock(soundBufferIndex, writePos, writeBytes, audioPtr1, audioBytes1, audioPtr2, audioBytes2, flags)) {
         return false;
     }
 
@@ -156,10 +135,6 @@ bool audioEngineSoundBufferLock(int soundBufferIndex, unsigned int writePos, uns
     OnExit onExit([soundBufferIndex]() {
         c_release_audio_engine_sound_buffers(soundBufferIndex);
     });
-
-    if (!soundBuffer->active) {
-        return false;
-    }
 
     if (audioBytes1 == nullptr) {
         return false;
