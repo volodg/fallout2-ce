@@ -3,7 +3,8 @@ use libc::{c_uchar, c_uint, c_ulong, memset, size_t};
 use std::ffi::{c_int, c_void};
 use std::mem::forget;
 use std::ptr::{null, null_mut};
-use std::sync::atomic::{AtomicU32, Ordering};use std::sync::Mutex;
+use std::cell::RefCell;
+use std::sync::atomic::{AtomicU32, Ordering};
 use sdl2_sys::{SDL_AudioFormat, SDL_AudioSpec, SDL_AudioStreamGet, SDL_AudioStreamPut, SDL_MixAudioFormat, u_char};
 use parking_lot::ReentrantMutex;
 use sdl2::sys::{SDL_AudioDeviceID, SDL_AudioStream};
@@ -24,7 +25,6 @@ pub struct AudioEngineSoundBuffer {
     pos: c_uint,
     data: *const c_void,
     stream: *mut SDL_AudioStream,
-    mutex: ReentrantMutex<()>
 }
 
 impl Default for AudioEngineSoundBuffer {
@@ -41,7 +41,6 @@ impl Default for AudioEngineSoundBuffer {
             pos: 0,
             data: null(),
             stream: null_mut(),
-            mutex: ReentrantMutex::new(())
         }
     }
 }
@@ -52,7 +51,7 @@ unsafe impl Send for AudioEngineSoundBuffer {}
 unsafe impl Sync for AudioEngineSoundBuffer {}
 
 struct SdlAudioSpecHolder {
-    obj: SDL_AudioSpec
+    obj: SDL_AudioSpec,
 }
 
 impl Default for SdlAudioSpecHolder {
@@ -67,7 +66,7 @@ impl Default for SdlAudioSpecHolder {
                 padding: 0,
                 size: 0,
                 callback: None,
-                userdata: null_mut()
+                userdata: null_mut(),
             }
         }
     }
@@ -77,16 +76,16 @@ unsafe impl Send for SdlAudioSpecHolder {}
 unsafe impl Sync for SdlAudioSpecHolder {}
 
 lazy_static! {
-    static ref AUDIO_ENGINE_SOUND_BUFFER: Mutex<[AudioEngineSoundBuffer; AUDIO_ENGINE_SOUND_BUFFERS]> = Mutex::new([
-        AudioEngineSoundBuffer::default(),
-        AudioEngineSoundBuffer::default(),
-        AudioEngineSoundBuffer::default(),
-        AudioEngineSoundBuffer::default(),
-        AudioEngineSoundBuffer::default(),
-        AudioEngineSoundBuffer::default(),
-        AudioEngineSoundBuffer::default(),
-        AudioEngineSoundBuffer::default(),
-    ]);
+    static ref AUDIO_ENGINE_SOUND_BUFFER: [ReentrantMutex<RefCell<AudioEngineSoundBuffer>>; AUDIO_ENGINE_SOUND_BUFFERS] = [
+        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
+        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
+        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
+        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
+        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
+        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
+        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
+        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
+    ];
 
     static ref AUDIO_ENGINE_SPEC: SdlAudioSpecHolder = SdlAudioSpecHolder::default();
 }
@@ -108,18 +107,21 @@ pub extern "C" fn c_audio_engine_is_initialized() -> bool {
 
 #[no_mangle]
 pub extern "C" fn c_get_locked_audio_engine_sound_buffers(index: c_uint) -> *const AudioEngineSoundBuffer {
-    let buffer = &AUDIO_ENGINE_SOUND_BUFFER.lock().expect("locked")[index as usize];
+    let buffer = &AUDIO_ENGINE_SOUND_BUFFER[index as usize];
 
-    let _lock = buffer.mutex.lock();
-    forget(_lock);
+    let lock = buffer.lock();
 
-    buffer
+    let result = lock.as_ptr();
+
+    forget(lock);
+
+    result
 }
 
 #[no_mangle]
-pub extern "C" fn c_release_audio_engine_sound_buffers(buffer: *const AudioEngineSoundBuffer) {
+pub extern "C" fn c_release_audio_engine_sound_buffers(index: c_uint) {
     unsafe {
-        (*buffer).mutex.force_unlock()
+        AUDIO_ENGINE_SOUND_BUFFER[index as usize].force_unlock();
     }
 }
 
@@ -148,8 +150,9 @@ pub extern "C" fn c_audio_engine_mixin(_user_data: *const c_void, stream: *mut u
         return;
     }
 
-    for sound_buffer in AUDIO_ENGINE_SOUND_BUFFER.lock().expect("locked").iter_mut() {
-        let _lock = sound_buffer.mutex.lock();
+    for sound_buffer_ref in AUDIO_ENGINE_SOUND_BUFFER.iter() {
+        let sound_buffer_lock = sound_buffer_ref.lock();
+        let mut sound_buffer = sound_buffer_lock.borrow_mut();
 
         if sound_buffer.active && sound_buffer.playing {
             let src_frame_size = sound_buffer.bits_per_sample / 8 * sound_buffer.channels;
@@ -162,7 +165,7 @@ pub extern "C" fn c_audio_engine_mixin(_user_data: *const c_void, stream: *mut u
                     remaining = buffer.len() as c_int;
                 }
 
-                // TODO: Make something better than frame-by-frame convertion.
+                // TODO: Make something better than frame-by-frame conversion.
                 unsafe {
                     SDL_AudioStreamPut(sound_buffer.stream, sound_buffer.data.add(sound_buffer.pos as usize), src_frame_size);
                 }
