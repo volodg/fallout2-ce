@@ -9,8 +9,6 @@ struct AudioEngineSoundBuffer;
 } // namespace fallout
 
 extern "C" {
-    bool c_get_program_is_active();
-
     bool c_audio_engine_is_initialized();
 
     fallout::AudioEngineSoundBuffer* c_get_locked_audio_engine_sound_buffers(unsigned int index);
@@ -23,6 +21,14 @@ extern "C" {
     void rust_audio_engine_pause();
     void rust_audio_engine_resume();
     int rust_audio_engine_create_sound_buffer(unsigned int size, int bitsPerSample, int channels, int rate);
+    bool rust_audio_engine_sound_release(int soundBufferIndex);
+    bool rust_audio_engine_sound_buffer_set_volume(int soundBufferIndex, int volume);
+    bool rust_audio_engine_sound_buffer_get_volume(int soundBufferIndex, int* volumePtr);
+    bool rust_audio_engine_sound_buffer_set_pan(int soundBufferIndex, int volume);
+    bool rust_audio_engine_sound_buffer_play(int soundBufferIndex, unsigned int flags);
+    bool rust_audio_engine_sound_buffer_stop(int soundBufferIndex);
+    bool rust_audio_engine_sound_buffer_get_current_position(int soundBufferIndex, unsigned int* readPosPtr, unsigned int* writePosPtr);
+    // rust_audio_engine_sound_buffer_get_current_position
 }
 
 namespace fallout {
@@ -79,194 +85,37 @@ int audioEngineCreateSoundBuffer(unsigned int size, int bitsPerSample, int chann
 
 bool audioEngineSoundBufferRelease(int soundBufferIndex)
 {
-    if (!c_audio_engine_is_initialized()) {
-        return false;
-    }
-
-    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
-        return false;
-    }
-
-    AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(soundBufferIndex);
-    OnExit onExit([soundBufferIndex]() {
-        c_release_audio_engine_sound_buffers(soundBufferIndex);
-    });
-
-    if (!soundBuffer->active) {
-        return false;
-    }
-
-    soundBuffer->active = false;
-
-    free(soundBuffer->data);
-    soundBuffer->data = nullptr;
-
-    SDL_FreeAudioStream(soundBuffer->stream);
-    soundBuffer->stream = nullptr;
-
-    return true;
+    return rust_audio_engine_sound_release(soundBufferIndex);
 }
 
 bool audioEngineSoundBufferSetVolume(int soundBufferIndex, int volume)
 {
-    if (!c_audio_engine_is_initialized()) {
-        return false;
-    }
-
-    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
-        return false;
-    }
-
-    AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(soundBufferIndex);
-    OnExit onExit([soundBufferIndex]() {
-        c_release_audio_engine_sound_buffers(soundBufferIndex);
-    });
-
-    if (!soundBuffer->active) {
-        return false;
-    }
-
-    soundBuffer->volume = volume;
-
-    return true;
+    return rust_audio_engine_sound_buffer_set_volume(soundBufferIndex, volume);
 }
 
 bool audioEngineSoundBufferGetVolume(int soundBufferIndex, int* volumePtr)
 {
-    if (!c_audio_engine_is_initialized()) {
-        return false;
-    }
-
-    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
-        return false;
-    }
-
-    AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(soundBufferIndex);
-    OnExit onExit([soundBufferIndex]() {
-        c_release_audio_engine_sound_buffers(soundBufferIndex);
-    });
-
-    if (!soundBuffer->active) {
-        return false;
-    }
-
-    *volumePtr = soundBuffer->volume;
-
-    return true;
+    return rust_audio_engine_sound_buffer_get_volume(soundBufferIndex, volumePtr);
 }
 
 bool audioEngineSoundBufferSetPan(int soundBufferIndex, int pan)
 {
-    if (!c_audio_engine_is_initialized()) {
-        return false;
-    }
-
-    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
-        return false;
-    }
-
-    AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(soundBufferIndex);
-    OnExit onExit([soundBufferIndex]() {
-        c_release_audio_engine_sound_buffers(soundBufferIndex);
-    });
-
-    if (!soundBuffer->active) {
-        return false;
-    }
-
-    // NOTE: Audio engine does not support sound panning. I'm not sure it's
-    // even needed. For now this value is silently ignored.
-
-    return true;
+    return rust_audio_engine_sound_buffer_set_pan(soundBufferIndex, pan);
 }
 
 bool audioEngineSoundBufferPlay(int soundBufferIndex, unsigned int flags)
 {
-    if (!c_audio_engine_is_initialized()) {
-        return false;
-    }
-
-    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
-        return false;
-    }
-
-    AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(soundBufferIndex);
-    OnExit onExit([soundBufferIndex]() {
-        c_release_audio_engine_sound_buffers(soundBufferIndex);
-    });
-
-    if (!soundBuffer->active) {
-        return false;
-    }
-
-    soundBuffer->playing = true;
-
-    if ((flags & AUDIO_ENGINE_SOUND_BUFFER_PLAY_LOOPING) != 0) {
-        soundBuffer->looping = true;
-    }
-
-    return true;
+    return rust_audio_engine_sound_buffer_play(soundBufferIndex, flags);
 }
 
 bool audioEngineSoundBufferStop(int soundBufferIndex)
 {
-    if (!c_audio_engine_is_initialized()) {
-        return false;
-    }
-
-    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
-        return false;
-    }
-
-    AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(soundBufferIndex);
-    OnExit onExit([soundBufferIndex]() {
-        c_release_audio_engine_sound_buffers(soundBufferIndex);
-    });
-
-    if (!soundBuffer->active) {
-        return false;
-    }
-
-    soundBuffer->playing = false;
-
-    return true;
+    return rust_audio_engine_sound_buffer_stop(soundBufferIndex);
 }
 
 bool audioEngineSoundBufferGetCurrentPosition(int soundBufferIndex, unsigned int* readPosPtr, unsigned int* writePosPtr)
 {
-    if (!c_audio_engine_is_initialized()) {
-        return false;
-    }
-
-    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
-        return false;
-    }
-
-    AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(soundBufferIndex);
-    OnExit onExit([soundBufferIndex]() {
-        c_release_audio_engine_sound_buffers(soundBufferIndex);
-    });
-
-    if (!soundBuffer->active) {
-        return false;
-    }
-
-    if (readPosPtr != nullptr) {
-        *readPosPtr = soundBuffer->pos;
-    }
-
-    if (writePosPtr != nullptr) {
-        *writePosPtr = soundBuffer->pos;
-
-        if (soundBuffer->playing) {
-            // 15 ms lead
-            // See: https://docs.microsoft.com/en-us/previous-versions/windows/desktop/mt708925(v=vs.85)#remarks
-            *writePosPtr += soundBuffer->rate / 150;
-            *writePosPtr %= soundBuffer->size;
-        }
-    }
-
-    return true;
+    return rust_audio_engine_sound_buffer_get_current_position(soundBufferIndex, readPosPtr, writePosPtr);
 }
 
 bool audioEngineSoundBufferSetCurrentPosition(int soundBufferIndex, unsigned int pos)
@@ -312,7 +161,7 @@ bool audioEngineSoundBufferLock(int soundBufferIndex, unsigned int writePos, uns
         return false;
     }
 
-    if (audioBytes1 == NULL) {
+    if (audioBytes1 == nullptr) {
         return false;
     }
 

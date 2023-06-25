@@ -1,15 +1,17 @@
 use lazy_static::lazy_static;
-use libc::{c_uchar, c_uint, malloc, memset, size_t};
+use libc::{c_uchar, c_uint, free, malloc, memset, size_t};
 use std::ffi::{c_int, c_void};
 use std::mem::forget;
 use std::ptr::{null, null_mut};
 use std::cell::RefCell;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
-use sdl2_sys::{AUDIO_S16, AUDIO_S8, SDL_AUDIO_ALLOW_ANY_CHANGE, SDL_AudioFormat, SDL_AudioSpec, SDL_AudioStreamGet, SDL_AudioStreamPut, SDL_CloseAudioDevice, SDL_INIT_AUDIO, SDL_InitSubSystem, SDL_MIX_MAXVOLUME, SDL_MixAudioFormat, SDL_NewAudioStream, SDL_OpenAudioDevice, SDL_PauseAudioDevice, SDL_QuitSubSystem, SDL_WasInit, u_char, Uint8};
+use sdl2_sys::{AUDIO_S16, AUDIO_S8, SDL_AUDIO_ALLOW_ANY_CHANGE, SDL_AudioFormat, SDL_AudioSpec, SDL_AudioStreamGet, SDL_AudioStreamPut, SDL_CloseAudioDevice, SDL_FreeAudioStream, SDL_INIT_AUDIO, SDL_InitSubSystem, SDL_MIX_MAXVOLUME, SDL_MixAudioFormat, SDL_NewAudioStream, SDL_OpenAudioDevice, SDL_PauseAudioDevice, SDL_QuitSubSystem, SDL_WasInit, u_char, Uint8};
 use parking_lot::ReentrantMutex;
 use sdl2::sys::{SDL_AudioDeviceID, SDL_AudioStream};
 use crate::win32::program_is_active;
+
+const AUDIO_ENGINE_SOUND_BUFFER_PLAY_LOOPING: c_uint = 0x00000001;
 
 static AUDIO_ENGINE_DEVICE_ID: AtomicU32 = AtomicU32::new(u32::MAX);
 
@@ -24,7 +26,7 @@ pub struct AudioEngineSoundBuffer {
     playing: bool,
     looping: bool,
     pos: c_uint,
-    data: *const c_void,
+    data: *mut c_void,
     stream: *mut SDL_AudioStream,
 }
 
@@ -40,7 +42,7 @@ impl Default for AudioEngineSoundBuffer {
             playing: false,
             looping: false,
             pos: 0,
-            data: null(),
+            data: null_mut(),
             stream: null_mut(),
         }
     }
@@ -126,6 +128,10 @@ pub extern "C" fn c_release_audio_engine_sound_buffers(index: c_uint) {
     unsafe {
         AUDIO_ENGINE_SOUND_BUFFER[index as usize].force_unlock();
     }
+}
+
+fn sound_buffer_is_valid(sound_buffer_index: c_int) -> bool {
+    sound_buffer_index >= 0 && (sound_buffer_index as usize) < AUDIO_ENGINE_SOUND_BUFFERS
 }
 
 #[no_mangle]
@@ -283,17 +289,220 @@ pub extern "C" fn rust_audio_engine_create_sound_buffer(size: c_uint, bits_per_s
     -1
 }
 
-/*
-int audioEngineCreateSoundBuffer(unsigned int size, int bitsPerSample, int channels, int rate)
-{
-    for (int index = 0; index < c_get_audio_engine_sound_buffers_count(); index++) {
-        AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(index);
-        OnExit onExit([index]() {
-            c_release_audio_engine_sound_buffers(index);
-        });
-
+#[no_mangle]
+pub extern "C" fn rust_audio_engine_sound_release(sound_buffer_index: c_int) -> bool {
+    if !audio_engine_is_initialized() {
+        return false;
     }
 
-    return -1;
+    if !sound_buffer_is_valid(sound_buffer_index) {
+        return false;
+    }
+
+    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
+    let sound_buffer_lock = sound_buffer_ref.lock();
+    let mut sound_buffer = sound_buffer_lock.borrow_mut();
+
+    if !sound_buffer.active {
+        return false;
+    }
+
+    sound_buffer.active = false;
+
+    unsafe { free(sound_buffer.data); }
+    sound_buffer.data = null_mut();
+
+    unsafe { SDL_FreeAudioStream(sound_buffer.stream); }
+    sound_buffer.stream = null_mut();
+
+    true
+}
+
+#[no_mangle]
+pub extern "C" fn rust_audio_engine_sound_buffer_set_volume(sound_buffer_index: c_int, volume: c_int) -> bool {
+    if !audio_engine_is_initialized() {
+        return false;
+    }
+
+    if !sound_buffer_is_valid(sound_buffer_index) {
+        return false;
+    }
+
+    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
+    let sound_buffer_lock = sound_buffer_ref.lock();
+    let mut sound_buffer = sound_buffer_lock.borrow_mut();
+
+    if !sound_buffer.active {
+        return false;
+    }
+
+    sound_buffer.volume = volume;
+
+    true
+}
+
+#[no_mangle]
+pub extern "C" fn rust_audio_engine_sound_buffer_get_volume(sound_buffer_index: c_int, volume_ptr: *mut c_int) -> bool {
+    if !audio_engine_is_initialized() {
+        return false;
+    }
+
+    if !sound_buffer_is_valid(sound_buffer_index) {
+        return false;
+    }
+
+    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
+    let sound_buffer_lock = sound_buffer_ref.lock();
+    let sound_buffer = sound_buffer_lock.borrow_mut();
+
+    if !sound_buffer.active {
+        return false;
+    }
+
+    unsafe {
+        *volume_ptr = sound_buffer.volume;
+    }
+
+    true
+}
+
+#[no_mangle]
+pub extern "C" fn rust_audio_engine_sound_buffer_set_pan(sound_buffer_index: c_int, _pan: c_int) -> bool {
+    if !audio_engine_is_initialized() {
+        return false;
+    }
+
+    if !sound_buffer_is_valid(sound_buffer_index) {
+        return false;
+    }
+
+    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
+    let sound_buffer_lock = sound_buffer_ref.lock();
+    let sound_buffer = sound_buffer_lock.borrow_mut();
+
+    if !sound_buffer.active {
+        return false;
+    }
+
+    // NOTE: Audio engine does not support sound panning. I'm not sure it's
+    // even needed. For now this value is silently ignored.
+
+    true
+}
+
+#[no_mangle]
+pub extern "C" fn rust_audio_engine_sound_buffer_play(sound_buffer_index: c_int, flags: c_uint) -> bool {
+    if !audio_engine_is_initialized() {
+        return false;
+    }
+
+    if !sound_buffer_is_valid(sound_buffer_index) {
+        return false;
+    }
+
+    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
+    let sound_buffer_lock = sound_buffer_ref.lock();
+    let mut sound_buffer = sound_buffer_lock.borrow_mut();
+
+    if !sound_buffer.active {
+        return false;
+    }
+
+    sound_buffer.playing = true;
+
+    if (flags & AUDIO_ENGINE_SOUND_BUFFER_PLAY_LOOPING) != 0 {
+        sound_buffer.looping = true;
+    }
+
+    true
+}
+
+#[no_mangle]
+pub extern "C" fn rust_audio_engine_sound_buffer_stop(sound_buffer_index: c_int) -> bool {
+    if !audio_engine_is_initialized() {
+        return false;
+    }
+
+    if !sound_buffer_is_valid(sound_buffer_index) {
+        return false;
+    }
+
+    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
+    let sound_buffer_lock = sound_buffer_ref.lock();
+    let mut sound_buffer = sound_buffer_lock.borrow_mut();
+
+    if !sound_buffer.active {
+        return false;
+    }
+
+    sound_buffer.playing = false;
+
+    true
+}
+
+#[no_mangle]
+pub extern "C" fn rust_audio_engine_sound_buffer_get_current_position(sound_buffer_index: c_int, read_pos_ptr: *mut c_uint, write_pos_ptr: *mut c_uint) -> bool {
+    if !audio_engine_is_initialized() {
+        return false;
+    }
+
+    if !sound_buffer_is_valid(sound_buffer_index) {
+        return false;
+    }
+
+    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
+    let sound_buffer_lock = sound_buffer_ref.lock();
+    let sound_buffer = sound_buffer_lock.borrow_mut();
+
+    if !sound_buffer.active {
+        return false;
+    }
+
+    if read_pos_ptr != null_mut() {
+        unsafe {
+            *read_pos_ptr = sound_buffer.pos;
+        }
+    }
+
+    if write_pos_ptr != null_mut() {
+        unsafe {
+            *write_pos_ptr = sound_buffer.pos;
+        }
+
+        if sound_buffer.playing {
+            // 15 ms lead
+            // See: https://docs.microsoft.com/en-us/previous-versions/windows/desktop/mt708925(v=vs.85)#remarks
+            unsafe {
+                *write_pos_ptr += sound_buffer.rate as u32 / 150;
+                *write_pos_ptr %= sound_buffer.size;
+            }
+        }
+    }
+
+    true
+}
+
+/*
+bool audioEngineSoundBufferGetCurrentPosition(int soundBufferIndex, unsigned int* readPosPtr, unsigned int* writePosPtr)
+{
+    if (!c_audio_engine_is_initialized()) {
+        return false;
+    }
+
+    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
+        return false;
+    }
+
+    AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(soundBufferIndex);
+    OnExit onExit([soundBufferIndex]() {
+        c_release_audio_engine_sound_buffers(soundBufferIndex);
+    });
+
+    if (!soundBuffer->active) {
+        return false;
+    }
+
+    return true;
+}
 }
  */
