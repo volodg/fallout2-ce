@@ -263,7 +263,7 @@ pub extern "C" fn rust_audio_engine_create_sound_buffer(size: c_uint, bits_per_s
     -1
 }
 
-fn visit_audio_engine_sound_buffer<F>(index: c_int, visitor: F) -> bool where F: FnOnce(&AudioEngineSoundBuffer) -> bool {
+fn visit_audio_engine_sound_buffer_mutex<F>(index: c_int, visitor: F) -> bool where F: FnOnce(&ReentrantMutex<RefCell<AudioEngineSoundBuffer>>) -> bool {
     if !audio_engine_is_initialized() {
         return false;
     }
@@ -272,67 +272,51 @@ fn visit_audio_engine_sound_buffer<F>(index: c_int, visitor: F) -> bool where F:
         return false;
     }
 
-    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[index as usize];
-    let sound_buffer_lock = sound_buffer_ref.lock();
-    let sound_buffer = sound_buffer_lock.borrow();
+    return visitor(&AUDIO_ENGINE_SOUND_BUFFER[index as usize]);
+}
 
-    if !sound_buffer.active {
-        return false;
-    }
+fn visit_audio_engine_sound_buffer<F>(index: c_int, visitor: F) -> bool where F: FnOnce(&AudioEngineSoundBuffer) -> bool {
+    visit_audio_engine_sound_buffer_mutex(index, |sound_buffer_ref| {
+        let sound_buffer_lock = sound_buffer_ref.lock();
+        let sound_buffer = sound_buffer_lock.borrow();
 
-    return visitor(&*sound_buffer);
+        if !sound_buffer.active {
+            return false;
+        }
+
+        return visitor(&*sound_buffer);
+    })
+}
+
+fn visit_audio_engine_sound_buffer_mut<F>(index: c_int, visitor: F) -> bool where F: FnOnce(&mut AudioEngineSoundBuffer) -> bool {
+    visit_audio_engine_sound_buffer_mutex(index, |sound_buffer_ref| {
+        let sound_buffer_lock = sound_buffer_ref.lock();
+        let mut sound_buffer = sound_buffer_lock.borrow_mut();
+        return visitor(&mut *sound_buffer);
+    })
 }
 
 #[no_mangle]
 pub extern "C" fn rust_audio_engine_sound_release(sound_buffer_index: c_int) -> bool {
-    if !audio_engine_is_initialized() {
-        return false;
-    }
+    visit_audio_engine_sound_buffer_mut(sound_buffer_index, |sound_buffer| {
+        sound_buffer.active = false;
 
-    if !sound_buffer_is_valid(sound_buffer_index) {
-        return false;
-    }
+        unsafe { free(sound_buffer.data); }
+        sound_buffer.data = null_mut();
 
-    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
-    let sound_buffer_lock = sound_buffer_ref.lock();
-    let mut sound_buffer = sound_buffer_lock.borrow_mut();
+        unsafe { SDL_FreeAudioStream(sound_buffer.stream); }
+        sound_buffer.stream = null_mut();
 
-    if !sound_buffer.active {
-        return false;
-    }
-
-    sound_buffer.active = false;
-
-    unsafe { free(sound_buffer.data); }
-    sound_buffer.data = null_mut();
-
-    unsafe { SDL_FreeAudioStream(sound_buffer.stream); }
-    sound_buffer.stream = null_mut();
-
-    true
+        true
+    })
 }
 
 #[no_mangle]
 pub extern "C" fn rust_audio_engine_sound_buffer_set_volume(sound_buffer_index: c_int, volume: c_int) -> bool {
-    if !audio_engine_is_initialized() {
-        return false;
-    }
-
-    if !sound_buffer_is_valid(sound_buffer_index) {
-        return false;
-    }
-
-    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
-    let sound_buffer_lock = sound_buffer_ref.lock();
-    let mut sound_buffer = sound_buffer_lock.borrow_mut();
-
-    if !sound_buffer.active {
-        return false;
-    }
-
-    sound_buffer.volume = volume;
-
-    true
+    visit_audio_engine_sound_buffer_mut(sound_buffer_index, |sound_buffer| {
+        sound_buffer.volume = volume;
+        true
+    })
 }
 
 #[no_mangle]
@@ -356,52 +340,22 @@ pub extern "C" fn rust_audio_engine_sound_buffer_set_pan(sound_buffer_index: c_i
 
 #[no_mangle]
 pub extern "C" fn rust_audio_engine_sound_buffer_play(sound_buffer_index: c_int, flags: c_uint) -> bool {
-    if !audio_engine_is_initialized() {
-        return false;
-    }
+    visit_audio_engine_sound_buffer_mut(sound_buffer_index, |sound_buffer| {
+        sound_buffer.playing = true;
+        if (flags & AUDIO_ENGINE_SOUND_BUFFER_PLAY_LOOPING) != 0 {
+            sound_buffer.looping = true;
+        }
 
-    if !sound_buffer_is_valid(sound_buffer_index) {
-        return false;
-    }
-
-    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
-    let sound_buffer_lock = sound_buffer_ref.lock();
-    let mut sound_buffer = sound_buffer_lock.borrow_mut();
-
-    if !sound_buffer.active {
-        return false;
-    }
-
-    sound_buffer.playing = true;
-
-    if (flags & AUDIO_ENGINE_SOUND_BUFFER_PLAY_LOOPING) != 0 {
-        sound_buffer.looping = true;
-    }
-
-    true
+        true
+    })
 }
 
 #[no_mangle]
 pub extern "C" fn rust_audio_engine_sound_buffer_stop(sound_buffer_index: c_int) -> bool {
-    if !audio_engine_is_initialized() {
-        return false;
-    }
-
-    if !sound_buffer_is_valid(sound_buffer_index) {
-        return false;
-    }
-
-    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
-    let sound_buffer_lock = sound_buffer_ref.lock();
-    let mut sound_buffer = sound_buffer_lock.borrow_mut();
-
-    if !sound_buffer.active {
-        return false;
-    }
-
-    sound_buffer.playing = false;
-
-    true
+    visit_audio_engine_sound_buffer_mut(sound_buffer_index, |sound_buffer| {
+        sound_buffer.playing = false;
+        true
+    })
 }
 
 #[no_mangle]
@@ -434,25 +388,10 @@ pub extern "C" fn rust_audio_engine_sound_buffer_get_current_position(sound_buff
 
 #[no_mangle]
 pub extern "C" fn rust_audio_engine_sound_buffer_set_current_position(sound_buffer_index: c_int, pos: c_uint) -> bool {
-    if !audio_engine_is_initialized() {
-        return false;
-    }
-
-    if !sound_buffer_is_valid(sound_buffer_index) {
-        return false;
-    }
-
-    let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[sound_buffer_index as usize];
-    let sound_buffer_lock = sound_buffer_ref.lock();
-    let mut sound_buffer = sound_buffer_lock.borrow_mut();
-
-    if !sound_buffer.active {
-        return false;
-    }
-
-    sound_buffer.pos = pos % sound_buffer.size;
-
-    true
+    visit_audio_engine_sound_buffer_mut(sound_buffer_index, |sound_buffer| {
+        sound_buffer.pos = pos % sound_buffer.size;
+        true
+    })
 }
 
 #[no_mangle]
@@ -520,7 +459,6 @@ pub extern "C" fn rust_audio_engine_sound_buffer_lock(sound_buffer_index: c_int,
 pub extern "C" fn rust_audio_engine_sound_buffer_unlock(sound_buffer_index: c_int) -> bool {
     visit_audio_engine_sound_buffer(sound_buffer_index, |_sound_buffer| {
         // TODO: Mark range as unlocked.
-
         true
     })
 }
