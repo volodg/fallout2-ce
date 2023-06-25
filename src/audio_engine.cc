@@ -11,20 +11,18 @@ struct AudioEngineSoundBuffer;
 extern "C" {
     bool c_get_program_is_active();
 
-    void c_set_audio_engine_device_id(SDL_AudioDeviceID value);
-    SDL_AudioDeviceID c_get_audio_engine_device_id();
-
     bool c_audio_engine_is_initialized();
 
     fallout::AudioEngineSoundBuffer* c_get_locked_audio_engine_sound_buffers(unsigned int index);
     void c_release_audio_engine_sound_buffers(unsigned int index);
 
-    SDL_AudioSpec* c_get_audio_engine_spec();
-
-    unsigned long c_get_audio_engine_sound_buffers_count();
     bool c_sound_buffer_is_valid(int);
 
     bool rust_audio_engine_init();
+    void rust_audio_engine_exit();
+    void rust_audio_engine_pause();
+    void rust_audio_engine_resume();
+    int rust_audio_engine_create_sound_buffer(unsigned int size, int bitsPerSample, int channels, int rate);
 }
 
 namespace fallout {
@@ -43,7 +41,7 @@ private:
 struct AudioEngineSoundBuffer {
     bool active;
     unsigned int size;
-    int bitsPerSample;
+    int _reserved;
     int channels;
     int rate;
     int volume;
@@ -61,59 +59,22 @@ bool audioEngineInit()
 
 void audioEngineExit()
 {
-    if (c_audio_engine_is_initialized()) {
-        SDL_CloseAudioDevice(c_get_audio_engine_device_id());
-        c_set_audio_engine_device_id(-1);
-    }
-
-    if (SDL_WasInit(SDL_INIT_AUDIO)) {
-        SDL_QuitSubSystem(SDL_INIT_AUDIO);
-    }
+    rust_audio_engine_exit();
 }
 
 void audioEnginePause()
 {
-    if (c_audio_engine_is_initialized()) {
-        SDL_PauseAudioDevice(c_get_audio_engine_device_id(), 1);
-    }
+    rust_audio_engine_pause();
 }
 
 void audioEngineResume()
 {
-    if (c_audio_engine_is_initialized()) {
-        SDL_PauseAudioDevice(c_get_audio_engine_device_id(), 0);
-    }
+    rust_audio_engine_resume();
 }
 
 int audioEngineCreateSoundBuffer(unsigned int size, int bitsPerSample, int channels, int rate)
 {
-    if (!c_audio_engine_is_initialized()) {
-        return -1;
-    }
-
-    for (int index = 0; index < c_get_audio_engine_sound_buffers_count(); index++) {
-        AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(index);
-        OnExit onExit([index]() {
-            c_release_audio_engine_sound_buffers(index);
-        });
-
-        if (!soundBuffer->active) {
-            soundBuffer->active = true;
-            soundBuffer->size = size;
-            soundBuffer->bitsPerSample = bitsPerSample;
-            soundBuffer->channels = channels;
-            soundBuffer->rate = rate;
-            soundBuffer->volume = SDL_MIX_MAXVOLUME;
-            soundBuffer->playing = false;
-            soundBuffer->looping = false;
-            soundBuffer->pos = 0;
-            soundBuffer->data = malloc(size);
-            soundBuffer->stream = SDL_NewAudioStream(bitsPerSample == 16 ? AUDIO_S16 : AUDIO_S8, channels, rate, c_get_audio_engine_spec()->format, c_get_audio_engine_spec()->channels, c_get_audio_engine_spec()->freq);
-            return index;
-        }
-    }
-
-    return -1;
+    return rust_audio_engine_create_sound_buffer(size, bitsPerSample, channels, rate);
 }
 
 bool audioEngineSoundBufferRelease(int soundBufferIndex)
