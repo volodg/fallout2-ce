@@ -500,11 +500,11 @@ int reg_anim_end()
 // 0x413D6C
 static int _anim_preload(Object* object, int fid, CacheEntry** cacheEntryPtr)
 {
-    *cacheEntryPtr = NULL;
+    *cacheEntryPtr = nullptr;
 
-    if (artLock(fid, cacheEntryPtr) != NULL) {
+    if (artLock(fid, cacheEntryPtr) != nullptr) {
         artUnlock(*cacheEntryPtr);
-        *cacheEntryPtr = NULL;
+        *cacheEntryPtr = nullptr;
         return 0;
     }
 
@@ -525,7 +525,7 @@ static void _anim_cleanup()
     AnimationSequence* animationSequence = &(gAnimationSequences[gAnimationSequenceCurrentIndex]);
     for (int index = 0; index < gAnimationDescriptionCurrentIndex; index++) {
         AnimationDescription* animationDescription = &(animationSequence->animations[index]);
-        if (animationDescription->artCacheKey != NULL) {
+        if (animationDescription->artCacheKey != nullptr) {
             artUnlock(animationDescription->artCacheKey);
         }
 
@@ -548,7 +548,7 @@ static int _check_registry(Object* obj)
         return -1;
     }
 
-    if (obj == NULL) {
+    if (obj == nullptr) {
         return 0;
     }
 
@@ -577,7 +577,7 @@ static int _check_registry(Object* obj)
 // 0x413EC8
 int animationIsBusy(Object* a1)
 {
-    if (gAnimationDescriptionCurrentIndex >= ANIMATION_DESCRIPTION_LIST_CAPACITY || a1 == NULL) {
+    if (gAnimationDescriptionCurrentIndex >= ANIMATION_DESCRIPTION_LIST_CAPACITY || a1 == nullptr) {
         return 0;
     }
 
