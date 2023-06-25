@@ -4,8 +4,9 @@ use std::ffi::{c_int, c_void};
 use std::mem::forget;
 use std::ptr::{null, null_mut};
 use std::cell::RefCell;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
-use sdl2_sys::{SDL_AudioFormat, SDL_AudioSpec, SDL_AudioStreamGet, SDL_AudioStreamPut, SDL_MixAudioFormat, u_char};
+use sdl2_sys::{AUDIO_S16, SDL_AUDIO_ALLOW_ANY_CHANGE, SDL_AudioFormat, SDL_AudioSpec, SDL_AudioStreamGet, SDL_AudioStreamPut, SDL_INIT_AUDIO, SDL_InitSubSystem, SDL_MixAudioFormat, SDL_OpenAudioDevice, SDL_PauseAudioDevice, u_char, Uint8};
 use parking_lot::ReentrantMutex;
 use sdl2::sys::{SDL_AudioDeviceID, SDL_AudioStream};
 use crate::win32::program_is_active;
@@ -87,12 +88,16 @@ lazy_static! {
         ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
     ];
 
-    static ref AUDIO_ENGINE_SPEC: SdlAudioSpecHolder = SdlAudioSpecHolder::default();
+    static ref AUDIO_ENGINE_SPEC: Mutex<SdlAudioSpecHolder> = Mutex::new(SdlAudioSpecHolder::default());
+}
+
+pub fn set_audio_engine_device_id(value: SDL_AudioDeviceID) {
+    AUDIO_ENGINE_DEVICE_ID.store(value, Ordering::Relaxed)
 }
 
 #[no_mangle]
 pub extern "C" fn c_set_audio_engine_device_id(value: SDL_AudioDeviceID) {
-    AUDIO_ENGINE_DEVICE_ID.store(value, Ordering::Relaxed)
+    set_audio_engine_device_id(value)
 }
 
 #[no_mangle]
@@ -100,9 +105,13 @@ pub extern "C" fn c_get_audio_engine_device_id() -> SDL_AudioDeviceID {
     AUDIO_ENGINE_DEVICE_ID.load(Ordering::Relaxed)
 }
 
+fn audio_engine_is_initialized() -> bool {
+    AUDIO_ENGINE_DEVICE_ID.load(Ordering::Relaxed) != u32::MAX
+}
+
 #[no_mangle]
 pub extern "C" fn c_audio_engine_is_initialized() -> bool {
-    AUDIO_ENGINE_DEVICE_ID.load(Ordering::Relaxed) != u32::MAX
+    audio_engine_is_initialized()
 }
 
 #[no_mangle]
@@ -127,7 +136,7 @@ pub extern "C" fn c_release_audio_engine_sound_buffers(index: c_uint) {
 
 #[no_mangle]
 pub extern "C" fn c_get_audio_engine_spec() -> *const SDL_AudioSpec {
-    &AUDIO_ENGINE_SPEC.obj
+    &AUDIO_ENGINE_SPEC.lock().expect("lock").obj
 }
 
 #[no_mangle]
@@ -140,10 +149,9 @@ pub extern "C" fn c_sound_buffer_is_valid(sound_buffer_index: c_int) -> bool {
     sound_buffer_index >= 0 && (sound_buffer_index as usize) < AUDIO_ENGINE_SOUND_BUFFERS
 }
 
-#[no_mangle]
-pub extern "C" fn c_audio_engine_mixin(_user_data: *const c_void, stream: *mut u8, length: c_int) {
+extern "C" fn c_audio_engine_mixin(_user_data: *mut c_void, stream: *mut Uint8, length: c_int) {
     unsafe {
-        memset(stream as *mut c_void, AUDIO_ENGINE_SPEC.obj.silence as c_int, length as size_t);
+        memset(stream as *mut c_void, AUDIO_ENGINE_SPEC.lock().expect("lock").obj.silence as c_int, length as size_t);
     }
 
     if !program_is_active() {
@@ -179,7 +187,7 @@ pub extern "C" fn c_audio_engine_mixin(_user_data: *const c_void, stream: *mut u
                 }
 
                 unsafe {
-                    SDL_MixAudioFormat(stream.add(pos as usize), buffer.as_mut_ptr(), AUDIO_ENGINE_SPEC.obj.format, bytes_read as u32, sound_buffer.volume);
+                    SDL_MixAudioFormat(stream.add(pos as usize), buffer.as_mut_ptr(), AUDIO_ENGINE_SPEC.lock().expect("lock").obj.format, bytes_read as u32, sound_buffer.volume);
                 }
 
                 if sound_buffer.pos >= sound_buffer.size {
@@ -197,12 +205,40 @@ pub extern "C" fn c_audio_engine_mixin(_user_data: *const c_void, stream: *mut u
     }
 }
 
-/*
-static void audioEngineMixin(void* userData, Uint8* stream, int length)
-{
-    for (int index = 0; index < c_get_audio_engine_sound_buffers_count(); index++) {
-        if (soundBuffer->active && soundBuffer->playing) {
-        }
+#[no_mangle]
+pub extern "C" fn rust_audio_engine_init() -> bool {
+    if unsafe { SDL_InitSubSystem(SDL_INIT_AUDIO) == -1 } {
+        return false;
     }
+
+    let desired_spec = SDL_AudioSpec {
+        freq: 22050,
+        format: AUDIO_S16 as SDL_AudioFormat,
+        channels: 2,
+        silence: 0,
+        samples: 1024,
+        padding: 0,
+        size: 0,
+        callback: Some(c_audio_engine_mixin),
+        userdata: null_mut(),
+    };
+
+    let device_id = unsafe {
+        SDL_OpenAudioDevice(null(), 0, &desired_spec, &mut AUDIO_ENGINE_SPEC.lock().expect("lock").obj, SDL_AUDIO_ALLOW_ANY_CHANGE as c_int)
+    };
+
+    set_audio_engine_device_id(device_id);
+    if !audio_engine_is_initialized() {
+        return false;
+    }
+
+    unsafe { SDL_PauseAudioDevice(c_get_audio_engine_device_id(), 0) }
+
+    true
+}
+
+/*
+bool audioEngineInit()
+{
 }
  */

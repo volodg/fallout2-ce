@@ -24,7 +24,7 @@ extern "C" {
     unsigned long c_get_audio_engine_sound_buffers_count();
     bool c_sound_buffer_is_valid(int);
 
-    void c_audio_engine_mixin(void* userData, Uint8* stream, int length);
+    bool rust_audio_engine_init();
 }
 
 namespace fallout {
@@ -56,25 +56,7 @@ struct AudioEngineSoundBuffer {
 
 bool audioEngineInit()
 {
-    if (SDL_InitSubSystem(SDL_INIT_AUDIO) == -1) {
-        return false;
-    }
-
-    SDL_AudioSpec desiredSpec;
-    desiredSpec.freq = 22050;
-    desiredSpec.format = AUDIO_S16;
-    desiredSpec.channels = 2;
-    desiredSpec.samples = 1024;
-    desiredSpec.callback = c_audio_engine_mixin;
-
-    c_set_audio_engine_device_id(SDL_OpenAudioDevice(nullptr, 0, &desiredSpec, c_get_audio_engine_spec(), SDL_AUDIO_ALLOW_ANY_CHANGE));
-    if (!c_audio_engine_is_initialized()) {
-        return false;
-    }
-
-    SDL_PauseAudioDevice(c_get_audio_engine_device_id(), 0);
-
-    return true;
+    return rust_audio_engine_init();
 }
 
 void audioEngineExit()
