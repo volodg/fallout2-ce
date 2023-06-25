@@ -7,7 +7,11 @@ pub extern "C" fn c_set_program_is_active(value: bool) {
     PROGRAM_IS_ACTIVE.store(value, Ordering::Relaxed)
 }
 
+pub fn program_is_active() -> bool {
+    PROGRAM_IS_ACTIVE.load(Ordering::Relaxed)
+}
+
 #[no_mangle]
 pub extern "C" fn c_get_program_is_active() -> bool {
-    PROGRAM_IS_ACTIVE.load(Ordering::Relaxed)
+    program_is_active()
 }

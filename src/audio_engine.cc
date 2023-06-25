@@ -14,18 +14,24 @@ extern "C" {
     void c_set_audio_engine_device_id(SDL_AudioDeviceID value);
     SDL_AudioDeviceID c_get_audio_engine_device_id();
 
-    bool c_audio_engine_ss_initialized();
+    bool c_audio_engine_is_initialized();
 
     fallout::AudioEngineSoundBuffer* c_get_locked_audio_engine_sound_buffers(unsigned int index);
     void c_release_audio_engine_sound_buffers(fallout::AudioEngineSoundBuffer* ptr);
+
+    SDL_AudioSpec* c_get_audio_engine_spec();
+
+    unsigned long c_get_audio_engine_sound_buffers_count();
+    bool c_sound_buffer_is_valid(int);
+
+    void c_audio_engine_mixin(void* userData, Uint8* stream, int length);
 }
 
 namespace fallout {
 
 class OnExit {
 public:
-    OnExit(std::function<void(void)>&& onExit): onExit_(onExit) {
-    }
+    OnExit(std::function<void(void)>&& onExit): onExit_(onExit) {}
 
     ~OnExit() {
         onExit_();
@@ -48,33 +54,17 @@ struct AudioEngineSoundBuffer {
     SDL_AudioStream* stream;
 };
 
-#define AUDIO_ENGINE_SOUND_BUFFERS 8
-
-static bool soundBufferIsValid(int soundBufferIndex);
 static void audioEngineMixin(void* userData, Uint8* stream, int length);
-
-static SDL_AudioSpec gAudioEngineSpec;
-static AudioEngineSoundBuffer gAudioEngineSoundBuffers[AUDIO_ENGINE_SOUND_BUFFERS];
-
-static bool audioEngineIsInitialized()
-{
-    return c_audio_engine_ss_initialized();
-}
-
-static bool soundBufferIsValid(int soundBufferIndex)
-{
-    return soundBufferIndex >= 0 && soundBufferIndex < AUDIO_ENGINE_SOUND_BUFFERS;
-}
 
 static void audioEngineMixin(void* userData, Uint8* stream, int length)
 {
-    memset(stream, gAudioEngineSpec.silence, length);
+    memset(stream, c_get_audio_engine_spec()->silence, length);
 
     if (!c_get_program_is_active()) {
         return;
     }
 
-    for (int index = 0; index < AUDIO_ENGINE_SOUND_BUFFERS; index++) {
+    for (int index = 0; index < c_get_audio_engine_sound_buffers_count(); index++) {
         AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(index);
         OnExit onExit([soundBuffer]() {
             c_release_audio_engine_sound_buffers(soundBuffer);
@@ -100,7 +90,7 @@ static void audioEngineMixin(void* userData, Uint8* stream, int length)
                     break;
                 }
 
-                SDL_MixAudioFormat(stream + pos, buffer, gAudioEngineSpec.format, bytesRead, soundBuffer->volume);
+                SDL_MixAudioFormat(stream + pos, buffer, c_get_audio_engine_spec()->format, bytesRead, soundBuffer->volume);
 
                 if (soundBuffer->pos >= soundBuffer->size) {
                     if (soundBuffer->looping) {
@@ -130,8 +120,8 @@ bool audioEngineInit()
     desiredSpec.samples = 1024;
     desiredSpec.callback = audioEngineMixin;
 
-    c_set_audio_engine_device_id(SDL_OpenAudioDevice(nullptr, 0, &desiredSpec, &gAudioEngineSpec, SDL_AUDIO_ALLOW_ANY_CHANGE));
-    if (!audioEngineIsInitialized()) {
+    c_set_audio_engine_device_id(SDL_OpenAudioDevice(nullptr, 0, &desiredSpec, c_get_audio_engine_spec(), SDL_AUDIO_ALLOW_ANY_CHANGE));
+    if (!c_audio_engine_is_initialized()) {
         return false;
     }
 
@@ -142,7 +132,7 @@ bool audioEngineInit()
 
 void audioEngineExit()
 {
-    if (audioEngineIsInitialized()) {
+    if (c_audio_engine_is_initialized()) {
         SDL_CloseAudioDevice(c_get_audio_engine_device_id());
         c_set_audio_engine_device_id(-1);
     }
@@ -154,25 +144,25 @@ void audioEngineExit()
 
 void audioEnginePause()
 {
-    if (audioEngineIsInitialized()) {
+    if (c_audio_engine_is_initialized()) {
         SDL_PauseAudioDevice(c_get_audio_engine_device_id(), 1);
     }
 }
 
 void audioEngineResume()
 {
-    if (audioEngineIsInitialized()) {
+    if (c_audio_engine_is_initialized()) {
         SDL_PauseAudioDevice(c_get_audio_engine_device_id(), 0);
     }
 }
 
 int audioEngineCreateSoundBuffer(unsigned int size, int bitsPerSample, int channels, int rate)
 {
-    if (!audioEngineIsInitialized()) {
+    if (!c_audio_engine_is_initialized()) {
         return -1;
     }
 
-    for (int index = 0; index < AUDIO_ENGINE_SOUND_BUFFERS; index++) {
+    for (int index = 0; index < c_get_audio_engine_sound_buffers_count(); index++) {
         AudioEngineSoundBuffer* soundBuffer = c_get_locked_audio_engine_sound_buffers(index);
         OnExit onExit([soundBuffer]() {
             c_release_audio_engine_sound_buffers(soundBuffer);
@@ -189,7 +179,7 @@ int audioEngineCreateSoundBuffer(unsigned int size, int bitsPerSample, int chann
             soundBuffer->looping = false;
             soundBuffer->pos = 0;
             soundBuffer->data = malloc(size);
-            soundBuffer->stream = SDL_NewAudioStream(bitsPerSample == 16 ? AUDIO_S16 : AUDIO_S8, channels, rate, gAudioEngineSpec.format, gAudioEngineSpec.channels, gAudioEngineSpec.freq);
+            soundBuffer->stream = SDL_NewAudioStream(bitsPerSample == 16 ? AUDIO_S16 : AUDIO_S8, channels, rate, c_get_audio_engine_spec()->format, c_get_audio_engine_spec()->channels, c_get_audio_engine_spec()->freq);
             return index;
         }
     }
@@ -199,11 +189,11 @@ int audioEngineCreateSoundBuffer(unsigned int size, int bitsPerSample, int chann
 
 bool audioEngineSoundBufferRelease(int soundBufferIndex)
 {
-    if (!audioEngineIsInitialized()) {
+    if (!c_audio_engine_is_initialized()) {
         return false;
     }
 
-    if (!soundBufferIsValid(soundBufferIndex)) {
+    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
         return false;
     }
 
@@ -229,11 +219,11 @@ bool audioEngineSoundBufferRelease(int soundBufferIndex)
 
 bool audioEngineSoundBufferSetVolume(int soundBufferIndex, int volume)
 {
-    if (!audioEngineIsInitialized()) {
+    if (!c_audio_engine_is_initialized()) {
         return false;
     }
 
-    if (!soundBufferIsValid(soundBufferIndex)) {
+    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
         return false;
     }
 
@@ -253,11 +243,11 @@ bool audioEngineSoundBufferSetVolume(int soundBufferIndex, int volume)
 
 bool audioEngineSoundBufferGetVolume(int soundBufferIndex, int* volumePtr)
 {
-    if (!audioEngineIsInitialized()) {
+    if (!c_audio_engine_is_initialized()) {
         return false;
     }
 
-    if (!soundBufferIsValid(soundBufferIndex)) {
+    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
         return false;
     }
 
@@ -277,11 +267,11 @@ bool audioEngineSoundBufferGetVolume(int soundBufferIndex, int* volumePtr)
 
 bool audioEngineSoundBufferSetPan(int soundBufferIndex, int pan)
 {
-    if (!audioEngineIsInitialized()) {
+    if (!c_audio_engine_is_initialized()) {
         return false;
     }
 
-    if (!soundBufferIsValid(soundBufferIndex)) {
+    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
         return false;
     }
 
@@ -302,11 +292,11 @@ bool audioEngineSoundBufferSetPan(int soundBufferIndex, int pan)
 
 bool audioEngineSoundBufferPlay(int soundBufferIndex, unsigned int flags)
 {
-    if (!audioEngineIsInitialized()) {
+    if (!c_audio_engine_is_initialized()) {
         return false;
     }
 
-    if (!soundBufferIsValid(soundBufferIndex)) {
+    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
         return false;
     }
 
@@ -330,11 +320,11 @@ bool audioEngineSoundBufferPlay(int soundBufferIndex, unsigned int flags)
 
 bool audioEngineSoundBufferStop(int soundBufferIndex)
 {
-    if (!audioEngineIsInitialized()) {
+    if (!c_audio_engine_is_initialized()) {
         return false;
     }
 
-    if (!soundBufferIsValid(soundBufferIndex)) {
+    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
         return false;
     }
 
@@ -354,11 +344,11 @@ bool audioEngineSoundBufferStop(int soundBufferIndex)
 
 bool audioEngineSoundBufferGetCurrentPosition(int soundBufferIndex, unsigned int* readPosPtr, unsigned int* writePosPtr)
 {
-    if (!audioEngineIsInitialized()) {
+    if (!c_audio_engine_is_initialized()) {
         return false;
     }
 
-    if (!soundBufferIsValid(soundBufferIndex)) {
+    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
         return false;
     }
 
@@ -391,11 +381,11 @@ bool audioEngineSoundBufferGetCurrentPosition(int soundBufferIndex, unsigned int
 
 bool audioEngineSoundBufferSetCurrentPosition(int soundBufferIndex, unsigned int pos)
 {
-    if (!audioEngineIsInitialized()) {
+    if (!c_audio_engine_is_initialized()) {
         return false;
     }
 
-    if (!soundBufferIsValid(soundBufferIndex)) {
+    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
         return false;
     }
 
@@ -415,11 +405,11 @@ bool audioEngineSoundBufferSetCurrentPosition(int soundBufferIndex, unsigned int
 
 bool audioEngineSoundBufferLock(int soundBufferIndex, unsigned int writePos, unsigned int writeBytes, void** audioPtr1, unsigned int* audioBytes1, void** audioPtr2, unsigned int* audioBytes2, unsigned int flags)
 {
-    if (!audioEngineIsInitialized()) {
+    if (!c_audio_engine_is_initialized()) {
         return false;
     }
 
-    if (!soundBufferIsValid(soundBufferIndex)) {
+    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
         return false;
     }
 
@@ -477,11 +467,11 @@ bool audioEngineSoundBufferLock(int soundBufferIndex, unsigned int writePos, uns
 
 bool audioEngineSoundBufferUnlock(int soundBufferIndex)
 {
-    if (!audioEngineIsInitialized()) {
+    if (!c_audio_engine_is_initialized()) {
         return false;
     }
 
-    if (!soundBufferIsValid(soundBufferIndex)) {
+    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
         return false;
     }
 
@@ -501,11 +491,11 @@ bool audioEngineSoundBufferUnlock(int soundBufferIndex)
 
 bool audioEngineSoundBufferGetStatus(int soundBufferIndex, unsigned int* statusPtr)
 {
-    if (!audioEngineIsInitialized()) {
+    if (!c_audio_engine_is_initialized()) {
         return false;
     }
 
-    if (!soundBufferIsValid(soundBufferIndex)) {
+    if (!c_sound_buffer_is_valid(soundBufferIndex)) {
         return false;
     }
 
