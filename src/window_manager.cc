@@ -16,6 +16,7 @@
 #include "svga.h"
 #include "text_font.h"
 #include "vcr.h"
+#include "win32.h"
 #include "window_manager_private.h"
 
 // Migrated
