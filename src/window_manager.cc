@@ -1,6 +1,6 @@
 #include "window_manager.h"
 
-#include <string.h>
+#include <cstring>
 
 #include <algorithm>
 

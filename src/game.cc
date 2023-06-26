@@ -1,7 +1,9 @@
 #include "game.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
+
+#include <SDL.h>
 
 #include "actions.h"
 #include "animation.h"
@@ -71,7 +73,6 @@
 
 extern "C"
 {
-    short c_get_version_max();
     const char* c_get_version_build_time();
 }
 
@@ -918,7 +919,7 @@ int gameHandleKey(int eventCode, bool isInCombatMode)
         {
             soundPlayFile("ib1p1xx1");
 
-            char version[c_get_version_max()];
+            char version[VERSION_MAX];
             versionGetVersion(version, sizeof(version));
             displayMonitorAddMessage(version);
             displayMonitorAddMessage(_aDec11199816543);
