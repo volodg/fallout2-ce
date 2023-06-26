@@ -1,6 +1,6 @@
 #include "file_find.h"
 
-#include <string>
+#include <cstring>
 
 #include <fpattern.h>
 
