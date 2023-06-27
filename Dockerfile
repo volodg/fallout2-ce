@@ -1,10 +1,10 @@
 # Initial image
-FROM ubuntu:20.04
+FROM ubuntu
 
 # Update, install, and configure
 RUN set -ex \
     && apt update \
-    && apt install -y build-essential curl git \
+    && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y cmake build-essential curl git \
     && curl https://sh.rustup.rs -sSf | bash -s -- -y \
     && apt install -y libsdl2-dev
 
