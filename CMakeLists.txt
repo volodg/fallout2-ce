@@ -399,6 +399,8 @@ if(APPLE)
     include(CPack)
 endif()
 
+# Enable rust
+
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 enable_language(Rust)
