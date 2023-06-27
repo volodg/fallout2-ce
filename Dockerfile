@@ -1,5 +1,5 @@
 # Initial image
-FROM ubuntu
+FROM ubuntu:22.04
 
 # Update, install, and configure
 RUN set -ex \
