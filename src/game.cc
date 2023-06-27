@@ -73,7 +73,7 @@
 
 extern "C"
 {
-    const char* c_get_version_build_time();
+    const char* rust_get_version_build_time();
 }
 
 namespace fallout {
@@ -97,7 +97,7 @@ static char _aGame_0[] = "game\\";
 
 // 0x5020B8
 // TODO
-static char* _aDec11199816543 = (char*)c_get_version_build_time();
+static char* _aDec11199816543 = (char*)rust_get_version_build_time();
 
 // 0x5186B4
 static bool gGameUiDisabled = false;

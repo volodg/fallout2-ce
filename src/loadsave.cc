@@ -62,7 +62,7 @@
 
 extern "C"
 {
-    char c_get_version_release();
+    char rust_get_version_release();
 }
 
 namespace fallout {
@@ -1825,8 +1825,8 @@ static int lsgSaveHeaderInSlot(int slot)
         return -1;
     }
 
-    ptr->versionRelease = c_get_version_release();
-    if (fileWriteUInt8(_flptr, c_get_version_release()) == -1) {
+    ptr->versionRelease = rust_get_version_release();
+    if (fileWriteUInt8(_flptr, rust_get_version_release()) == -1) {
         return -1;
     }
 

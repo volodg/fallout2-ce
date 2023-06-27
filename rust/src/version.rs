@@ -14,7 +14,7 @@ const VERSION_RELEASE: c_char = 'R' as c_char;
 const VERSION_BUILD_TIME: &str = "Dec 11 1998 16:54:30";
 
 #[no_mangle]
-pub extern "C" fn c_get_version(dest: *mut c_char, size: usize) {
+pub extern "C" fn rust_get_version(dest: *mut c_char, size: usize) {
     let version = CString::new(get_version()).expect("valid version cstring");
     unsafe {
         std::ptr::copy(version.as_ptr(), dest, size);
@@ -32,17 +32,17 @@ pub extern "C" fn c_get_minor_version() -> c_short {
 }
 
 #[no_mangle]
-pub extern "C" fn c_get_version_max() -> c_short {
+pub extern "C" fn rust_get_version_max() -> c_short {
     VERSION_MAX as c_short
 }
 
 #[no_mangle]
-pub extern "C" fn c_get_version_release() -> c_char {
+pub extern "C" fn rust_get_version_release() -> c_char {
     VERSION_RELEASE
 }
 
 #[no_mangle]
-pub extern "C" fn c_get_version_build_time() -> *const c_char {
+pub extern "C" fn rust_get_version_build_time() -> *const c_char {
     VERSION_BUILD_TIME.as_ptr() as *const c_char
 }
 
@@ -60,12 +60,12 @@ mod tests {
     }
 
     #[test]
-    fn test_c_get_version() {
+    fn test_rust_get_version() {
         const BUFFER_SIZE: usize = 20;
 
         let buf = unsafe { libc::malloc(BUFFER_SIZE) as *mut c_char };
 
-        c_get_version(buf, BUFFER_SIZE);
+        rust_get_version(buf, BUFFER_SIZE);
         let version_c_string = unsafe { CString::from_raw(buf) };
 
         let version = version_c_string.to_str().expect("valid c string");
