@@ -1,10 +1,11 @@
 # Initial image
-FROM rust:1.70 AS builder
+FROM ubuntu:20.04
 
 # Update, install, and configure
 RUN set -ex \
     && apt update \
-    && apt install -y cmake \
+    && apt install -y build-essential curl git \
+    && curl https://sh.rustup.rs -sSf | bash -s -- -y \
     && apt install -y libsdl2-dev
 
 # Setting up working dir for getting whole project
@@ -15,4 +16,4 @@ COPY . .
 # Set up the working dir
 WORKDIR /app
 # Build
-# RUN cmake -B build_linux && cmake --build build_linux
+RUN cmake -B build_linux && cmake --build build_linux
