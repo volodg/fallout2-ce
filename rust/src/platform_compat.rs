@@ -2,6 +2,7 @@ use std::ptr::null_mut;
 use libc::{c_char, strncpy};
 
 const COMPAT_MAX_DRIVE: u8 = 3;
+const COMPAT_MAX_DIR: u16 = 256;
 
 #[cfg(target_family = "windows")]
 extern "C" {
@@ -82,20 +83,23 @@ pub extern "C" fn rust_compat_splitpath(
     if ext_start == null_mut() {
         ext_start = end;
     }
+
+    if dir != null_mut() {
+        let mut dir_size = unsafe { fname_start.offset_from(dir_start) };
+        if dir_size > (COMPAT_MAX_DIR - 1) as isize {
+            dir_size = (COMPAT_MAX_DIR - 1) as isize;
+        }
+        unsafe {
+            strncpy(dir, path, dir_size as usize);
+            *dir.offset(dir_size) = '\0' as c_char;
+        }
+    }
+
 }
 
 /*
 void compat_splitpath(const char* path, char* drive, char* dir, char* fname, char* ext)
 {
-    if (dir != nullptr) {
-        size_t dirSize = fnameStart - dirStart;
-        if (dirSize > COMPAT_MAX_DIR - 1) {
-            dirSize = COMPAT_MAX_DIR - 1;
-        }
-        strncpy(dir, path, dirSize);
-        dir[dirSize] = '\0';
-    }
-
     if (fname != nullptr) {
         size_t fileNameSize = extStart - fnameStart;
         if (fileNameSize > COMPAT_MAX_FNAME - 1) {
