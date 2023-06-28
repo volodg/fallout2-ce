@@ -4,6 +4,7 @@ use libc::{c_char, strncpy};
 const COMPAT_MAX_DRIVE: u8 = 3;
 const COMPAT_MAX_DIR: u16 = 256;
 const COMPAT_MAX_FNAME: u16 = 256;
+const COMPAT_MAX_EXT: u16 = 256;
 
 #[cfg(target_family = "windows")]
 extern "C" {
@@ -37,11 +38,6 @@ pub extern "C" fn rust_compat_splitpath(
     fname: *mut c_char,
     ext: *mut c_char,
 ) {
-    // let path = path as *const i8;
-    // let path = path as [c_char];
-    // path.
-    // std::mem::
-
     let drive_start = path;
 
     unsafe {
@@ -85,42 +81,21 @@ pub extern "C" fn rust_compat_splitpath(
         ext_start = end;
     }
 
-    if dir != null_mut() {
-        let mut dir_size = unsafe { fname_start.offset_from(dir_start) };
-        if dir_size > (COMPAT_MAX_DIR - 1) as isize {
-            dir_size = (COMPAT_MAX_DIR - 1) as isize;
+    fn set_component(component: *mut c_char, path: *const c_char, start: *const c_char, end: *const c_char, max: usize) {
+        let mut dir_size = unsafe { end.offset_from(start) };
+        if dir_size > (max - 1) as isize {
+            dir_size = (max - 1) as isize;
         }
         unsafe {
-            strncpy(dir, path, dir_size as usize);
-            *dir.offset(dir_size) = '\0' as c_char;
+            strncpy(component, path, dir_size as usize);
+            *component.offset(dir_size) = '\0' as c_char;
         }
     }
 
-    if fname != null_mut() {
-        let mut file_name_size = unsafe { ext_start.offset_from(fname_start) };
-        if file_name_size > (COMPAT_MAX_FNAME - 1) as isize {
-            file_name_size = (COMPAT_MAX_FNAME - 1) as isize;
-        }
-        unsafe {
-            strncpy(fname, fname_start, file_name_size as usize);
-            *fname.offset(file_name_size) = '\0' as c_char;
-        }
-    }
+    set_component(dir, path, dir_start, fname_start, COMPAT_MAX_DIR.into());
+    set_component(fname, path, fname_start, ext_start, COMPAT_MAX_FNAME.into());
+    set_component(ext, path, ext_start, end, COMPAT_MAX_EXT.into());
 }
-
-/*
-void compat_splitpath(const char* path, char* drive, char* dir, char* fname, char* ext)
-{
-    if (ext != nullptr) {
-        size_t extSize = end - extStart;
-        if (extSize > COMPAT_MAX_EXT - 1) {
-            extSize = COMPAT_MAX_EXT - 1;
-        }
-        strncpy(ext, extStart, extSize);
-        ext[extSize] = '\0';
-    }
-}
- */
 
 #[cfg(test)]
 mod tests {
