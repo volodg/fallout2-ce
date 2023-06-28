@@ -1,4 +1,7 @@
-use libc::c_char;
+use std::ptr::null_mut;
+use libc::{c_char, strncpy};
+
+const COMPAT_MAX_DRIVE: u8 = 3;
 
 #[cfg(target_family = "windows")]
 extern "C" {
@@ -26,34 +29,44 @@ pub extern "C" fn rust_compat_splitpath(
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
 pub extern "C" fn rust_compat_splitpath(
-    path: *const c_char,
-    drive: *const c_char,
-    dir: *const c_char,
-    fname: *const c_char,
-    ext: *const c_char,
+    mut path: *const c_char,
+    drive: *mut c_char,
+    dir: *mut c_char,
+    fname: *mut c_char,
+    ext: *mut c_char,
 ) {
+    // let path = path as *const i8;
+    // let path = path as [c_char];
+    // path.
+    // std::mem::
+
+    let drive_start = path;
+
+    unsafe {
+        if *path == '/' as c_char && *path.offset(1) == '/' as c_char {
+            path = path.offset(2);
+            let curr = *path;
+            while curr != '\0' as c_char && curr != '/' as c_char && curr != '.' as c_char {
+                path = path.offset(1);
+            }
+        }
+    }
+
+    if drive != null_mut() {
+        let mut drive_size = unsafe { path.offset_from(drive_start) };
+        if drive_size > (COMPAT_MAX_DRIVE - 1).into() {
+            drive_size = (COMPAT_MAX_DRIVE - 1).into();
+        }
+        unsafe {
+            strncpy(drive, path, drive_size as usize);
+            *drive.offset(drive_size) = '\0' as c_char;
+        }
+    }
 }
 
 /*
 void compat_splitpath(const char* path, char* drive, char* dir, char* fname, char* ext)
 {
-    const char* driveStart = path;
-    if (path[0] == '/' && path[1] == '/') {
-        path += 2;
-        while (*path != '\0' && *path != '/' && *path != '.') {
-            path++;
-        }
-    }
-
-    if (drive != nullptr) {
-        size_t driveSize = path - driveStart;
-        if (driveSize > COMPAT_MAX_DRIVE - 1) {
-            driveSize = COMPAT_MAX_DRIVE - 1;
-        }
-        strncpy(drive, path, driveSize);
-        drive[driveSize] = '\0';
-    }
-
     const char* dirStart = path;
     const char* fnameStart = path;
     const char* extStart = nullptr;
