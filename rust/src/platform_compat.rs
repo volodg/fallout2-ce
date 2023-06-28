@@ -3,6 +3,7 @@ use libc::{c_char, strncpy};
 
 const COMPAT_MAX_DRIVE: u8 = 3;
 const COMPAT_MAX_DIR: u16 = 256;
+const COMPAT_MAX_FNAME: u16 = 256;
 
 #[cfg(target_family = "windows")]
 extern "C" {
@@ -95,20 +96,21 @@ pub extern "C" fn rust_compat_splitpath(
         }
     }
 
+    if fname != null_mut() {
+        let mut file_name_size = unsafe { ext_start.offset_from(fname_start) };
+        if file_name_size > (COMPAT_MAX_FNAME - 1) as isize {
+            file_name_size = (COMPAT_MAX_FNAME - 1) as isize;
+        }
+        unsafe {
+            strncpy(fname, fname_start, file_name_size as usize);
+            *fname.offset(file_name_size) = '\0' as c_char;
+        }
+    }
 }
 
 /*
 void compat_splitpath(const char* path, char* drive, char* dir, char* fname, char* ext)
 {
-    if (fname != nullptr) {
-        size_t fileNameSize = extStart - fnameStart;
-        if (fileNameSize > COMPAT_MAX_FNAME - 1) {
-            fileNameSize = COMPAT_MAX_FNAME - 1;
-        }
-        strncpy(fname, fnameStart, fileNameSize);
-        fname[fileNameSize] = '\0';
-    }
-
     if (ext != nullptr) {
         size_t extSize = end - extStart;
         if (extSize > COMPAT_MAX_EXT - 1) {
