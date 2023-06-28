@@ -1,29 +1,42 @@
 use libc::c_char;
 
 #[cfg(target_family = "windows")]
-// #[link(name = "snappy")]
 extern "C" {
-    fn rust_compat_splitpath(path: *const c_char, drive: *const c_char, dir: *const c_char, fname: *const c_char, ext: *const c_char);
+    fn _splitpath(
+        path: *const c_char,
+        drive: *mut c_char,
+        dir: *mut c_char,
+        fname: *mut c_char,
+        ext: *mut c_char,
+    );
 }
 
 #[no_mangle]
 #[cfg(target_family = "windows")]
-pub extern "C" fn rust_compat_splitpath(path: *const c_char, drive: *const c_char, dir: *const c_char, fname: *const c_char, ext: *const c_char) {
-    _splitpath(path, drive, dir, fname, ext)
+pub extern "C" fn rust_compat_splitpath(
+    path: *const c_char,
+    drive: *mut c_char,
+    dir: *mut c_char,
+    fname: *mut c_char,
+    ext: *mut c_char,
+) {
+    unsafe { _splitpath(path, drive, dir, fname, ext) }
 }
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
-pub extern "C" fn rust_compat_splitpath(path: *const c_char, drive: *const c_char, dir: *const c_char, fname: *const c_char, ext: *const c_char) {
-
+pub extern "C" fn rust_compat_splitpath(
+    path: *const c_char,
+    drive: *const c_char,
+    dir: *const c_char,
+    fname: *const c_char,
+    ext: *const c_char,
+) {
 }
 
 /*
 void compat_splitpath(const char* path, char* drive, char* dir, char* fname, char* ext)
 {
-#ifdef _WIN32
-    _splitpath(path, drive, dir, fname, ext);
-#else
     const char* driveStart = path;
     if (path[0] == '/' && path[1] == '/') {
         path += 2;
@@ -85,6 +98,43 @@ void compat_splitpath(const char* path, char* drive, char* dir, char* fname, cha
         strncpy(ext, extStart, extSize);
         ext[extSize] = '\0';
     }
-#endif
 }
  */
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::{CStr, CString};
+
+    #[test]
+    fn test_compat_splitpath() {
+        let ctring = CString::new("C:\\path1\\path2\\file.txt").expect("");
+        let path = ctring.as_ptr();
+
+        let mut drive = [0 as u8; 4];
+        let mut dir = [0 as u8; 20];
+        let mut fname = [0 as u8; 10];
+        let mut ext = [0 as u8; 10];
+
+        rust_compat_splitpath(
+            path,
+            drive.as_mut_ptr() as *mut c_char,
+            dir.as_mut_ptr() as *mut c_char,
+            fname.as_mut_ptr() as *mut c_char,
+            ext.as_mut_ptr() as *mut c_char,
+        );
+
+        fn to_string(input: &mut [u8]) -> String {
+            CStr::from_bytes_until_nul(input)
+                .expect("REASON")
+                .to_str()
+                .expect("")
+                .into()
+        }
+
+        assert_eq!("C:", to_string(drive.as_mut_slice()));
+        assert_eq!("\\path1\\path2\\", to_string(dir.as_mut_slice()));
+        assert_eq!("file", to_string(fname.as_mut_slice()));
+        assert_eq!(".txt", to_string(ext.as_mut_slice()));
+    }
+}

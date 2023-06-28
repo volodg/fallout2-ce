@@ -25,6 +25,10 @@
 
 #include <SDL.h>
 
+extern "C" {
+    void rust_compat_splitpath(const char* path, char* drive, char* dir, char* fname, char* ext);
+}
+
 namespace fallout {
 
 int compat_stricmp(const char* string1, const char* string2)
@@ -52,6 +56,7 @@ char* compat_itoa(int value, char* buffer, int radix)
     return SDL_itoa(value, buffer, radix);
 }
 
+// Migrate !!!!
 void compat_splitpath(const char* path, char* drive, char* dir, char* fname, char* ext)
 {
 #ifdef _WIN32

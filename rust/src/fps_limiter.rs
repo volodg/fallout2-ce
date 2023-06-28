@@ -1,6 +1,6 @@
+use sdl2_sys::{SDL_Delay, SDL_GetTicks};
 use std::ffi::c_uint;
 use std::mem::forget;
-use sdl2_sys::{SDL_Delay, SDL_GetTicks};
 
 pub struct FpsLimiter {
     fps: c_uint,
@@ -9,10 +9,7 @@ pub struct FpsLimiter {
 
 impl Default for FpsLimiter {
     fn default() -> Self {
-        Self {
-            fps: 60,
-            ticks: 0,
-        }
+        Self { fps: 60, ticks: 0 }
     }
 }
 
