@@ -50,16 +50,22 @@ pub extern "C" fn rust_compat_splitpath(
         }
     }
 
-    if drive != null_mut() {
-        let mut drive_size = unsafe { path.offset_from(drive_start) };
-        if drive_size > (COMPAT_MAX_DRIVE - 1).into() {
-            drive_size = (COMPAT_MAX_DRIVE - 1).into();
+    fn set_component(component: *mut c_char, path: *const c_char, start: *const c_char, end: *const c_char, max: usize) {
+        if component == null_mut() {
+            return;
+        }
+
+        let mut dir_size = unsafe { end.offset_from(start) };
+        if dir_size > (max - 1) as isize {
+            dir_size = (max - 1) as isize;
         }
         unsafe {
-            strncpy(drive, path, drive_size as usize);
-            *drive.offset(drive_size) = '\0' as c_char;
+            strncpy(component, path, dir_size as usize);
+            *component.offset(dir_size) = '\0' as c_char;
         }
     }
+
+    set_component(drive, path, drive_start, path, COMPAT_MAX_DRIVE.into());
 
     let dir_start = path;
     let mut fname_start = path;
@@ -79,17 +85,6 @@ pub extern "C" fn rust_compat_splitpath(
 
     if ext_start == null_mut() {
         ext_start = end;
-    }
-
-    fn set_component(component: *mut c_char, path: *const c_char, start: *const c_char, end: *const c_char, max: usize) {
-        let mut dir_size = unsafe { end.offset_from(start) };
-        if dir_size > (max - 1) as isize {
-            dir_size = (max - 1) as isize;
-        }
-        unsafe {
-            strncpy(component, path, dir_size as usize);
-            *component.offset(dir_size) = '\0' as c_char;
-        }
     }
 
     set_component(dir, path, dir_start, fname_start, COMPAT_MAX_DIR.into());
