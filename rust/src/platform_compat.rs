@@ -62,29 +62,31 @@ pub extern "C" fn rust_compat_splitpath(
             *drive.offset(drive_size) = '\0' as c_char;
         }
     }
+
+    let dir_start = path;
+    let mut fname_start = path;
+    let mut ext_start: *const c_char = null_mut();
+
+    let mut end = path;
+    unsafe {
+        while *end != '\0' as c_char {
+            if *end == '/' as c_char {
+                fname_start = end.offset(1);
+            } else if *end == '.' as c_char {
+                ext_start = end;
+            }
+            end = end.offset(1);
+        }
+    }
+
+    if ext_start == null_mut() {
+        ext_start = end;
+    }
 }
 
 /*
 void compat_splitpath(const char* path, char* drive, char* dir, char* fname, char* ext)
 {
-    const char* dirStart = path;
-    const char* fnameStart = path;
-    const char* extStart = nullptr;
-
-    const char* end = path;
-    while (*end != '\0') {
-        if (*end == '/') {
-            fnameStart = end + 1;
-        } else if (*end == '.') {
-            extStart = end;
-        }
-        end++;
-    }
-
-    if (extStart == nullptr) {
-        extStart = end;
-    }
-
     if (dir != nullptr) {
         size_t dirSize = fnameStart - dirStart;
         if (dirSize > COMPAT_MAX_DIR - 1) {
