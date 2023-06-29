@@ -1,10 +1,17 @@
+#[cfg(not(target_family = "windows"))]
 use std::ptr::null_mut;
-use libc::{c_char, c_int, c_ulong, strncpy};
+use libc::{c_char, c_int, c_ulong};
+#[cfg(not(target_family = "windows"))]
+use libc::strncpy;
 use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
 
+#[cfg(not(target_family = "windows"))]
 const COMPAT_MAX_DRIVE: u8 = 3;
+#[cfg(not(target_family = "windows"))]
 const COMPAT_MAX_DIR: u16 = 256;
+#[cfg(not(target_family = "windows"))]
 const COMPAT_MAX_FNAME: u16 = 256;
+#[cfg(not(target_family = "windows"))]
 const COMPAT_MAX_EXT: u16 = 256;
 
 #[no_mangle]
@@ -174,6 +181,27 @@ mod tests {
         assert_eq!("\\path1\\path2\\", to_string(dir.as_mut_slice()));
         assert_eq!("file", to_string(fname.as_mut_slice()));
         assert_eq!(".txt", to_string(ext.as_mut_slice()));
+    }
+
+    #[cfg(target_family = "windows")]
+    #[test]
+    fn test_compat_makepath() {
+        let mut path = [0 as u8; 100];
+
+        let drive = CString::new("C").expect("");
+        let dir = CString::new("tmp1\\tmp2").expect("");
+        let filename = CString::new("filename").expect("");
+        let extension = CString::new(".txt").expect("");
+
+        rust_compat_makepath(
+            path.as_mut_ptr() as *mut c_char,
+            drive.as_ptr(),
+            dir.as_ptr(),
+            filename.as_ptr(),
+            extension.as_ptr(),
+        );
+
+        assert_eq!("C:tmp1\\tmp2\\filename.txt", to_string(path.as_mut_slice()));
     }
 
     #[cfg(not(target_family = "windows"))]
