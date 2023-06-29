@@ -50,7 +50,7 @@ pub extern "C" fn rust_compat_splitpath(
         }
     }
 
-    fn set_component(component: *mut c_char, path: *const c_char, start: *const c_char, end: *const c_char, max: usize) {
+    fn set_component(component: *mut c_char, start: *const c_char, end: *const c_char, max: usize) {
         if component == null_mut() {
             return;
         }
@@ -65,7 +65,7 @@ pub extern "C" fn rust_compat_splitpath(
         }
     }
 
-    set_component(drive, path, drive_start, path, COMPAT_MAX_DRIVE.into());
+    set_component(drive, drive_start, path, COMPAT_MAX_DRIVE.into());
 
     let dir_start = path;
     let mut fname_start = path;
@@ -87,9 +87,9 @@ pub extern "C" fn rust_compat_splitpath(
         ext_start = end;
     }
 
-    set_component(dir, path, dir_start, fname_start, COMPAT_MAX_DIR.into());
-    set_component(fname, path, fname_start, ext_start, COMPAT_MAX_FNAME.into());
-    set_component(ext, path, ext_start, end, COMPAT_MAX_EXT.into());
+    set_component(dir, dir_start, fname_start, COMPAT_MAX_DIR.into());
+    set_component(fname, fname_start, ext_start, COMPAT_MAX_FNAME.into());
+    set_component(ext, ext_start, end, COMPAT_MAX_EXT.into());
 }
 
 #[cfg(test)]
@@ -153,5 +153,30 @@ mod tests {
         assert_eq!("MAPS/", to_string(dir.as_mut_slice()));
         assert_eq!("*", to_string(fname.as_mut_slice()));
         assert_eq!(".SAV", to_string(ext.as_mut_slice()));
+    }
+
+    #[cfg(not(target_family = "windows"))]
+    #[test]
+    fn test_compat_splitpath_2() {
+        let ctring = CString::new("proto/critters/*.pro").expect("");
+        let path = ctring.as_ptr();
+
+        let mut drive = [0 as u8; 4];
+        let mut dir = [0 as u8; 20];
+        let mut fname = [0 as u8; 10];
+        let mut ext = [0 as u8; 10];
+
+        rust_compat_splitpath(
+            path,
+            drive.as_mut_ptr() as *mut c_char,
+            dir.as_mut_ptr() as *mut c_char,
+            fname.as_mut_ptr() as *mut c_char,
+            ext.as_mut_ptr() as *mut c_char,
+        );
+
+        assert_eq!("", to_string(drive.as_mut_slice()));
+        assert_eq!("proto/critters/", to_string(dir.as_mut_slice()));
+        assert_eq!("*", to_string(fname.as_mut_slice()));
+        assert_eq!(".pro", to_string(ext.as_mut_slice()));
     }
 }

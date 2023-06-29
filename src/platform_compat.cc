@@ -56,74 +56,9 @@ char* compat_itoa(int value, char* buffer, int radix)
     return SDL_itoa(value, buffer, radix);
 }
 
-// Migrate !!!!
 void compat_splitpath(const char* path, char* drive, char* dir, char* fname, char* ext)
 {
-#ifdef _WIN32
-    _splitpath(path, drive, dir, fname, ext);
-#else
-    const char* driveStart = path;
-    if (path[0] == '/' && path[1] == '/') {
-        path += 2;
-        while (*path != '\0' && *path != '/' && *path != '.') {
-            path++;
-        }
-    }
-
-    if (drive != nullptr) {
-        size_t driveSize = path - driveStart;
-        if (driveSize > COMPAT_MAX_DRIVE - 1) {
-            driveSize = COMPAT_MAX_DRIVE - 1;
-        }
-        strncpy(drive, path, driveSize);
-        drive[driveSize] = '\0';
-    }
-
-    const char* dirStart = path;
-    const char* fnameStart = path;
-    const char* extStart = nullptr;
-
-    const char* end = path;
-    while (*end != '\0') {
-        if (*end == '/') {
-            fnameStart = end + 1;
-        } else if (*end == '.') {
-            extStart = end;
-        }
-        end++;
-    }
-
-    if (extStart == nullptr) {
-        extStart = end;
-    }
-
-    if (dir != nullptr) {
-        size_t dirSize = fnameStart - dirStart;
-        if (dirSize > COMPAT_MAX_DIR - 1) {
-            dirSize = COMPAT_MAX_DIR - 1;
-        }
-        strncpy(dir, path, dirSize);
-        dir[dirSize] = '\0';
-    }
-
-    if (fname != nullptr) {
-        size_t fileNameSize = extStart - fnameStart;
-        if (fileNameSize > COMPAT_MAX_FNAME - 1) {
-            fileNameSize = COMPAT_MAX_FNAME - 1;
-        }
-        strncpy(fname, fnameStart, fileNameSize);
-        fname[fileNameSize] = '\0';
-    }
-
-    if (ext != nullptr) {
-        size_t extSize = end - extStart;
-        if (extSize > COMPAT_MAX_EXT - 1) {
-            extSize = COMPAT_MAX_EXT - 1;
-        }
-        strncpy(ext, extStart, extSize);
-        ext[extSize] = '\0';
-    }
-#endif
+    rust_compat_splitpath(path, drive, dir, fname, ext);
 }
 
 void compat_makepath(char* path, const char* drive, const char* dir, const char* fname, const char* ext)
