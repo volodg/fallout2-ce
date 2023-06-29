@@ -1,10 +1,19 @@
 use std::ptr::null_mut;
-use libc::{c_char, strncpy};
+use libc::{c_char, c_int, strncpy};
+use sdl2_sys::SDL_strcasecmp;
 
 const COMPAT_MAX_DRIVE: u8 = 3;
 const COMPAT_MAX_DIR: u16 = 256;
 const COMPAT_MAX_FNAME: u16 = 256;
 const COMPAT_MAX_EXT: u16 = 256;
+
+#[no_mangle]
+pub extern "C" fn rust_compat_stricmp(
+    string1: *const c_char,
+    string2: *const c_char,
+) -> c_int {
+    unsafe { SDL_strcasecmp(string1, string2) }
+}
 
 #[cfg(target_family = "windows")]
 extern "C" {

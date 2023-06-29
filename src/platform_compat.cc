@@ -26,6 +26,7 @@
 #include <SDL.h>
 
 extern "C" {
+    int rust_compat_stricmp(const char* string1, const char* string2);
     void rust_compat_splitpath(const char* path, char* drive, char* dir, char* fname, char* ext);
 }
 
@@ -33,7 +34,7 @@ namespace fallout {
 
 int compat_stricmp(const char* string1, const char* string2)
 {
-    return SDL_strcasecmp(string1, string2);
+    return rust_compat_stricmp(string1, string2);
 }
 
 int compat_strnicmp(const char* string1, const char* string2, size_t size)
