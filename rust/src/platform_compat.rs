@@ -1,6 +1,6 @@
 use std::ptr::null_mut;
-use libc::{c_char, c_int, strncpy};
-use sdl2_sys::SDL_strcasecmp;
+use libc::{c_char, c_int, c_ulong, strncpy};
+use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
 
 const COMPAT_MAX_DRIVE: u8 = 3;
 const COMPAT_MAX_DIR: u16 = 256;
@@ -13,6 +13,26 @@ pub extern "C" fn rust_compat_stricmp(
     string2: *const c_char,
 ) -> c_int {
     unsafe { SDL_strcasecmp(string1, string2) }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_compat_strnicmp(string1: *const c_char, string2: *const c_char, size: c_ulong) -> c_int {
+    unsafe { SDL_strncasecmp(string1, string2, size) }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_compat_strupr(string: *mut c_char) -> *const c_char {
+    unsafe { SDL_strupr(string) }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_compat_strlwr(string: *mut c_char) -> *const c_char {
+    unsafe { SDL_strlwr(string) }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_compat_itoa(value: c_int, buffer: *mut c_char, radix: c_int) -> *const c_char {
+    unsafe { SDL_itoa(value, buffer, radix) }
 }
 
 #[cfg(target_family = "windows")]

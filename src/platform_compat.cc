@@ -28,6 +28,11 @@
 extern "C" {
     int rust_compat_stricmp(const char* string1, const char* string2);
     void rust_compat_splitpath(const char* path, char* drive, char* dir, char* fname, char* ext);
+
+    int rust_compat_strnicmp(const char* string1, const char* string2, unsigned long size);
+    char* rust_compat_strupr(char* string);
+    char* rust_compat_strlwr(char* string);
+    char* rust_compat_itoa(int value, char* buffer, int radix);
 }
 
 namespace fallout {
@@ -37,24 +42,24 @@ int compat_stricmp(const char* string1, const char* string2)
     return rust_compat_stricmp(string1, string2);
 }
 
-int compat_strnicmp(const char* string1, const char* string2, size_t size)
+int compat_strnicmp(const char* string1, const char* string2, unsigned long size)
 {
-    return SDL_strncasecmp(string1, string2, size);
+    return rust_compat_strnicmp(string1, string2, size);
 }
 
 char* compat_strupr(char* string)
 {
-    return SDL_strupr(string);
+    return rust_compat_strupr(string);
 }
 
 char* compat_strlwr(char* string)
 {
-    return SDL_strlwr(string);
+    return rust_compat_strlwr(string);
 }
 
 char* compat_itoa(int value, char* buffer, int radix)
 {
-    return SDL_itoa(value, buffer, radix);
+    return rust_compat_itoa(value, buffer, radix);
 }
 
 void compat_splitpath(const char* path, char* drive, char* dir, char* fname, char* ext)
@@ -130,15 +135,6 @@ void compat_makepath(char* path, const char* drive, const char* dir, const char*
 long compat_tell(int fd)
 {
     return lseek(fd, 0, SEEK_CUR);
-}
-
-long compat_filelength(int fd)
-{
-    long originalOffset = lseek(fd, 0, SEEK_CUR);
-    lseek(fd, 0, SEEK_SET);
-    long filesize = lseek(fd, 0, SEEK_END);
-    lseek(fd, originalOffset, SEEK_SET);
-    return filesize;
 }
 
 int compat_mkdir(const char* path)
