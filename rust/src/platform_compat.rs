@@ -58,6 +58,23 @@ pub extern "C" fn rust_compat_splitpath(
     unsafe { _splitpath(path, drive, dir, fname, ext) }
 }
 
+#[cfg(target_family = "windows")]
+extern "C" {
+    fn _makepath(
+        path: *mut c_char,
+        drive: *const c_char,
+        dir: *const c_char,
+        fname: *const c_char,
+        ext: *const c_char,
+    );
+}
+
+#[no_mangle]
+#[cfg(target_family = "windows")]
+pub extern "C" fn rust_compat_makepath(path: *mut c_char, drive: *const c_char, dir: *const c_char, fname: *const c_char, ext: *const c_char) {
+    unsafe { _makepath(path, drive, dir, fname, ext) }
+}
+
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
 pub extern "C" fn rust_compat_splitpath(

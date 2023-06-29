@@ -28,7 +28,6 @@
 extern "C" {
     int rust_compat_stricmp(const char* string1, const char* string2);
     void rust_compat_splitpath(const char* path, char* drive, char* dir, char* fname, char* ext);
-
     int rust_compat_strnicmp(const char* string1, const char* string2, unsigned long size);
     char* rust_compat_strupr(char* string);
     char* rust_compat_strlwr(char* string);
