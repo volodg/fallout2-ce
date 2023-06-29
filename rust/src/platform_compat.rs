@@ -60,7 +60,7 @@ pub extern "C" fn rust_compat_splitpath(
             dir_size = (max - 1) as isize;
         }
         unsafe {
-            strncpy(component, path, dir_size as usize);
+            strncpy(component, start, dir_size as usize);
             *component.offset(dir_size) = '\0' as c_char;
         }
     }
@@ -97,6 +97,15 @@ mod tests {
     use super::*;
     use std::ffi::{CStr, CString};
 
+    fn to_string(input: &mut [u8]) -> String {
+        CStr::from_bytes_until_nul(input)
+            .expect("REASON")
+            .to_str()
+            .expect("")
+            .into()
+    }
+
+    #[cfg(target_family = "windows")]
     #[test]
     fn test_compat_splitpath() {
         let ctring = CString::new("C:\\path1\\path2\\file.txt").expect("");
@@ -115,17 +124,34 @@ mod tests {
             ext.as_mut_ptr() as *mut c_char,
         );
 
-        fn to_string(input: &mut [u8]) -> String {
-            CStr::from_bytes_until_nul(input)
-                .expect("REASON")
-                .to_str()
-                .expect("")
-                .into()
-        }
-
         assert_eq!("C:", to_string(drive.as_mut_slice()));
         assert_eq!("\\path1\\path2\\", to_string(dir.as_mut_slice()));
         assert_eq!("file", to_string(fname.as_mut_slice()));
         assert_eq!(".txt", to_string(ext.as_mut_slice()));
+    }
+
+    #[cfg(not(target_family = "windows"))]
+    #[test]
+    fn test_compat_splitpath_1() {
+        let ctring = CString::new("MAPS/*.SAV").expect("");
+        let path = ctring.as_ptr();
+
+        let mut drive = [0 as u8; 4];
+        let mut dir = [0 as u8; 20];
+        let mut fname = [0 as u8; 10];
+        let mut ext = [0 as u8; 10];
+
+        rust_compat_splitpath(
+            path,
+            drive.as_mut_ptr() as *mut c_char,
+            dir.as_mut_ptr() as *mut c_char,
+            fname.as_mut_ptr() as *mut c_char,
+            ext.as_mut_ptr() as *mut c_char,
+        );
+
+        assert_eq!("", to_string(drive.as_mut_slice()));
+        assert_eq!("MAPS/", to_string(dir.as_mut_slice()));
+        assert_eq!("*", to_string(fname.as_mut_slice()));
+        assert_eq!(".SAV", to_string(ext.as_mut_slice()));
     }
 }
