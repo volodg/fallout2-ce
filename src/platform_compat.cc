@@ -35,6 +35,7 @@ extern "C" {
     void rust_compat_makepath(char* path, const char* drive, const char* dir, const char* fname, const char* ext);
     long rust_compat_tell(int fd);
     void rust_compat_windows_path_to_native(char* path);
+    void rust_compat_resolve_path(char* path);
 }
 
 namespace fallout {
@@ -84,7 +85,7 @@ int compat_mkdir(const char* path)
     char nativePath[COMPAT_MAX_PATH];
     strcpy(nativePath, path);
     rust_compat_windows_path_to_native(nativePath);
-    compat_resolve_path(nativePath);
+    rust_compat_resolve_path(nativePath);
 
 #ifdef _WIN32
     return mkdir(nativePath);
@@ -109,7 +110,7 @@ FILE* compat_fopen(const char* path, const char* mode)
     char nativePath[COMPAT_MAX_PATH];
     strcpy(nativePath, path);
     rust_compat_windows_path_to_native(nativePath);
-    compat_resolve_path(nativePath);
+    rust_compat_resolve_path(nativePath);
     return fopen(nativePath, mode);
 }
 
@@ -118,7 +119,7 @@ gzFile compat_gzopen(const char* path, const char* mode)
     char nativePath[COMPAT_MAX_PATH];
     strcpy(nativePath, path);
     rust_compat_windows_path_to_native(nativePath);
-    compat_resolve_path(nativePath);
+    rust_compat_resolve_path(nativePath);
     return gzopen(nativePath, mode);
 }
 
@@ -157,7 +158,7 @@ int compat_remove(const char* path)
     char nativePath[COMPAT_MAX_PATH];
     strcpy(nativePath, path);
     rust_compat_windows_path_to_native(nativePath);
-    compat_resolve_path(nativePath);
+    rust_compat_resolve_path(nativePath);
     return remove(nativePath);
 }
 
@@ -166,12 +167,12 @@ int compat_rename(const char* oldFileName, const char* newFileName)
     char nativeOldFileName[COMPAT_MAX_PATH];
     strcpy(nativeOldFileName, oldFileName);
     rust_compat_windows_path_to_native(nativeOldFileName);
-    compat_resolve_path(nativeOldFileName);
+    rust_compat_resolve_path(nativeOldFileName);
 
     char nativeNewFileName[COMPAT_MAX_PATH];
     strcpy(nativeNewFileName, newFileName);
     rust_compat_windows_path_to_native(nativeNewFileName);
-    compat_resolve_path(nativeNewFileName);
+    rust_compat_resolve_path(nativeNewFileName);
 
     return rename(nativeOldFileName, nativeNewFileName);
 }
@@ -183,56 +184,7 @@ void compat_windows_path_to_native(char* path)
 
 void compat_resolve_path(char* path)
 {
-#ifndef _WIN32
-    char* pch = path;
-
-    DIR* dir;
-    if (pch[0] == '/') {
-        dir = opendir("/");
-        pch++;
-    } else {
-        dir = opendir(".");
-    }
-
-    while (dir != nullptr) {
-        char* sep = strchr(pch, '/');
-        size_t length;
-        if (sep != nullptr) {
-            length = sep - pch;
-        } else {
-            length = strlen(pch);
-        }
-
-        bool found = false;
-
-        struct dirent* entry = readdir(dir);
-        while (entry != nullptr) {
-            if (strlen(entry->d_name) == length && compat_strnicmp(pch, entry->d_name, length) == 0) {
-                strncpy(pch, entry->d_name, length);
-                found = true;
-                break;
-            }
-            entry = readdir(dir);
-        }
-
-        closedir(dir);
-        dir = nullptr;
-
-        if (!found) {
-            break;
-        }
-
-        if (sep == nullptr) {
-            break;
-        }
-
-        *sep = '\0';
-        dir = opendir(path);
-        *sep = '/';
-
-        pch = sep + 1;
-    }
-#endif
+    rust_compat_resolve_path(path);
 }
 
 int compat_access(const char* path, int mode)

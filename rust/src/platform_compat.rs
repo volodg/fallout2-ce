@@ -1,6 +1,7 @@
+use std::ffi::CString;
 #[cfg(not(target_family = "windows"))]
 use std::ptr::null_mut;
-use libc::{c_char, c_int, c_long, c_ulong, lseek, SEEK_CUR};
+use libc::{c_char, c_int, c_long, c_ulong, closedir, lseek, opendir, readdir, SEEK_CUR, strlen};
 #[cfg(not(target_family = "windows"))]
 use libc::{strncpy, strchr, strcpy};
 use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
@@ -241,6 +242,72 @@ pub extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {
                 *pch = '/' as c_char;
             }
             pch = pch.offset(1);
+        }
+    }
+}
+
+#[no_mangle]
+#[cfg(target_family = "windows")]
+pub extern "C" fn rust_compat_resolve_path(path: *mut c_char) {
+}
+
+#[no_mangle]
+#[cfg(not(target_family = "windows"))]
+pub extern "C" fn rust_compat_resolve_path(path: *mut c_char) {
+    let mut pch = path;
+
+    let mut dir;
+    unsafe {
+        if *pch == '/' as c_char {
+            let str = CString::new("/").expect("valid c string");
+            dir = opendir(str.as_ptr());
+            pch = pch.offset(1);
+        } else {
+            let str = CString::new(".").expect("valid c string");
+            dir = opendir(str.as_ptr());
+        }
+    }
+
+    while dir != null_mut() {
+        let sep = unsafe { strchr(pch, '/' as c_int) };
+        let length = if sep != null_mut() {
+            (unsafe { sep.offset_from(pch) }) as usize
+        } else {
+            unsafe { strlen(pch) }
+        };
+
+        let mut found = false;
+
+        let mut entry = unsafe { readdir(dir) };
+        while entry != null_mut() {
+            unsafe {
+                if strlen((*entry).d_name.as_ptr()) == length && rust_compat_strnicmp(pch, (*entry).d_name.as_ptr(), length as c_ulong) == 0 {
+                    strncpy(pch, (*entry).d_name.as_ptr(), length);
+                    found = true;
+                    break;
+                }
+                entry = readdir(dir);
+            }
+        }
+
+        unsafe {
+            closedir(dir);
+        }
+        // dir = null_mut();
+
+        if !found {
+            break;
+        }
+
+        if sep == null_mut() {
+            break;
+        }
+
+        unsafe {
+            *sep = '\0' as c_char;
+            dir = opendir(path);
+            *sep = '/' as c_char;
+            pch = sep.offset(1);
         }
     }
 }
