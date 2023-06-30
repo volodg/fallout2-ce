@@ -1,10 +1,10 @@
+use libc::{c_char, c_int, c_long, c_ulong, closedir, lseek, opendir, readdir, strlen, SEEK_CUR};
+#[cfg(not(target_family = "windows"))]
+use libc::{strchr, strcpy, strncpy};
+use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
 use std::ffi::CString;
 #[cfg(not(target_family = "windows"))]
 use std::ptr::null_mut;
-use libc::{c_char, c_int, c_long, c_ulong, closedir, lseek, opendir, readdir, SEEK_CUR, strlen};
-#[cfg(not(target_family = "windows"))]
-use libc::{strncpy, strchr, strcpy};
-use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
 
 #[cfg(not(target_family = "windows"))]
 const COMPAT_MAX_DRIVE: u8 = 3;
@@ -16,15 +16,16 @@ const COMPAT_MAX_FNAME: u16 = 256;
 const COMPAT_MAX_EXT: u16 = 256;
 
 #[no_mangle]
-pub extern "C" fn rust_compat_stricmp(
-    string1: *const c_char,
-    string2: *const c_char,
-) -> c_int {
+pub extern "C" fn rust_compat_stricmp(string1: *const c_char, string2: *const c_char) -> c_int {
     unsafe { SDL_strcasecmp(string1, string2) }
 }
 
 #[no_mangle]
-pub extern "C" fn rust_compat_strnicmp(string1: *const c_char, string2: *const c_char, size: c_ulong) -> c_int {
+pub extern "C" fn rust_compat_strnicmp(
+    string1: *const c_char,
+    string2: *const c_char,
+    size: c_ulong,
+) -> c_int {
     unsafe { SDL_strncasecmp(string1, string2, size) }
 }
 
@@ -39,7 +40,11 @@ pub extern "C" fn rust_compat_strlwr(string: *mut c_char) -> *const c_char {
 }
 
 #[no_mangle]
-pub extern "C" fn rust_compat_itoa(value: c_int, buffer: *mut c_char, radix: c_int) -> *const c_char {
+pub extern "C" fn rust_compat_itoa(
+    value: c_int,
+    buffer: *mut c_char,
+    radix: c_int,
+) -> *const c_char {
     unsafe { SDL_itoa(value, buffer, radix) }
 }
 
@@ -56,13 +61,25 @@ extern "C" {
 
 #[no_mangle]
 #[cfg(target_family = "windows")]
-pub extern "C" fn rust_compat_makepath(path: *mut c_char, drive: *const c_char, dir: *const c_char, fname: *const c_char, ext: *const c_char) {
+pub extern "C" fn rust_compat_makepath(
+    path: *mut c_char,
+    drive: *const c_char,
+    dir: *const c_char,
+    fname: *const c_char,
+    ext: *const c_char,
+) {
     unsafe { _makepath(path, drive, dir, fname, ext) }
 }
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
-pub extern "C" fn rust_compat_makepath(mut path: *mut c_char, drive: *const c_char, dir: *const c_char, fname: *const c_char, ext: *const c_char) {
+pub extern "C" fn rust_compat_makepath(
+    mut path: *mut c_char,
+    drive: *const c_char,
+    dir: *const c_char,
+    fname: *const c_char,
+    ext: *const c_char,
+) {
     unsafe {
         *path = '\0' as c_char;
     }
@@ -222,15 +239,13 @@ pub extern "C" fn rust_compat_splitpath(
 }
 
 #[no_mangle]
-pub extern "C" fn rust_compat_tell(fd: c_int) -> c_long
-{
+pub extern "C" fn rust_compat_tell(fd: c_int) -> c_long {
     unsafe { lseek(fd, 0, SEEK_CUR) }
 }
 
 #[no_mangle]
 #[cfg(target_family = "windows")]
-pub extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {
-}
+pub extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {}
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
@@ -248,8 +263,7 @@ pub extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {
 
 #[no_mangle]
 #[cfg(target_family = "windows")]
-pub extern "C" fn rust_compat_resolve_path(path: *mut c_char) {
-}
+pub extern "C" fn rust_compat_resolve_path(path: *mut c_char) {}
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
@@ -281,7 +295,9 @@ pub extern "C" fn rust_compat_resolve_path(path: *mut c_char) {
         let mut entry = unsafe { readdir(dir) };
         while entry != null_mut() {
             unsafe {
-                if strlen((*entry).d_name.as_ptr()) == length && rust_compat_strnicmp(pch, (*entry).d_name.as_ptr(), length as c_ulong) == 0 {
+                if strlen((*entry).d_name.as_ptr()) == length
+                    && rust_compat_strnicmp(pch, (*entry).d_name.as_ptr(), length as c_ulong) == 0
+                {
                     strncpy(pch, (*entry).d_name.as_ptr(), length);
                     found = true;
                     break;
@@ -389,7 +405,10 @@ mod tests {
             extension.as_ptr(),
         );
 
-        assert_eq!("media/tmp1/tmp2/filename.txt", to_string(path.as_mut_slice()));
+        assert_eq!(
+            "media/tmp1/tmp2/filename.txt",
+            to_string(path.as_mut_slice())
+        );
     }
 
     #[cfg(not(target_family = "windows"))]
