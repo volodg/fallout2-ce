@@ -1,6 +1,6 @@
 #[cfg(not(target_family = "windows"))]
 use std::ptr::null_mut;
-use libc::{c_char, c_int, c_ulong};
+use libc::{c_char, c_int, c_long, c_ulong, lseek, SEEK_CUR};
 #[cfg(not(target_family = "windows"))]
 use libc::{strncpy, strchr, strcpy};
 use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
@@ -218,6 +218,31 @@ pub extern "C" fn rust_compat_splitpath(
     set_component(dir, dir_start, fname_start, COMPAT_MAX_DIR.into());
     set_component(fname, fname_start, ext_start, COMPAT_MAX_FNAME.into());
     set_component(ext, ext_start, end, COMPAT_MAX_EXT.into());
+}
+
+#[no_mangle]
+pub extern "C" fn rust_compat_tell(fd: c_int) -> c_long
+{
+    unsafe { lseek(fd, 0, SEEK_CUR) }
+}
+
+#[no_mangle]
+#[cfg(target_family = "windows")]
+pub extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {
+}
+
+#[no_mangle]
+#[cfg(not(target_family = "windows"))]
+pub extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {
+    let mut pch = path;
+    unsafe {
+        while *pch != '\0' as c_char {
+            if *pch == '\\' as c_char {
+                *pch = '/' as c_char;
+            }
+            pch = pch.offset(1);
+        }
+    }
 }
 
 #[cfg(test)]
