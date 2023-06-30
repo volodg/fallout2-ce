@@ -32,6 +32,7 @@ extern "C" {
     char* rust_compat_strupr(char* string);
     char* rust_compat_strlwr(char* string);
     char* rust_compat_itoa(int value, char* buffer, int radix);
+    void rust_compat_makepath(char* path, const char* drive, const char* dir, const char* fname, const char* ext);
 }
 
 namespace fallout {
@@ -68,67 +69,7 @@ void compat_splitpath(const char* path, char* drive, char* dir, char* fname, cha
 
 void compat_makepath(char* path, const char* drive, const char* dir, const char* fname, const char* ext)
 {
-#ifdef _WIN32
-    _makepath(path, drive, dir, fname, ext);
-#else
-    path[0] = '\0';
-
-    if (drive != nullptr) {
-        if (*drive != '\0') {
-            strcpy(path, drive);
-            path = strchr(path, '\0');
-
-            if (path[-1] == '/') {
-                path--;
-            } else {
-                *path = '/';
-            }
-        }
-    }
-
-    if (dir != nullptr) {
-        if (*dir != '\0') {
-            if (*dir != '/' && *path == '/') {
-                path++;
-            }
-
-            strcpy(path, dir);
-            path = strchr(path, '\0');
-
-            if (path[-1] == '/') {
-                path--;
-            } else {
-                *path = '/';
-            }
-        }
-    }
-
-    if (fname != nullptr && *fname != '\0') {
-        if (*fname != '/' && *path == '/') {
-            path++;
-        }
-
-        strcpy(path, fname);
-        path = strchr(path, '\0');
-    } else {
-        if (*path == '/') {
-            path++;
-        }
-    }
-
-    if (ext != nullptr) {
-        if (*ext != '\0') {
-            if (*ext != '.') {
-                *path++ = '.';
-            }
-
-            strcpy(path, ext);
-            path = strchr(path, '\0');
-        }
-    }
-
-    *path = '\0';
-#endif
+    rust_compat_makepath(path, drive, dir, fname, ext);
 }
 
 long compat_tell(int fd)
