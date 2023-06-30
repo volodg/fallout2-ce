@@ -2,7 +2,7 @@
 use std::ptr::null_mut;
 use libc::{c_char, c_int, c_ulong};
 #[cfg(not(target_family = "windows"))]
-use libc::strncpy;
+use libc::{strncpy, strchr, strcpy};
 use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
 
 #[cfg(not(target_family = "windows"))]
@@ -44,6 +44,98 @@ pub extern "C" fn rust_compat_itoa(value: c_int, buffer: *mut c_char, radix: c_i
 
 #[cfg(target_family = "windows")]
 extern "C" {
+    fn _makepath(
+        path: *mut c_char,
+        drive: *const c_char,
+        dir: *const c_char,
+        fname: *const c_char,
+        ext: *const c_char,
+    );
+}
+
+#[no_mangle]
+#[cfg(target_family = "windows")]
+pub extern "C" fn rust_compat_makepath(path: *mut c_char, drive: *const c_char, dir: *const c_char, fname: *const c_char, ext: *const c_char) {
+    unsafe { _makepath(path, drive, dir, fname, ext) }
+}
+
+#[no_mangle]
+#[cfg(not(target_family = "windows"))]
+pub extern "C" fn rust_compat_makepath(mut path: *mut c_char, drive: *const c_char, dir: *const c_char, fname: *const c_char, ext: *const c_char) {
+    unsafe {
+        *path = '\0' as c_char;
+    }
+
+    if drive != null_mut() {
+        unsafe {
+            if *drive != '\0' as c_char {
+                strcpy(path, drive);
+                path = strchr(path, '\0' as c_int);
+
+                if *path.offset(-1) == '/' as c_char {
+                    path = path.offset(-1);
+                } else {
+                    *path = '/' as c_char;
+                }
+            }
+        }
+    }
+
+    if dir != null_mut() {
+        unsafe {
+            if *dir != '\0' as c_char {
+                if *dir != '/' as c_char && *path == '/' as c_char {
+                    path = path.offset(1);
+                }
+
+                strcpy(path, dir);
+                path = strchr(path, '\0' as c_int);
+
+                if *path.offset(-1) == '/' as c_char {
+                    path = path.offset(-1);
+                } else {
+                    *path = '/' as c_char;
+                }
+            }
+        }
+    }
+
+    unsafe {
+        if fname != null_mut() && *fname != '\0' as c_char {
+            if *fname != '/' as c_char && *path == '/' as c_char {
+                path = path.offset(1);
+            }
+
+            strcpy(path, fname);
+            path = strchr(path, '\0' as c_int);
+        } else {
+            if *path == '/' as c_char {
+                path = path.offset(1);
+            }
+        }
+    }
+
+    if ext != null_mut() {
+        unsafe {
+            if *ext != '\0' as c_char {
+                if *ext != '.' as c_char {
+                    *path = '.' as c_char;
+                    path = path.offset(1);
+                }
+
+                strcpy(path, ext);
+                path = strchr(path, '\0' as c_int);
+            }
+        }
+    }
+
+    unsafe {
+        *path = '\0' as c_char;
+    }
+}
+
+#[cfg(target_family = "windows")]
+extern "C" {
     fn _splitpath(
         path: *const c_char,
         drive: *mut c_char,
@@ -63,23 +155,6 @@ pub extern "C" fn rust_compat_splitpath(
     ext: *mut c_char,
 ) {
     unsafe { _splitpath(path, drive, dir, fname, ext) }
-}
-
-#[cfg(target_family = "windows")]
-extern "C" {
-    fn _makepath(
-        path: *mut c_char,
-        drive: *const c_char,
-        dir: *const c_char,
-        fname: *const c_char,
-        ext: *const c_char,
-    );
-}
-
-#[no_mangle]
-#[cfg(target_family = "windows")]
-pub extern "C" fn rust_compat_makepath(path: *mut c_char, drive: *const c_char, dir: *const c_char, fname: *const c_char, ext: *const c_char) {
-    unsafe { _makepath(path, drive, dir, fname, ext) }
 }
 
 #[no_mangle]
@@ -202,6 +277,27 @@ mod tests {
         );
 
         assert_eq!("C:tmp1\\tmp2\\filename.txt", to_string(path.as_mut_slice()));
+    }
+
+    #[cfg(not(target_family = "windows"))]
+    #[test]
+    fn test_compat_makepath() {
+        let mut path = [0 as u8; 100];
+
+        let drive = CString::new("media").expect("");
+        let dir = CString::new("tmp1/tmp2").expect("");
+        let filename = CString::new("filename").expect("");
+        let extension = CString::new(".txt").expect("");
+
+        rust_compat_makepath(
+            path.as_mut_ptr() as *mut c_char,
+            drive.as_ptr(),
+            dir.as_ptr(),
+            filename.as_ptr(),
+            extension.as_ptr(),
+        );
+
+        assert_eq!("media/tmp1/tmp2/filename.txt", to_string(path.as_mut_slice()));
     }
 
     #[cfg(not(target_family = "windows"))]
