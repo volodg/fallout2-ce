@@ -17,8 +17,6 @@
 
 #ifdef _WIN32
 #include <timeapi.h>
-#else
-#include <chrono>
 #endif
 
 #include <SDL.h>
@@ -36,6 +34,7 @@ extern "C" {
     void rust_compat_resolve_path(char* path);
     int rust_compat_mkdir(const char* path);
     unsigned int rust_compat_time_get_time();
+    FILE* rust_compat_fopen(const char* path, const char* mode);
 }
 
 namespace fallout {
@@ -92,11 +91,7 @@ unsigned int compat_timeGetTime()
 
 FILE* compat_fopen(const char* path, const char* mode)
 {
-    char nativePath[COMPAT_MAX_PATH];
-    strcpy(nativePath, path);
-    rust_compat_windows_path_to_native(nativePath);
-    rust_compat_resolve_path(nativePath);
-    return fopen(nativePath, mode);
+    return rust_compat_fopen(path, mode);
 }
 
 gzFile compat_gzopen(const char* path, const char* mode)

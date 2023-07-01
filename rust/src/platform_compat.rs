@@ -1,4 +1,4 @@
-use libc::{c_char, c_int, c_uint, c_long, c_ulong, lseek, strcpy, SEEK_CUR};
+use libc::{c_char, c_int, c_uint, c_long, c_ulong, lseek, strcpy, SEEK_CUR, fopen, FILE};
 #[cfg(not(target_family = "windows"))]
 use libc::{closedir, opendir, readdir, strchr, strlen, strncpy};
 use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
@@ -363,6 +363,16 @@ pub unsafe extern "C" fn rust_compat_time_get_time() -> c_uint {
     let start = *NOW.call_once(|| { Instant::now() });
     let now = Instant::now();
     (now - start).as_millis() as c_uint
+}
+
+#[no_mangle]
+#[cfg(not(target_family = "windows"))]
+pub unsafe extern "C" fn rust_compat_fopen(path: *const c_char, mode: *const c_char) -> *const FILE {
+    let mut native_path = [0 as c_char; COMPAT_MAX_PATH as usize];
+    strcpy(native_path.as_mut_ptr(), path);
+    rust_compat_windows_path_to_native(native_path.as_mut_ptr());
+    rust_compat_resolve_path(native_path.as_mut_ptr());
+    return fopen(native_path.as_ptr(), mode);
 }
 
 #[cfg(test)]
