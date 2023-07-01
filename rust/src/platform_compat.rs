@@ -337,14 +337,12 @@ unsafe fn native_mkdir(path: *const c_char) -> c_int {
 }
 
 #[no_mangle]
-pub extern "C" fn rust_compat_mkdir(path: *const c_char) -> c_int {
+pub unsafe extern "C" fn rust_compat_mkdir(path: *const c_char) -> c_int {
     let mut native_path = ['\0' as c_char; COMPAT_MAX_PATH as usize];
-    unsafe {
-        strcpy(native_path.as_mut_ptr(), path);
-        rust_compat_windows_path_to_native(native_path.as_mut_ptr());
-        rust_compat_resolve_path(native_path.as_mut_ptr());
-        native_mkdir(native_path.as_ptr())
-    }
+    strcpy(native_path.as_mut_ptr(), path);
+    rust_compat_windows_path_to_native(native_path.as_mut_ptr());
+    rust_compat_resolve_path(native_path.as_mut_ptr());
+    native_mkdir(native_path.as_ptr())
 }
 
 #[cfg(test)]
