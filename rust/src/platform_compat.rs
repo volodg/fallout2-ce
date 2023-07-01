@@ -15,6 +15,8 @@ const COMPAT_MAX_FNAME: u16 = 256;
 #[cfg(not(target_family = "windows"))]
 const COMPAT_MAX_EXT: u16 = 256;
 
+const COMPAT_MAX_PATH: u16 = 260;
+
 #[no_mangle]
 pub extern "C" fn rust_compat_stricmp(string1: *const c_char, string2: *const c_char) -> c_int {
     unsafe { SDL_strcasecmp(string1, string2) }
@@ -249,15 +251,13 @@ pub extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {}
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
-pub extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {
+pub unsafe extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {
     let mut pch = path;
-    unsafe {
-        while *pch != '\0' as c_char {
-            if *pch == '\\' as c_char {
-                *pch = '/' as c_char;
-            }
-            pch = pch.offset(1);
+    while *pch != '\0' as c_char {
+        if *pch == '\\' as c_char {
+            *pch = '/' as c_char;
         }
+        pch = pch.offset(1);
     }
 }
 
@@ -267,19 +267,17 @@ pub extern "C" fn rust_compat_resolve_path(path: *mut c_char) {}
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
-pub extern "C" fn rust_compat_resolve_path(path: *mut c_char) {
+pub unsafe extern "C" fn rust_compat_resolve_path(path: *mut c_char) {
     let mut pch = path;
 
     let mut dir;
-    unsafe {
-        if *pch == '/' as c_char {
-            let str = CString::new("/").expect("valid c string");
-            dir = opendir(str.as_ptr());
-            pch = pch.offset(1);
-        } else {
-            let str = CString::new(".").expect("valid c string");
-            dir = opendir(str.as_ptr());
-        }
+    if *pch == '/' as c_char {
+        let str = CString::new("/").expect("valid c string");
+        dir = opendir(str.as_ptr());
+        pch = pch.offset(1);
+    } else {
+        let str = CString::new(".").expect("valid c string");
+        dir = opendir(str.as_ptr());
     }
 
     while dir != null_mut() {
@@ -294,22 +292,17 @@ pub extern "C" fn rust_compat_resolve_path(path: *mut c_char) {
 
         let mut entry = unsafe { readdir(dir) };
         while entry != null_mut() {
-            unsafe {
-                if strlen((*entry).d_name.as_ptr()) == length
-                    && rust_compat_strnicmp(pch, (*entry).d_name.as_ptr(), length as c_ulong) == 0
-                {
-                    strncpy(pch, (*entry).d_name.as_ptr(), length);
-                    found = true;
-                    break;
-                }
-                entry = readdir(dir);
+            if strlen((*entry).d_name.as_ptr()) == length
+                && rust_compat_strnicmp(pch, (*entry).d_name.as_ptr(), length as c_ulong) == 0
+            {
+                strncpy(pch, (*entry).d_name.as_ptr(), length);
+                found = true;
+                break;
             }
+            entry = readdir(dir);
         }
 
-        unsafe {
-            closedir(dir);
-        }
-        // dir = null_mut();
+        closedir(dir);
 
         if !found {
             break;
@@ -319,12 +312,38 @@ pub extern "C" fn rust_compat_resolve_path(path: *mut c_char) {
             break;
         }
 
-        unsafe {
-            *sep = '\0' as c_char;
-            dir = opendir(path);
-            *sep = '/' as c_char;
-            pch = sep.offset(1);
-        }
+        *sep = '\0' as c_char;
+        dir = opendir(path);
+        *sep = '/' as c_char;
+        pch = sep.offset(1);
+    }
+}
+
+#[cfg(target_family = "windows")]
+extern "C" {
+    fn mkdir(path: *const c_char) -> c_int;
+}
+
+#[no_mangle]
+#[cfg(target_family = "windows")]
+fn native_mkdir(path: *const c_char) -> c_int {
+    mkdir(path)
+}
+
+#[no_mangle]
+#[cfg(not(target_family = "windows"))]
+unsafe fn native_mkdir(path: *const c_char) -> c_int {
+    libc::mkdir(path, 0755)
+}
+
+#[no_mangle]
+pub extern "C" fn rust_compat_mkdir(path: *const c_char) -> c_int {
+    let mut native_path = ['\0' as c_char; COMPAT_MAX_PATH as usize];
+    unsafe {
+        strcpy(native_path.as_mut_ptr(), path);
+        rust_compat_windows_path_to_native(native_path.as_mut_ptr());
+        rust_compat_resolve_path(native_path.as_mut_ptr());
+        native_mkdir(native_path.as_ptr())
     }
 }
 

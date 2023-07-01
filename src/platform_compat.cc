@@ -12,8 +12,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #else
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #endif
 
@@ -36,6 +34,7 @@ extern "C" {
     long rust_compat_tell(int fd);
     void rust_compat_windows_path_to_native(char* path);
     void rust_compat_resolve_path(char* path);
+    int rust_compat_mkdir(const char* path);
 }
 
 namespace fallout {
@@ -82,16 +81,7 @@ long compat_tell(int fd)
 
 int compat_mkdir(const char* path)
 {
-    char nativePath[COMPAT_MAX_PATH];
-    strcpy(nativePath, path);
-    rust_compat_windows_path_to_native(nativePath);
-    rust_compat_resolve_path(nativePath);
-
-#ifdef _WIN32
-    return mkdir(nativePath);
-#else
-    return mkdir(nativePath, 0755);
-#endif
+    return rust_compat_mkdir(path);
 }
 
 unsigned int compat_timeGetTime()
