@@ -3,7 +3,7 @@
 
 #include "file_utils.h"
 
-#include <stdio.h>
+#include <cstdio>
 #include <zlib.h>
 
 #include <vector>
