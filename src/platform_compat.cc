@@ -35,6 +35,7 @@ extern "C" {
     void rust_compat_windows_path_to_native(char* path);
     void rust_compat_resolve_path(char* path);
     int rust_compat_mkdir(const char* path);
+    unsigned int rust_compat_time_get_time();
 }
 
 namespace fallout {
@@ -86,13 +87,7 @@ int compat_mkdir(const char* path)
 
 unsigned int compat_timeGetTime()
 {
-#ifdef _WIN32
-    return timeGetTime();
-#else
-    static auto start = std::chrono::steady_clock::now();
-    auto now = std::chrono::steady_clock::now();
-    return static_cast<unsigned int>(std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count());
-#endif
+    return rust_compat_time_get_time();
 }
 
 FILE* compat_fopen(const char* path, const char* mode)

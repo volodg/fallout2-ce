@@ -1,10 +1,13 @@
-use libc::{c_char, c_int, c_long, c_ulong, closedir, lseek, opendir, readdir, strlen, SEEK_CUR};
+use libc::{c_char, c_int, c_uint, c_long, c_ulong, lseek, strcpy, SEEK_CUR};
 #[cfg(not(target_family = "windows"))]
-use libc::{strchr, strcpy, strncpy};
+use libc::{closedir, opendir, readdir, strchr, strlen, strncpy};
 use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
+#[cfg(not(target_family = "windows"))]
 use std::ffi::CString;
 #[cfg(not(target_family = "windows"))]
 use std::ptr::null_mut;
+#[cfg(not(target_family = "windows"))]
+use std::time::Instant;
 
 #[cfg(not(target_family = "windows"))]
 const COMPAT_MAX_DRIVE: u8 = 3;
@@ -16,6 +19,9 @@ const COMPAT_MAX_FNAME: u16 = 256;
 const COMPAT_MAX_EXT: u16 = 256;
 
 const COMPAT_MAX_PATH: u16 = 260;
+
+#[cfg(not(target_family = "windows"))]
+static NOW: spin::Once<Instant> = spin::Once::new();
 
 #[no_mangle]
 pub extern "C" fn rust_compat_stricmp(string1: *const c_char, string2: *const c_char) -> c_int {
@@ -247,7 +253,7 @@ pub extern "C" fn rust_compat_tell(fd: c_int) -> c_long {
 
 #[no_mangle]
 #[cfg(target_family = "windows")]
-pub extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {}
+pub extern "C" fn rust_compat_windows_path_to_native(_path: *mut c_char) {}
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
@@ -263,7 +269,7 @@ pub unsafe extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {
 
 #[no_mangle]
 #[cfg(target_family = "windows")]
-pub extern "C" fn rust_compat_resolve_path(path: *mut c_char) {}
+pub extern "C" fn rust_compat_resolve_path(_path: *mut c_char) {}
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
@@ -321,13 +327,13 @@ pub unsafe extern "C" fn rust_compat_resolve_path(path: *mut c_char) {
 
 #[cfg(target_family = "windows")]
 extern "C" {
-    fn mkdir(path: *const c_char) -> c_int;
+    fn _mkdir(path: *const c_char) -> c_int;
 }
 
 #[no_mangle]
 #[cfg(target_family = "windows")]
-fn native_mkdir(path: *const c_char) -> c_int {
-    mkdir(path)
+unsafe fn native_mkdir(path: *const c_char) -> c_int {
+    _mkdir(path)
 }
 
 #[no_mangle]
@@ -343,6 +349,20 @@ pub unsafe extern "C" fn rust_compat_mkdir(path: *const c_char) -> c_int {
     rust_compat_windows_path_to_native(native_path.as_mut_ptr());
     rust_compat_resolve_path(native_path.as_mut_ptr());
     native_mkdir(native_path.as_ptr())
+}
+
+#[no_mangle]
+#[cfg(target_family = "windows")]
+pub unsafe extern "C" fn rust_compat_time_get_time() -> c_uint {
+    windows::Win32::Media::timeGetTime()
+}
+
+#[no_mangle]
+#[cfg(not(target_family = "windows"))]
+pub unsafe extern "C" fn rust_compat_time_get_time() -> c_uint {
+    let start = *NOW.call_once(|| { Instant::now() });
+    let now = Instant::now();
+    (now - start).as_millis() as c_uint
 }
 
 #[cfg(test)]
