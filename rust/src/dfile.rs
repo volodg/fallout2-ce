@@ -2,6 +2,7 @@ use crate::platform_compat::{rust_compat_fopen, rust_compat_stricmp, rust_get_fi
 use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, fread, free, fseek, malloc, memset, SEEK_SET, size_t, ungetc};
 use std::ffi::{c_void, CString};
 use std::mem;
+use std::panic::resume_unwind;
 use std::ptr::{null, null_mut};
 use libz_sys::{alloc_func, Bytef, free_func, inflate, inflateEnd, inflateInit_, voidpf, Z_NO_FLUSH, Z_OK, z_stream, z_streamp};
 
@@ -448,7 +449,9 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     out_success: *mut bool,
     out_stream: *mut *const FILE,
     out_file_size: *mut c_int,
-    out_dbase_data_size: *mut c_int) -> *const DBase {
+    out_dbase_data_size: *mut c_int,
+    callback: extern "C" fn(*mut FILE, *mut DBaseEntry) -> bool
+) -> *const DBase {
     assert_ne!(file_path, null()); // "filename", "dfile.c", 74
 
     let rb = CString::new("rb").expect("valid string");
@@ -530,13 +533,18 @@ pub unsafe extern "C" fn rust_dbase_open_part(
 
     memset((*dbase).entries as *mut c_void, 0, entries_allocation_size);
 
-    // // Read entries one by one, stopping on any error.
-    // let mut entry_index = 0;
-    // for i in 0..(*dbase).entries_length[0] {
-    //     entry_index = i;
-    //
-    //     let entry = (*dbase).entries.offset(entry_index as isize);
-    //
+    // Read entries one by one, stopping on any error.
+    let mut entry_index = 0;
+    for i in 0..(*dbase).entries_length[0] {
+        entry_index = i;
+
+        let entry = (*dbase).entries.offset(entry_index as isize);
+        if !callback(stream, entry) {
+            *out_success = false;
+            close_on_error(dbase, stream);
+            return null()
+        }
+
     //     let mut path_length = [0 as c_int; 1];
     //     if fread(path_length.as_mut_ptr() as *mut c_void, mem::size_of_val(&path_length), 1, stream) != 1 {
     //         break;
@@ -568,8 +576,8 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     //     if fread((*entry).data_offset.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).data_offset), 1, stream) != 1 {
     //         break;
     //     }
-    // }
-    //
+    }
+
     // let entries_length = (*dbase).entries_length[0];
     // if entry_index < (*dbase).entries_length[0] {
     //     // We haven't reached the end, which means there was an error while

@@ -16,7 +16,9 @@ extern "C" {
     bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
     int rust_dfile_read_char_internal(fallout::DFile* stream);
     bool rust_dbase_close(fallout::DBase* dbase);
-    fallout::DBase* rust_dbase_open_part(const char* filePath, bool* success, FILE** outStream, int* fileSize, int* dbaseDataSize);
+    fallout::DBase* rust_dbase_open_part(const char* filePath, bool* success, FILE** outStream, int* fileSize, int* dbaseDataSize,
+        bool (*callback)(FILE*, fallout::DBaseEntry*)
+        );
     // rust_dbase_open
 }
 
@@ -46,13 +48,51 @@ namespace fallout {
 // Reads .DAT file contents.
 //
 // 0x4E4F58
+bool callback(FILE* stream, DBaseEntry* entry) {
+    // Migrated until HERE !!!
+
+    int pathLength;
+    if (fread(&pathLength, sizeof(pathLength), 1, stream) != 1) {
+        return false;
+    }
+
+    entry->path = (char*)malloc(pathLength + 1);
+    if (entry->path == nullptr) {
+        return false;
+    }
+
+    if (fread(entry->path, pathLength, 1, stream) != 1) {
+        return false;
+    }
+
+    entry->path[pathLength] = '\0';
+
+    if (fread(&(entry->compressed), sizeof(entry->compressed), 1, stream) != 1) {
+        return false;
+    }
+
+    if (fread(&(entry->uncompressedSize), sizeof(entry->uncompressedSize), 1, stream) != 1) {
+        return false;
+    }
+
+    if (fread(&(entry->dataSize), sizeof(entry->dataSize), 1, stream) != 1) {
+        return false;
+    }
+
+    if (fread(&(entry->dataOffset), sizeof(entry->dataOffset), 1, stream) != 1) {
+        return false;
+    }
+
+    return true;
+}
+
 DBase* dbaseOpen(const char* filePath)
 {
     bool success = true;
     FILE* stream2 = nullptr;
     int fileSize2 = 0;
     int dbaseDataSize2 = 0;
-    DBase* dbase = rust_dbase_open_part(filePath, &success, &stream2, &fileSize2, &dbaseDataSize2);
+    DBase* dbase = rust_dbase_open_part(filePath, &success, &stream2, &fileSize2, &dbaseDataSize2, callback);
 
     if (!success) {
         return nullptr;
@@ -63,52 +103,14 @@ DBase* dbaseOpen(const char* filePath)
     int dbaseDataSize = dbaseDataSize2;
 
     // Migrated until HERE !!!
-
-    // Read entries one by one, stopping on any error.
-    int entryIndex;
-    for (entryIndex = 0; entryIndex < dbase->entriesLength; entryIndex++) {
-        DBaseEntry* entry = &(dbase->entries[entryIndex]);
-
-        int pathLength;
-        if (fread(&pathLength, sizeof(pathLength), 1, stream) != 1) {
-            break;
-        }
-
-        entry->path = (char*)malloc(pathLength + 1);
-        if (entry->path == nullptr) {
-            break;
-        }
-
-        if (fread(entry->path, pathLength, 1, stream) != 1) {
-            break;
-        }
-
-        entry->path[pathLength] = '\0';
-
-        if (fread(&(entry->compressed), sizeof(entry->compressed), 1, stream) != 1) {
-            break;
-        }
-
-        if (fread(&(entry->uncompressedSize), sizeof(entry->uncompressedSize), 1, stream) != 1) {
-            break;
-        }
-
-        if (fread(&(entry->dataSize), sizeof(entry->dataSize), 1, stream) != 1) {
-            break;
-        }
-
-        if (fread(&(entry->dataOffset), sizeof(entry->dataOffset), 1, stream) != 1) {
-            break;
-        }
-    }
-
-    if (entryIndex < dbase->entriesLength) {
-        // We haven't reached the end, which means there was an error while
-        // reading entries.
-        dbaseClose(dbase);
-        fclose(stream);
-        return nullptr;
-    }
+//
+//    if (entryIndex < dbase->entriesLength) {
+//        // We haven't reached the end, which means there was an error while
+//        // reading entries.
+//        dbaseClose(dbase);
+//        fclose(stream);
+//        return nullptr;
+//    }
 
     dbase->path = compat_strdup(filePath);
     dbase->dataOffset = fileSize - dbaseDataSize;
