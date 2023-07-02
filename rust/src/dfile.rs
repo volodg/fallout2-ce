@@ -449,7 +449,7 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     out_stream: *mut *const FILE,
     out_file_size: *mut c_int,
     out_dbase_data_size: *mut c_int,
-    callback: extern "C" fn(*mut FILE, *mut DBaseEntry, c_int) -> bool
+    callback: extern "C" fn(*mut FILE, *mut DBaseEntry) -> bool
 ) -> *const DBase {
     assert_ne!(file_path, null()); // "filename", "dfile.c", 74
 
@@ -555,7 +555,7 @@ pub unsafe extern "C" fn rust_dbase_open_part(
 
         *(*entry).path.offset(path_length[0] as isize) = '\0' as c_char;
 
-        if !callback(stream, entry, path_length[0]) {
+        if !callback(stream, entry) {
             *out_success = false;
             close_on_error(dbase, stream);
             return null()
