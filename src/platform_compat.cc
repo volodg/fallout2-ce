@@ -40,8 +40,10 @@ extern "C" {
     char* rust_compat_gzgets(gzFile stream, char* buffer, int maxCount);
     int rust_compat_remove(const char* path);
     int rust_compat_rename(const char* oldFileName, const char* newFileName);
+    int rust_compat_access(const char* path, int mode);
 }
 
+// Migrate
 namespace fallout {
 
 int compat_stricmp(const char* string1, const char* string2)
@@ -136,11 +138,7 @@ void compat_resolve_path(char* path)
 
 int compat_access(const char* path, int mode)
 {
-    char nativePath[COMPAT_MAX_PATH];
-    strcpy(nativePath, path);
-    rust_compat_windows_path_to_native(nativePath);
-    compat_resolve_path(nativePath);
-    return access(nativePath, mode);
+    return rust_compat_access(path, mode);
 }
 
 char* compat_strdup(const char* string)

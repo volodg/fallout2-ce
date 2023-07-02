@@ -1,4 +1,4 @@
-use libc::{c_char, c_int, c_uint, c_long, c_ulong, lseek, strcpy, SEEK_CUR, fopen, FILE, fgets, remove, rename};
+use libc::{c_char, c_int, c_uint, c_long, c_ulong, lseek, strcpy, SEEK_CUR, fopen, FILE, fgets, remove, rename, access};
 #[cfg(not(target_family = "windows"))]
 use libc::{closedir, opendir, readdir, strchr, strlen, strncpy};
 use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
@@ -436,12 +436,15 @@ pub unsafe extern "C" fn rust_compat_rename(old_file_name: *const c_char, new_fi
 
     rename(native_old_file_name.as_ptr(), native_new_file_name.as_ptr())
 }
-/*
-int compat_rename(const char* oldFileName, const char* newFileName)
-{
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_compat_access(path: *const c_char, mode: c_int) -> c_int {
+    let mut native_path = [0 as c_char; COMPAT_MAX_PATH as usize];
+    strcpy(native_path.as_mut_ptr(), path);
+    rust_compat_windows_path_to_native(native_path.as_mut_ptr());
+    rust_compat_resolve_path(native_path.as_mut_ptr());
+    access(native_path.as_ptr(), mode)
 }
- */
 
 #[cfg(test)]
 mod tests {
