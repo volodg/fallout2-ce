@@ -14,7 +14,7 @@ const DFILE_HAS_COMPRESSED_UNGETC: c_int = 0x10;
 #[repr(C)]
 pub struct DBaseEntry {
     path: *mut c_char,
-    compressed: [c_uint; 1],
+    compressed: [c_char; 1],
     uncompressed_size: [c_int; 1],
     data_size: [c_int; 1],
     data_offset: [c_int; 1],
@@ -555,16 +555,16 @@ pub unsafe extern "C" fn rust_dbase_open_part(
 
         *(*entry).path.offset(path_length[0] as isize) = '\0' as c_char;
 
+        if fread((*entry).compressed.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).compressed), 1, stream) != 1 {
+            break;
+        }
+
         if !callback(stream, entry) {
             *out_success = false;
             close_on_error(dbase, stream);
             return null()
         }
 
-        // if fread((*entry).compressed.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).compressed), 1, stream) != 1 {
-    //         break;
-    //     }
-    //
     //     if fread((*entry).uncompressed_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).uncompressed_size), 1, stream) != 1 {
     //         break;
     //     }
