@@ -15,6 +15,7 @@ extern "C" {
     fallout::DFile* rust_dfile_open_internal(fallout::DBase* dbase, const char* filePath, const char* mode, fallout::DFile* dfile);
     bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
     void rust_dfile_unget_compressed(fallout::DFile* stream, int ch);
+    int rust_dfile_read_char_internal(fallout::DFile* stream);
     // rust_dfile_unget_compressed
 }
 
@@ -569,60 +570,9 @@ int dfileEof(DFile* stream)
 }
 
 // 0x4E5F9C
-// ????
 static int dfileReadCharInternal(DFile* stream)
 {
-    if (stream->entry->compressed == 1) {
-        char ch;
-        if (!rust_dfile_read_compressed(stream, &ch, sizeof(ch))) {
-            return -1;
-        }
-
-        if ((stream->flags & DFILE_TEXT) != 0) {
-            // NOTE: I'm not sure if they are comparing as chars or ints. Since
-            // character literals are ints, let's cast read characters to int as
-            // well.
-            if (ch == '\r') {
-                char nextCh;
-                if (rust_dfile_read_compressed(stream, &nextCh, sizeof(nextCh))) {
-                    if (nextCh == '\n') {
-                        ch = nextCh;
-                    } else {
-                        // NOTE: Uninline.
-                        rust_dfile_unget_compressed(stream, nextCh & 0xFF);
-                    }
-                }
-            }
-        }
-
-        return ch & 0xFF;
-    }
-
-    if (stream->position >= stream->entry->uncompressedSize) {
-        return -1;
-    }
-
-    int ch = fgetc(stream->stream);
-    if (ch != -1) {
-        if ((stream->flags & DFILE_TEXT) != 0) {
-            // This is a text stream, attempt to detect \r\n sequence.
-            if (ch == '\r') {
-                if (stream->position + 1 < stream->entry->uncompressedSize) {
-                    int nextCh = fgetc(stream->stream);
-                    if (nextCh == '\n') {
-                        ch = nextCh;
-                        stream->position++;
-                    } else {
-                        ungetc(nextCh, stream->stream);
-                    }
-                }
-            }
-        }
-
-        stream->position++;
-    }
-
-    return ch;
+    return rust_dfile_read_char_internal(stream);
 }
 
 } // namespace fallout
