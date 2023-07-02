@@ -347,7 +347,7 @@ pub unsafe extern "C" fn rust_dfile_read_compressed(stream: *mut DFile, mut ptr:
 //
 // 0x4E613C
 #[no_mangle]
-pub unsafe extern "C" fn rust_dfile_unget_compressed(stream: *mut DFile, ch: c_int) {
+unsafe fn rust_dfile_unget_compressed(stream: *mut DFile, ch: c_int) {
     (*stream).compressed_ungotten = ch;
     (*stream).flags |= DFILE_HAS_COMPRESSED_UNGETC;
     (*stream).position -= 1;

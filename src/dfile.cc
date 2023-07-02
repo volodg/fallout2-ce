@@ -14,7 +14,6 @@ extern "C" {
     int rust_dfile_close(fallout::DFile* stream);
     fallout::DFile* rust_dfile_open_internal(fallout::DBase* dbase, const char* filePath, const char* mode, fallout::DFile* dfile);
     bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
-    void rust_dfile_unget_compressed(fallout::DFile* stream, int ch);
     int rust_dfile_read_char_internal(fallout::DFile* stream);
     // rust_dfile_unget_compressed
 }
@@ -52,14 +51,14 @@ DBase* dbaseOpen(const char* filePath)
     assert(filePath); // "filename", "dfile.c", 74
 
     FILE* stream = compat_fopen(filePath, "rb");
-    if (stream == NULL) {
-        return NULL;
+    if (stream == nullptr) {
+        return nullptr;
     }
 
     DBase* dbase = (DBase*)malloc(sizeof(*dbase));
-    if (dbase == NULL) {
+    if (dbase == nullptr) {
         fclose(stream);
-        return NULL;
+        return nullptr;
     }
 
     memset(dbase, 0, sizeof(*dbase));
@@ -96,7 +95,7 @@ DBase* dbaseOpen(const char* filePath)
     }
 
     dbase->entries = (DBaseEntry*)malloc(sizeof(*dbase->entries) * dbase->entriesLength);
-    if (dbase->entries == NULL) {
+    if (dbase->entries == nullptr) {
         goto err;
     }
 
@@ -113,7 +112,7 @@ DBase* dbaseOpen(const char* filePath)
         }
 
         entry->path = (char*)malloc(pathLength + 1);
-        if (entry->path == NULL) {
+        if (entry->path == nullptr) {
             break;
         }
 
@@ -159,7 +158,7 @@ err:
 
     fclose(stream);
 
-    return NULL;
+    return nullptr;
 }
 
 // Closes [dbase], all open file handles, frees all associated resources,
@@ -171,24 +170,24 @@ bool dbaseClose(DBase* dbase)
     assert(dbase); // "dbase", "dfile.c", 173
 
     DFile* curr = dbase->dfileHead;
-    while (curr != NULL) {
+    while (curr != nullptr) {
         DFile* next = curr->next;
         rust_dfile_close(curr);
         curr = next;
     }
 
-    if (dbase->entries != NULL) {
+    if (dbase->entries != nullptr) {
         for (int index = 0; index < dbase->entriesLength; index++) {
             DBaseEntry* entry = &(dbase->entries[index]);
             char* entryName = entry->path;
-            if (entryName != NULL) {
+            if (entryName != nullptr) {
                 free(entryName);
             }
         }
         free(dbase->entries);
     }
 
-    if (dbase->path != NULL) {
+    if (dbase->path != nullptr) {
         free(dbase->path);
     }
 
@@ -343,7 +342,7 @@ char* dfileReadString(char* string, int size, DFile* stream)
 
     if (pch == string) {
         // No character was set into the buffer.
-        return NULL;
+        return nullptr;
     }
 
     *pch = '\0';
