@@ -5,8 +5,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#include <algorithm>
-
 #include <fpattern.h>
 
 // Migrated
@@ -16,7 +14,8 @@ extern "C" {
     int rust_dfile_close(fallout::DFile* stream);
     fallout::DFile* rust_dfile_open_internal(fallout::DBase* dbase, const char* filePath, const char* mode, fallout::DFile* dfile);
     bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
-    // rust_dfile_read_compressed
+    void rust_dfile_unget_compressed(fallout::DFile* stream, int ch);
+    // rust_dfile_unget_compressed
 }
 
 namespace fallout {
@@ -42,11 +41,7 @@ namespace fallout {
 // Specifies that [DFile] was opened in text mode.
 #define DFILE_TEXT (0x08)
 
-// Specifies that [DFile] has unget compressed character.
-#define DFILE_HAS_COMPRESSED_UNGETC (0x10)
-
 static int dfileReadCharInternal(DFile* stream);
-static void dfileUngetCompressed(DFile* stream, int ch);
 
 // Reads .DAT file contents.
 //
@@ -594,7 +589,7 @@ static int dfileReadCharInternal(DFile* stream)
                         ch = nextCh;
                     } else {
                         // NOTE: Uninline.
-                        dfileUngetCompressed(stream, nextCh & 0xFF);
+                        rust_dfile_unget_compressed(stream, nextCh & 0xFF);
                     }
                 }
             }
@@ -628,16 +623,6 @@ static int dfileReadCharInternal(DFile* stream)
     }
 
     return ch;
-}
-
-// NOTE: Inlined.
-//
-// 0x4E613C
-static void dfileUngetCompressed(DFile* stream, int ch)
-{
-    stream->compressedUngotten = ch;
-    stream->flags |= DFILE_HAS_COMPRESSED_UNGETC;
-    stream->position--;
 }
 
 } // namespace fallout

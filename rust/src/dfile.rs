@@ -7,6 +7,8 @@ use libz_sys::{alloc_func, Bytef, free_func, inflate, inflateEnd, inflateInit_, 
 
 const DFILE_DECOMPRESSION_BUFFER_SIZE: u32 = 0x400;
 const DFILE_TEXT: c_int = 0x08;
+
+// Specifies that [DFile] has unget compressed character.
 const DFILE_HAS_COMPRESSED_UNGETC: c_int = 0x10;
 
 #[repr(C)]
@@ -341,18 +343,22 @@ pub unsafe extern "C" fn rust_dfile_read_compressed(stream: *mut DFile, mut ptr:
     true
 }
 
-/*
-static bool dfileReadCompressed(DFile* stream, void* ptr, size_t size)
-{
+// NOTE: Inlined.
+//
+// 0x4E613C
+#[no_mangle]
+pub unsafe extern "C" fn rust_dfile_unget_compressed(stream: *mut DFile, ch: c_int) {
+    (*stream).compressed_ungotten = ch;
+    (*stream).flags |= DFILE_HAS_COMPRESSED_UNGETC;
+    (*stream).position -= 1;
 }
- */
 
 /*
 #[no_mangle]
 pub unsafe extern "C" fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_int {
     if (*(*stream).entry).compressed == 1 {
         let mut ch: c_char;
-        if !dfileReadCompressed(stream, &ch, sizeof(ch)) {
+        if !rust_dfile_read_compressed(stream, &ch as *const c_void, mem::size_of::<c_char>()) {
             return -1;
         }
 
@@ -362,8 +368,8 @@ pub unsafe extern "C" fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_
             // well.
             if ch == '\r' as c_char {
                 let next_ch: c_char;
-                if dfileReadCompressed(stream, &nextCh, mem::size_of::<c_char>()) {
-                    if (next_ch == '\n') {
+                if rust_dfile_read_compressed(stream, &next_ch as *const c_void, mem::size_of::<c_char>()) {
+                    if next_ch == '\n' as c_char {
                         ch = next_ch;
                     } else {
                         // NOTE: Uninline.
@@ -391,7 +397,7 @@ pub unsafe extern "C" fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_
                         ch = next_ch;
                         (*stream).position += 1;
                     } else {
-                        ungetc(nextCh, (*stream).stream);
+                        ungetc(next_ch, (*stream).stream);
                     }
                 }
             }
@@ -402,4 +408,4 @@ pub unsafe extern "C" fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_
 
     ch
 }
-*/
+ */
