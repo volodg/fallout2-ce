@@ -2,7 +2,6 @@ use crate::platform_compat::{rust_compat_fopen, rust_compat_stricmp, rust_get_fi
 use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, fread, free, fseek, malloc, memset, SEEK_SET, size_t, ungetc};
 use std::ffi::{c_void, CString};
 use std::mem;
-use std::panic::resume_unwind;
 use std::ptr::{null, null_mut};
 use libz_sys::{alloc_func, Bytef, free_func, inflate, inflateEnd, inflateInit_, voidpf, Z_NO_FLUSH, Z_OK, z_stream, z_streamp};
 
@@ -450,7 +449,7 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     out_stream: *mut *const FILE,
     out_file_size: *mut c_int,
     out_dbase_data_size: *mut c_int,
-    callback: extern "C" fn(*mut FILE, *mut DBaseEntry) -> bool
+    callback: extern "C" fn(*mut FILE, *mut DBaseEntry, c_int) -> bool
 ) -> *const DBase {
     assert_ne!(file_path, null()); // "filename", "dfile.c", 74
 
@@ -539,17 +538,18 @@ pub unsafe extern "C" fn rust_dbase_open_part(
         entry_index = i;
 
         let entry = (*dbase).entries.offset(entry_index as isize);
-        if !callback(stream, entry) {
+
+        let mut path_length = [0 as c_int; 1];
+        if fread(path_length.as_mut_ptr() as *mut c_void, mem::size_of_val(&path_length), 1, stream) != 1 {
+            break;
+        }
+
+        if !callback(stream, entry, path_length[0]) {
             *out_success = false;
             close_on_error(dbase, stream);
             return null()
         }
 
-    //     let mut path_length = [0 as c_int; 1];
-    //     if fread(path_length.as_mut_ptr() as *mut c_void, mem::size_of_val(&path_length), 1, stream) != 1 {
-    //         break;
-    //     }
-    //
     //     (*entry).path = malloc(path_length[0] as size_t + 1) as *mut c_char;
     //     if (*entry).path == null_mut() {
     //         break;

@@ -17,7 +17,7 @@ extern "C" {
     int rust_dfile_read_char_internal(fallout::DFile* stream);
     bool rust_dbase_close(fallout::DBase* dbase);
     fallout::DBase* rust_dbase_open_part(const char* filePath, bool* success, FILE** outStream, int* fileSize, int* dbaseDataSize,
-        bool (*callback)(FILE*, fallout::DBaseEntry*)
+        bool (*callback)(FILE*, fallout::DBaseEntry*, int)
         );
     // rust_dbase_open
 }
@@ -48,13 +48,8 @@ namespace fallout {
 // Reads .DAT file contents.
 //
 // 0x4E4F58
-bool callback(FILE* stream, DBaseEntry* entry) {
+bool callback(FILE* stream, DBaseEntry* entry, int pathLength) {
     // Migrated until HERE !!!
-
-    int pathLength;
-    if (fread(&pathLength, sizeof(pathLength), 1, stream) != 1) {
-        return false;
-    }
 
     entry->path = (char*)malloc(pathLength + 1);
     if (entry->path == nullptr) {
