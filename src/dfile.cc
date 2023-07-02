@@ -15,6 +15,7 @@ extern "C" {
     fallout::DFile* rust_dfile_open_internal(fallout::DBase* dbase, const char* filePath, const char* mode, fallout::DFile* dfile);
     bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
     int rust_dfile_read_char_internal(fallout::DFile* stream);
+    bool rust_dbase_close(fallout::DBase* dbase);
     // rust_dfile_unget_compressed
 }
 
@@ -167,35 +168,7 @@ err:
 // 0x4E5270
 bool dbaseClose(DBase* dbase)
 {
-    assert(dbase); // "dbase", "dfile.c", 173
-
-    DFile* curr = dbase->dfileHead;
-    while (curr != nullptr) {
-        DFile* next = curr->next;
-        rust_dfile_close(curr);
-        curr = next;
-    }
-
-    if (dbase->entries != nullptr) {
-        for (int index = 0; index < dbase->entriesLength; index++) {
-            DBaseEntry* entry = &(dbase->entries[index]);
-            char* entryName = entry->path;
-            if (entryName != nullptr) {
-                free(entryName);
-            }
-        }
-        free(dbase->entries);
-    }
-
-    if (dbase->path != nullptr) {
-        free(dbase->path);
-    }
-
-    memset(dbase, 0, sizeof(*dbase));
-
-    free(dbase);
-
-    return true;
+    return rust_dbase_close(dbase);
 }
 
 // 0x4E5308

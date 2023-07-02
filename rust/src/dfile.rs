@@ -408,3 +408,173 @@ pub unsafe extern "C" fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_
 
     ch
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_dbase_close(dbase: *const DBase) -> bool {
+    assert_ne!(dbase, null()); // "dbase", "dfile.c", 173
+
+    let mut curr = (*dbase).dfile_head;
+    while curr != null_mut() {
+        let next = (*curr).next;
+        rust_dfile_close(curr);
+        curr = next;
+    }
+
+    if (*dbase).entries != null_mut() {
+        for index in 0..((*dbase).entries_length) {
+            let entry = (*dbase).entries.offset(index as isize);
+            let entry_name = (*entry).path;
+            if entry_name != null_mut() {
+                free(entry_name as *mut c_void);
+            }
+        }
+        free((*dbase).entries as *mut c_void);
+    }
+
+    if (*dbase).path != null_mut() {
+        free((*dbase).path as *mut c_void);
+    }
+
+    memset(dbase as *mut c_void, 0, mem::size_of::<DBase>());
+
+    free(dbase as *mut c_void);
+
+    true
+}
+
+/*
+bool dbaseClose(DBase* dbase)
+{
+}
+ */
+
+/*
+#[no_mangle]
+pub unsafe extern "C" fn rust_dbase_open(file_path: *const c_char) -> *const DBase {
+    assert_ne!(file_path, null()); // "filename", "dfile.c", 74
+
+    let rb = CString::new("rb").expect("valid string");
+    let stream = rust_compat_fopen(filePath, rb.as_ptr());
+    if stream == null_mut() {
+        return null();
+    }
+
+    let dbase = malloc(mem::size_of::<DBase>()) as *mut DBase;
+    if dbase == null_mut() {
+        fclose(stream);
+        return null();
+    }
+
+    memset(dbase as *mut c_void, 0, mem::size_of::<DBase>());
+
+    // Get file size, and reposition stream to read footer, which contains two
+    // 32-bits ints.
+    let file_size = rust_get_file_size(stream);
+    if (fseek(stream, file_size - sizeof(int) * 2, SEEK_SET) != 0) {
+        goto err;
+    }
+
+    // Read the size of entries table.
+    int entriesDataSize;
+    if (fread(&entriesDataSize, sizeof(entriesDataSize), 1, stream) != 1) {
+        goto err;
+    }
+
+    fn closeOnError(dbase: *mut DBase, stream: *mut FILE) {
+        rust_dbase_close();
+        // dbaseClose(dbase);
+
+        fclose(stream);
+    }
+
+    // Read the size of entire dbase content.
+    //
+    // NOTE: It appears that this approach allows existence of arbitrary data in
+    // the beginning of the .DAT file.
+    int dbaseDataSize;
+    if (fread(&dbaseDataSize, sizeof(dbaseDataSize), 1, stream) != 1) {
+        goto err;
+    }
+
+    // Reposition stream to the beginning of the entries table.
+    if (fseek(stream, fileSize - entriesDataSize - sizeof(int) * 2, SEEK_SET) != 0) {
+        goto err;
+    }
+
+    if (fread(&(dbase->entriesLength), sizeof(dbase->entriesLength), 1, stream) != 1) {
+        goto err;
+    }
+
+    dbase->entries = (DBaseEntry*)malloc(sizeof(*dbase->entries) * dbase->entriesLength);
+    if (dbase->entries == nullptr) {
+        goto err;
+    }
+
+    memset(dbase->entries, 0, sizeof(*dbase->entries) * dbase->entriesLength);
+
+    // Read entries one by one, stopping on any error.
+    int entryIndex;
+    for (entryIndex = 0; entryIndex < dbase->entriesLength; entryIndex++) {
+        DBaseEntry* entry = &(dbase->entries[entryIndex]);
+
+        int pathLength;
+        if (fread(&pathLength, sizeof(pathLength), 1, stream) != 1) {
+            break;
+        }
+
+        entry->path = (char*)malloc(pathLength + 1);
+        if (entry->path == nullptr) {
+            break;
+        }
+
+        if (fread(entry->path, pathLength, 1, stream) != 1) {
+            break;
+        }
+
+        entry->path[pathLength] = '\0';
+
+        if (fread(&(entry->compressed), sizeof(entry->compressed), 1, stream) != 1) {
+            break;
+        }
+
+        if (fread(&(entry->uncompressedSize), sizeof(entry->uncompressedSize), 1, stream) != 1) {
+            break;
+        }
+
+        if (fread(&(entry->dataSize), sizeof(entry->dataSize), 1, stream) != 1) {
+            break;
+        }
+
+        if (fread(&(entry->dataOffset), sizeof(entry->dataOffset), 1, stream) != 1) {
+            break;
+        }
+    }
+
+    if (entryIndex < dbase->entriesLength) {
+        // We haven't reached the end, which means there was an error while
+        // reading entries.
+        goto err;
+    }
+
+    dbase->path = compat_strdup(filePath);
+    dbase->dataOffset = fileSize - dbaseDataSize;
+
+    fclose(stream);
+
+    return dbase;
+
+    err:
+
+        dbaseClose(dbase);
+
+    fclose(stream);
+
+    return nullptr;
+}
+*/
+
+/*
+DBase* dbaseOpen(const char* filePath)
+{
+}
+ */
