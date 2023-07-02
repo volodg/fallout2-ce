@@ -1,4 +1,4 @@
-use crate::platform_compat::{rust_compat_fopen, rust_compat_strdup, rust_compat_stricmp, rust_get_file_size};
+use crate::platform_compat::{rust_compat_fopen, rust_compat_stricmp, rust_get_file_size};
 use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, fread, free, fseek, malloc, memset, SEEK_SET, size_t, ungetc};
 use std::ffi::{c_void, CString};
 use std::mem;
@@ -443,14 +443,22 @@ pub unsafe extern "C" fn rust_dbase_close(dbase: *const DBase) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_dbase_open(file_path: *const c_char) -> *const DBase {
+pub unsafe extern "C" fn rust_dbase_open_pard(
+    file_path: *const c_char,
+    out_stream: *mut *const FILE,
+    out_dbase: *mut *const DBase,
+    out_file_size: *mut c_int) -> *const DBase {
+
     assert_ne!(file_path, null()); // "filename", "dfile.c", 74
 
     let rb = CString::new("rb").expect("valid string");
-    let stream = rust_compat_fopen(file_path, rb.as_ptr());
+    let str = rb.as_ptr();
+    let stream = rust_compat_fopen(file_path, str);
     if stream == null_mut() {
         return null();
     }
+
+    *out_stream = stream;
 
     let dbase = malloc(mem::size_of::<DBase>()) as *mut DBase;
     if dbase == null_mut() {
@@ -458,108 +466,115 @@ pub unsafe extern "C" fn rust_dbase_open(file_path: *const c_char) -> *const DBa
         return null();
     }
 
+    *out_dbase = dbase;
+
     memset(dbase as *mut c_void, 0, mem::size_of_val(&*dbase));
 
-    unsafe fn close_on_error(dbase: *mut DBase, stream: *mut FILE) {
-        rust_dbase_close(dbase);
-        fclose(stream);
-    }
+    // unsafe fn close_on_error(dbase: *mut DBase, stream: *mut FILE) {
+    //     rust_dbase_close(dbase);
+    //     fclose(stream);
+    // }
 
     // Get file size, and reposition stream to read footer, which contains two
     // 32-bits ints.
-    let file_size = rust_get_file_size(stream);
-    if fseek(stream, file_size - mem::size_of::<c_int>() as i64 * 2, SEEK_SET) != 0 {
-        close_on_error(dbase, stream);
-        return null()
-    }
+    let file_size = rust_get_file_size(stream) as c_int;
+    *out_file_size = file_size;
 
-    // Read the size of entries table.
-    let mut entries_data_size = [0 as c_int; 1];
-    if fread(entries_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&entries_data_size), 1, stream) != 1 {
-        close_on_error(dbase, stream);
-        return null()
-    }
-
-    // Read the size of entire dbase content.
+    // if fseek(stream, file_size - mem::size_of::<c_int>() as i64 * 2, SEEK_SET) != 0 {
+    //     close_on_error(dbase, stream);
+    //     return null()
+    // }
     //
-    // NOTE: It appears that this approach allows existence of arbitrary data in
-    // the beginning of the .DAT file.
-    let mut dbase_data_size = [0 as c_int; 1];
-    if fread(dbase_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&dbase_data_size), 1, stream) != 1 {
-        close_on_error(dbase, stream);
-        return null()
-    }
+    // // Read the size of entries table.
+    // let mut entries_data_size = [0 as c_int; 1];
+    // if fread(entries_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&entries_data_size), 1, stream) != 1 {
+    //     close_on_error(dbase, stream);
+    //     return null()
+    // }
+    //
+    // // Read the size of entire dbase content.
+    // //
+    // // NOTE: It appears that this approach allows existence of arbitrary data in
+    // // the beginning of the .DAT file.
+    // let mut dbase_data_size = [0 as c_int; 1];
+    // if fread(dbase_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&dbase_data_size), 1, stream) != 1 {
+    //     close_on_error(dbase, stream);
+    //     return null()
+    // }
+    //
+    // // Reposition stream to the beginning of the entries table.
+    // if fseek(stream, file_size - entries_data_size[0] as i64 - mem::size_of::<c_int>() as i64 * 2, SEEK_SET) != 0 {
+    //     close_on_error(dbase, stream);
+    //     return null()
+    // }
+    //
+    // if fread((*dbase).entries_length.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*dbase).entries_length), 1, stream) != 1 {
+    //     close_on_error(dbase, stream);
+    //     return null()
+    // }
+    //
+    // (*dbase).entries = malloc(mem::size_of_val(&(*dbase).entries) * (*dbase).entries_length[0] as usize) as *mut DBaseEntry;
+    // if (*dbase).entries == null_mut() {
+    //     close_on_error(dbase, stream);
+    //     return null()
+    // }
+    //
+    // memset((*dbase).entries as *mut c_void, 0, mem::size_of_val(&(*dbase).entries) * (*dbase).entries_length[0] as usize);
+    //
+    // // Read entries one by one, stopping on any error.
+    // let mut entry_index = 0;
+    // for i in 0..(*dbase).entries_length[0] {
+    //     entry_index = i;
+    //
+    //     let entry = (*dbase).entries.offset(entry_index as isize);
+    //
+    //     let mut path_length = [0 as c_int; 1];
+    //     if fread(path_length.as_mut_ptr() as *mut c_void, mem::size_of_val(&path_length), 1, stream) != 1 {
+    //         break;
+    //     }
+    //
+    //     (*entry).path = malloc(path_length[0] as size_t + 1) as *mut c_char;
+    //     if (*entry).path == null_mut() {
+    //         break;
+    //     }
+    //
+    //     if fread((*entry).path as *mut c_void, path_length[0] as size_t, 1, stream) != 1 {
+    //         break;
+    //     }
+    //
+    //     *(*entry).path.offset(path_length[0] as isize) = '\0' as c_char;
+    //
+    //     if fread((*entry).compressed.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).compressed), 1, stream) != 1 {
+    //         break;
+    //     }
+    //
+    //     if fread((*entry).uncompressed_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).uncompressed_size), 1, stream) != 1 {
+    //         break;
+    //     }
+    //
+    //     if fread((*entry).data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).data_size), 1, stream) != 1 {
+    //         break;
+    //     }
+    //
+    //     if fread((*entry).data_offset.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).data_offset), 1, stream) != 1 {
+    //         break;
+    //     }
+    // }
+    //
+    // let entries_length = (*dbase).entries_length[0];
+    // if entry_index < (*dbase).entries_length[0] {
+    //     // We haven't reached the end, which means there was an error while
+    //     // reading entries.
+    //     close_on_error(dbase, stream);
+    //     return null()
+    // }
+    //
+    // (*dbase).path = rust_compat_strdup(file_path);
+    // (*dbase).data_offset = file_size as c_int - dbase_data_size[0] as c_int;
+    //
+    // fclose(stream);
+    //
+    // dbase
 
-    // Reposition stream to the beginning of the entries table.
-    if fseek(stream, file_size - entries_data_size[0] as i64 - mem::size_of::<c_int>() as i64 * 2, SEEK_SET) != 0 {
-        close_on_error(dbase, stream);
-        return null()
-    }
-
-    if fread((*dbase).entries_length.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*dbase).entries_length), 1, stream) != 1 {
-        close_on_error(dbase, stream);
-        return null()
-    }
-
-    (*dbase).entries = malloc(mem::size_of_val(&(*dbase).entries) * (*dbase).entries_length[0] as usize) as *mut DBaseEntry;
-    if (*dbase).entries == null_mut() {
-        close_on_error(dbase, stream);
-        return null()
-    }
-
-    memset((*dbase).entries as *mut c_void, 0, mem::size_of_val(&(*dbase).entries) * (*dbase).entries_length[0] as usize);
-
-    // Read entries one by one, stopping on any error.
-    let mut entry_index = 0;
-    for i in 0..(*dbase).entries_length[0] {
-        entry_index = i;
-
-        let entry = (*dbase).entries.offset(entry_index as isize);
-
-        let mut path_length = [0 as c_int; 1];
-        if fread(path_length.as_mut_ptr() as *mut c_void, mem::size_of_val(&path_length), 1, stream) != 1 {
-            break;
-        }
-
-        (*entry).path = malloc(path_length[0] as size_t + 1) as *mut c_char;
-        if (*entry).path == null_mut() {
-            break;
-        }
-
-        if fread((*entry).path as *mut c_void, path_length[0] as size_t, 1, stream) != 1 {
-            break;
-        }
-
-        *(*entry).path.offset(path_length[0] as isize) = '\0' as c_char;
-
-        if fread((*entry).compressed.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).compressed), 1, stream) != 1 {
-            break;
-        }
-
-        if fread((*entry).uncompressed_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).uncompressed_size), 1, stream) != 1 {
-            break;
-        }
-
-        if fread((*entry).data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).data_size), 1, stream) != 1 {
-            break;
-        }
-
-        if fread((*entry).data_offset.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).data_offset), 1, stream) != 1 {
-            break;
-        }
-    }
-
-    if entry_index < (*dbase).entries_length[0] {
-        // We haven't reached the end, which means there was an error while
-        // reading entries.
-        close_on_error(dbase, stream);
-        return null()
-    }
-
-    (*dbase).path = rust_compat_strdup(file_path);
-    (*dbase).data_offset = file_size as c_int - dbase_data_size[0] as c_int;
-
-    fclose(stream);
-
-    dbase
+    null()
 }

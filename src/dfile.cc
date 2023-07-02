@@ -16,7 +16,7 @@ extern "C" {
     bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
     int rust_dfile_read_char_internal(fallout::DFile* stream);
     bool rust_dbase_close(fallout::DBase* dbase);
-    fallout::DBase* rust_dbase_open(const char* filePath);
+    fallout::DBase* rust_dbase_open_pard(const char* filePath, FILE** outStream, fallout::DBase** outDbase, int* fileSize);
     // rust_dbase_open
 }
 
@@ -48,25 +48,22 @@ namespace fallout {
 // 0x4E4F58
 DBase* dbaseOpen(const char* filePath)
 {
-    // return rust_dbase_open(filePath);
-    assert(filePath); // "filename", "dfile.c", 74
+    FILE* stream2 = nullptr;
+    DBase* dbase2 = nullptr;
+    int fileSize2 = 0;
+    rust_dbase_open_pard(filePath, &stream2, &dbase2, &fileSize2);
 
-    FILE* stream = compat_fopen(filePath, "rb");
+    FILE* stream = stream2;
     if (stream == nullptr) {
         return nullptr;
     }
 
-    DBase* dbase = (DBase*)malloc(sizeof(*dbase));
+    DBase* dbase = dbase2;
     if (dbase == nullptr) {
-        fclose(stream);
         return nullptr;
     }
 
-    memset(dbase, 0, sizeof(*dbase));
-
-    // Get file size, and reposition stream to read footer, which contains two
-    // 32-bits ints.
-    int fileSize = getFileSize(stream);
+    int fileSize = fileSize2;
     if (fseek(stream, fileSize - sizeof(int) * 2, SEEK_SET) != 0) {
         dbaseClose(dbase);
         fclose(stream);
