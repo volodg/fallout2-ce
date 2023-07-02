@@ -567,15 +567,15 @@ pub unsafe extern "C" fn rust_dbase_open_part(
             break;
         }
 
+        if fread((*entry).data_offset.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).data_offset), 1, stream) != 1 {
+            break;
+        }
+
         if !callback(stream, entry) {
             *out_success = false;
             close_on_error(dbase, stream);
             return null()
         }
-
-    //     if fread((*entry).data_offset.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).data_offset), 1, stream) != 1 {
-    //         break;
-    //     }
     }
 
     // let entries_length = (*dbase).entries_length[0];
