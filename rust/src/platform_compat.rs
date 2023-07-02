@@ -467,7 +467,7 @@ pub unsafe extern "C" fn rust_compat_access(path: *const c_char, mode: c_int) ->
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_compat_strdup(string: *const c_char) -> *const c_char {
+pub unsafe extern "C" fn rust_compat_strdup(string: *const c_char) -> *mut c_char {
     SDL_strdup(string)
 }
 

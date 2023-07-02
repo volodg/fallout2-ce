@@ -1,4 +1,4 @@
-use crate::platform_compat::{rust_compat_fopen, rust_compat_stricmp};
+use crate::platform_compat::{rust_compat_fopen, rust_compat_strdup, rust_compat_stricmp, rust_get_file_size};
 use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, fread, free, fseek, malloc, memset, SEEK_SET, size_t, ungetc};
 use std::ffi::{c_void, CString};
 use std::mem;
@@ -13,11 +13,11 @@ const DFILE_HAS_COMPRESSED_UNGETC: c_int = 0x10;
 
 #[repr(C)]
 pub struct DBaseEntry {
-    path: *const c_char,
-    compressed: c_uint,
-    uncompressed_size: c_int,
-    data_size: c_int,
-    data_offset: c_int,
+    path: *mut c_char,
+    compressed: [c_uint; 1],
+    uncompressed_size: [c_int; 1],
+    data_size: [c_int; 1],
+    data_offset: [c_int; 1],
 }
 
 // A representation of .DAT file.
@@ -30,7 +30,7 @@ pub struct DBase {
     data_offset: c_int,
 
     // The number of entries.
-    entries_length: c_int,
+    entries_length: [c_int; 1],
 
     // The array of entries.
     entries: *mut DBaseEntry,
@@ -120,7 +120,7 @@ pub unsafe extern "C" fn rust_dfile_close(
 
     let mut rc: c_int = 0;
 
-    if (*(*stream).entry).compressed == 1 {
+    if (*(*stream).entry).compressed[0] == 1 {
         if inflateEnd((*stream).decompression_stream) != Z_OK {
             rc = -1;
         }
@@ -173,7 +173,7 @@ pub unsafe extern "C" fn rust_dfile_close(
 pub unsafe extern "C" fn rust_dfile_open_internal(
     dbase: *mut DBase, file_path: *const c_char, mode: *const c_char, mut dfile: *mut DFile
 ) -> *const DFile {
-    let entry = bsearch(file_path as *const c_void, (*dbase).entries as *const c_void, (*dbase).entries_length as size_t, mem::size_of::<DBaseEntry>(), Some(rust_dbase_find_entry_my_file_path)) as *mut DBaseEntry;
+    let entry = bsearch(file_path as *const c_void, (*dbase).entries as *const c_void, (*dbase).entries_length[0] as size_t, mem::size_of::<DBaseEntry>(), Some(rust_dbase_find_entry_my_file_path)) as *mut DBaseEntry;
 
     unsafe fn cleanup(dfile: *mut DFile) {
         if dfile != null_mut() {
@@ -228,12 +228,12 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
     }
 
     // Relocate stream to the beginning of data for specified entry.
-    if fseek((*dfile).stream, ((*dbase).data_offset + (*entry).data_offset) as c_long, SEEK_SET) != 0 {
+    if fseek((*dfile).stream, ((*dbase).data_offset + (*entry).data_offset[0]) as c_long, SEEK_SET) != 0 {
         cleanup(dfile);
         return null()
     }
 
-    if (*entry).compressed == 1 {
+    if (*entry).compressed[0] == 1 {
         // Entry is compressed, setup decompression stream and decompression
         // buffer. This step is not needed when previous instance of dfile is
         // passed via parameter, which might already have stream and
@@ -316,7 +316,7 @@ pub unsafe extern "C" fn rust_dfile_read_compressed(stream: *mut DFile, mut ptr:
 
         if (*(*stream).decompression_stream).avail_in == 0 {
             // No more unprocessed data, request next chunk.
-            let bytes_to_read = DFILE_DECOMPRESSION_BUFFER_SIZE.min(((*(*stream).entry).data_size - (*stream).compressed_bytes_read) as u32) as size_t;
+            let bytes_to_read = DFILE_DECOMPRESSION_BUFFER_SIZE.min(((*(*stream).entry).data_size[0] - (*stream).compressed_bytes_read) as u32) as size_t;
 
             if fread((*stream).decompression_buffer as *mut c_void, bytes_to_read, 1, (*stream).stream) != 1 {
                 break;
@@ -356,7 +356,7 @@ unsafe fn rust_dfile_unget_compressed(stream: *mut DFile, ch: c_int) {
 // 0x4E5F9C
 #[no_mangle]
 pub unsafe extern "C" fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_int {
-    if (*(*stream).entry).compressed == 1 {
+    if (*(*stream).entry).compressed[0] == 1 {
         let mut ch = ['\0' as c_char; 1];
         if !rust_dfile_read_compressed(stream, ch.as_mut_ptr() as *const c_void, mem::size_of::<c_char>()) {
             return -1;
@@ -382,7 +382,7 @@ pub unsafe extern "C" fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_
         return (ch[0] as c_int) & 0xFF;
     }
 
-    if (*(*stream).entry).uncompressed_size < 0 || (*stream).position >= (*(*stream).entry).uncompressed_size as c_long {
+    if (*(*stream).entry).uncompressed_size[0] < 0 || (*stream).position >= (*(*stream).entry).uncompressed_size[0] as c_long {
         return -1;
     }
 
@@ -391,7 +391,7 @@ pub unsafe extern "C" fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_
         if ((*stream).flags & DFILE_TEXT) != 0 {
             // This is a text stream, attempt to detect \r\n sequence.
             if ch == '\r' as c_int {
-                if (*stream).position + 1 < ((*(*stream).entry).uncompressed_size as c_long) {
+                if (*stream).position + 1 < ((*(*stream).entry).uncompressed_size[0] as c_long) {
                     let next_ch = fgetc((*stream).stream);
                     if next_ch == '\n' as c_int {
                         ch = next_ch;
@@ -421,7 +421,7 @@ pub unsafe extern "C" fn rust_dbase_close(dbase: *const DBase) -> bool {
     }
 
     if (*dbase).entries != null_mut() {
-        for index in 0..((*dbase).entries_length) {
+        for index in 0..((*dbase).entries_length[0]) {
             let entry = (*dbase).entries.offset(index as isize);
             let entry_name = (*entry).path;
             if entry_name != null_mut() {
@@ -442,19 +442,12 @@ pub unsafe extern "C" fn rust_dbase_close(dbase: *const DBase) -> bool {
     true
 }
 
-/*
-bool dbaseClose(DBase* dbase)
-{
-}
- */
-
-/*
 #[no_mangle]
 pub unsafe extern "C" fn rust_dbase_open(file_path: *const c_char) -> *const DBase {
     assert_ne!(file_path, null()); // "filename", "dfile.c", 74
 
     let rb = CString::new("rb").expect("valid string");
-    let stream = rust_compat_fopen(filePath, rb.as_ptr());
+    let stream = rust_compat_fopen(file_path, rb.as_ptr());
     if stream == null_mut() {
         return null();
     }
@@ -467,114 +460,106 @@ pub unsafe extern "C" fn rust_dbase_open(file_path: *const c_char) -> *const DBa
 
     memset(dbase as *mut c_void, 0, mem::size_of::<DBase>());
 
+    unsafe fn close_on_error(dbase: *mut DBase, stream: *mut FILE) {
+        rust_dbase_close(dbase);
+        fclose(stream);
+    }
+
     // Get file size, and reposition stream to read footer, which contains two
     // 32-bits ints.
     let file_size = rust_get_file_size(stream);
-    if (fseek(stream, file_size - sizeof(int) * 2, SEEK_SET) != 0) {
-        goto err;
+    if fseek(stream, file_size - mem::size_of::<c_int>() as i64 * 2, SEEK_SET) != 0 {
+        close_on_error(dbase, stream);
+        return null()
     }
 
     // Read the size of entries table.
-    int entriesDataSize;
-    if (fread(&entriesDataSize, sizeof(entriesDataSize), 1, stream) != 1) {
-        goto err;
-    }
-
-    fn closeOnError(dbase: *mut DBase, stream: *mut FILE) {
-        rust_dbase_close();
-        // dbaseClose(dbase);
-
-        fclose(stream);
+    let mut entries_data_size = [0 as c_int; 1];
+    if fread(entries_data_size.as_mut_ptr() as *mut c_void, mem::size_of::<c_int>(), 1, stream) != 1 {
+        close_on_error(dbase, stream);
+        return null()
     }
 
     // Read the size of entire dbase content.
     //
     // NOTE: It appears that this approach allows existence of arbitrary data in
     // the beginning of the .DAT file.
-    int dbaseDataSize;
-    if (fread(&dbaseDataSize, sizeof(dbaseDataSize), 1, stream) != 1) {
-        goto err;
+    let mut dbase_data_size = [0 as c_int; 1];
+    if fread(dbase_data_size.as_mut_ptr() as *mut c_void, mem::size_of::<c_int>(), 1, stream) != 1 {
+        close_on_error(dbase, stream);
+        return null()
     }
 
     // Reposition stream to the beginning of the entries table.
-    if (fseek(stream, fileSize - entriesDataSize - sizeof(int) * 2, SEEK_SET) != 0) {
-        goto err;
+    if fseek(stream, file_size - dbase_data_size[0] as i64 - mem::size_of::<c_int>() as i64 * 2, SEEK_SET) != 0 {
+        close_on_error(dbase, stream);
+        return null()
     }
 
-    if (fread(&(dbase->entriesLength), sizeof(dbase->entriesLength), 1, stream) != 1) {
-        goto err;
+    if fread((*dbase).entries_length.as_mut_ptr() as *mut c_void, mem::size_of::<c_int>(), 1, stream) != 1 {
+        close_on_error(dbase, stream);
+        return null()
     }
 
-    dbase->entries = (DBaseEntry*)malloc(sizeof(*dbase->entries) * dbase->entriesLength);
-    if (dbase->entries == nullptr) {
-        goto err;
+    (*dbase).entries = malloc(mem::size_of::<DBaseEntry>() * (*dbase).entries_length[0] as usize) as *mut DBaseEntry;
+    if (*dbase).entries == null_mut() {
+        close_on_error(dbase, stream);
+        return null()
     }
 
-    memset(dbase->entries, 0, sizeof(*dbase->entries) * dbase->entriesLength);
+    memset((*dbase).entries as *mut c_void, 0, mem::size_of::<DBaseEntry>() * (*dbase).entries_length[0] as usize);
 
     // Read entries one by one, stopping on any error.
-    int entryIndex;
-    for (entryIndex = 0; entryIndex < dbase->entriesLength; entryIndex++) {
-        DBaseEntry* entry = &(dbase->entries[entryIndex]);
+    let mut entry_index = 0;
+    for i in 0..(*dbase).entries_length[0] {
+        entry_index = i;
+    // for (entryIndex = 0; entryIndex < ; entryIndex++) {
+        let entry = (*dbase).entries.offset(entry_index as isize);
 
-        int pathLength;
-        if (fread(&pathLength, sizeof(pathLength), 1, stream) != 1) {
+        let mut path_length = [0 as c_int; 1];
+        if fread(path_length.as_mut_ptr() as *mut c_void, mem::size_of::<c_int>(), 1, stream) != 1 {
             break;
         }
 
-        entry->path = (char*)malloc(pathLength + 1);
-        if (entry->path == nullptr) {
+        (*entry).path = malloc(path_length[0] as size_t + 1) as *mut c_char;
+        if (*entry).path == null_mut() {
             break;
         }
 
-        if (fread(entry->path, pathLength, 1, stream) != 1) {
+        if fread((*entry).path as *mut c_void, path_length[0] as size_t, 1, stream) != 1 {
             break;
         }
 
-        entry->path[pathLength] = '\0';
+        *(*entry).path.offset(path_length[0] as isize) = '\0' as c_char;
 
-        if (fread(&(entry->compressed), sizeof(entry->compressed), 1, stream) != 1) {
+        if fread((*entry).compressed.as_mut_ptr() as *mut c_void, mem::size_of::<c_uint>(), 1, stream) != 1 {
             break;
         }
 
-        if (fread(&(entry->uncompressedSize), sizeof(entry->uncompressedSize), 1, stream) != 1) {
+        if fread((*entry).uncompressed_size.as_mut_ptr() as *mut c_void, mem::size_of::<c_int>(), 1, stream) != 1 {
             break;
         }
 
-        if (fread(&(entry->dataSize), sizeof(entry->dataSize), 1, stream) != 1) {
+        if fread((*entry).data_size.as_mut_ptr() as *mut c_void, mem::size_of::<c_int>(), 1, stream) != 1 {
             break;
         }
 
-        if (fread(&(entry->dataOffset), sizeof(entry->dataOffset), 1, stream) != 1) {
+        if fread((*entry).data_offset.as_mut_ptr() as *mut c_void, mem::size_of::<c_int>(), 1, stream) != 1 {
             break;
         }
     }
 
-    if (entryIndex < dbase->entriesLength) {
+    if entry_index < (*dbase).entries_length[0] {
         // We haven't reached the end, which means there was an error while
         // reading entries.
-        goto err;
+        close_on_error(dbase, stream);
+        return null()
     }
 
-    dbase->path = compat_strdup(filePath);
-    dbase->dataOffset = fileSize - dbaseDataSize;
+    (*dbase).path = rust_compat_strdup(file_path);
+    (*dbase).data_offset = file_size as c_int - dbase_data_size[0] as c_int;
 
     fclose(stream);
 
-    return dbase;
-
-    err:
-
-        dbaseClose(dbase);
-
-    fclose(stream);
-
-    return nullptr;
+    dbase
 }
-*/
-
-/*
-DBase* dbaseOpen(const char* filePath)
-{
-}
- */
