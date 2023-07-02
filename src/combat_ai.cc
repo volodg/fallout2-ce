@@ -23,7 +23,6 @@
 #include "message.h"
 #include "object.h"
 #include "party_member.h"
-#include "platform_compat.h"
 #include "proto.h"
 #include "proto_instance.h"
 #include "random.h"
@@ -33,6 +32,9 @@
 #include "stat.h"
 #include "text_object.h"
 #include "tile.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

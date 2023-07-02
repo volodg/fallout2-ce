@@ -1,6 +1,6 @@
 #include "mouse_manager.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "datafile.h"
 #include "db.h"
@@ -8,8 +8,10 @@
 #include "input.h"
 #include "memory_manager.h"
 #include "mouse.h"
-#include "platform_compat.h"
 #include "svga.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

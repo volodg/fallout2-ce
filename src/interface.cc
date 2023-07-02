@@ -1,7 +1,7 @@
 #include "interface.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "animation.h"
 #include "art.h"
@@ -21,7 +21,6 @@
 #include "memory.h"
 #include "mouse.h"
 #include "object.h"
-#include "platform_compat.h"
 #include "proto.h"
 #include "proto_instance.h"
 #include "stat.h"
@@ -29,6 +28,9 @@
 #include "text_font.h"
 #include "tile.h"
 #include "window_manager.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

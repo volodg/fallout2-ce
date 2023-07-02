@@ -1,8 +1,8 @@
 #include "window.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "color.h"
 #include "datafile.h"
@@ -16,11 +16,13 @@
 #include "mouse.h"
 #include "mouse_manager.h"
 #include "movie.h"
-#include "platform_compat.h"
 #include "svga.h"
 #include "text_font.h"
 #include "widget.h"
 #include "window_manager.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

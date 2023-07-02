@@ -1,20 +1,22 @@
 #include "message.h"
 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <array>
 #include <unordered_map>
 
 #include "debug.h"
 #include "memory.h"
-#include "platform_compat.h"
 #include "proto_types.h"
 #include "random.h"
 #include "settings.h"
 #include "sfall_config.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

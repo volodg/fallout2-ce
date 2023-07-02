@@ -16,11 +16,13 @@
 #include "kb.h"
 #include "message.h"
 #include "mouse.h"
-#include "platform_compat.h"
 #include "svga.h"
 #include "text_font.h"
 #include "window_manager.h"
 #include "word_wrap.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

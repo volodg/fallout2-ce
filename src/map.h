@@ -7,6 +7,8 @@
 #include "interpreter.h"
 #include "map_defs.h"
 #include "message.h"
+
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {

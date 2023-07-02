@@ -6,9 +6,11 @@
 
 #include "debug.h"
 #include "memory_manager.h"
-#include "platform_compat.h"
 #include "sound.h"
 #include "sound_decoder.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

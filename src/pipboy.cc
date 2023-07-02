@@ -1,8 +1,8 @@
 #include "pipboy.h"
 
-#include <ctype.h>
-#include <stdio.h>
-#include <string.h>
+#include <cctype>
+#include <cstdio>
+#include <cstring>
 
 #include "art.h"
 #include "automap.h"
@@ -26,7 +26,6 @@
 #include "mouse.h"
 #include "object.h"
 #include "party_member.h"
-#include "platform_compat.h"
 #include "queue.h"
 #include "random.h"
 #include "scripts.h"
@@ -37,6 +36,9 @@
 #include "window_manager.h"
 #include "word_wrap.h"
 #include "worldmap.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

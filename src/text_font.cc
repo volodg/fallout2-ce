@@ -1,11 +1,13 @@
 #include "text_font.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "color.h"
 #include "db.h"
 #include "memory.h"
+
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {

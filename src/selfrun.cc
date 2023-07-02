@@ -5,10 +5,12 @@
 #include "input.h"
 #include "kb.h"
 #include "mouse.h"
-#include "platform_compat.h"
 #include "settings.h"
 #include "svga.h"
 #include "vcr.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

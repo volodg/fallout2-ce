@@ -7,8 +7,10 @@
 #include <SDL.h>
 
 #include "memory.h"
-#include "platform_compat.h"
 #include "window_manager_private.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

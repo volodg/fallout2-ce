@@ -1,7 +1,7 @@
 #include "game_movie.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "color.h"
 #include "cycle.h"
@@ -14,12 +14,14 @@
 #include "movie.h"
 #include "movie_effect.h"
 #include "palette.h"
-#include "platform_compat.h"
 #include "settings.h"
 #include "svga.h"
 #include "text_font.h"
 #include "touch.h"
 #include "window_manager.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

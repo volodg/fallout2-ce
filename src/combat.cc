@@ -28,7 +28,6 @@
 #include "object.h"
 #include "party_member.h"
 #include "perk.h"
-#include "platform_compat.h"
 #include "proto.h"
 #include "queue.h"
 #include "random.h"
@@ -43,6 +42,9 @@
 #include "tile.h"
 #include "trait.h"
 #include "window_manager.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

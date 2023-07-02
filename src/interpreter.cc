@@ -14,8 +14,10 @@
 #include "input.h"
 #include "interpreter_lib.h"
 #include "memory_manager.h"
-#include "platform_compat.h"
 #include "sfall_global_scripts.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

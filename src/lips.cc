@@ -9,8 +9,10 @@
 #include "game_sound.h"
 #include "input.h"
 #include "memory.h"
-#include "platform_compat.h"
 #include "sound.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

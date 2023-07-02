@@ -456,10 +456,10 @@ pub unsafe extern "C" fn rust_compat_strdup(string: *const c_char) -> *const c_c
 #[no_mangle]
 pub unsafe extern "C" fn rust_get_file_size(stream: *mut FILE) -> c_long
 {
-    let originalOffset = ftell(stream);
+    let original_offset = ftell(stream);
     fseek(stream, 0, SEEK_END);
     let filesize = ftell(stream);
-    fseek(stream, originalOffset, SEEK_SET);
+    fseek(stream, original_offset, SEEK_SET);
     filesize
 }
 

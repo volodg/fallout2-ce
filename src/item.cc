@@ -22,7 +22,6 @@
 #include "object.h"
 #include "party_member.h"
 #include "perk.h"
-#include "platform_compat.h"
 #include "proto.h"
 #include "proto_instance.h"
 #include "queue.h"
@@ -32,6 +31,9 @@
 #include "stat.h"
 #include "tile.h"
 #include "trait.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

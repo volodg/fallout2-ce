@@ -12,13 +12,15 @@
 #include "input.h"
 #include "memory_manager.h"
 #include "movie_lib.h"
-#include "platform_compat.h"
 #include "pointer_registry.h"
 #include "sound.h"
 #include "svga.h"
 #include "text_font.h"
 #include "window.h"
 #include "window_manager.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

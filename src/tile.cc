@@ -13,8 +13,10 @@
 #include "light.h"
 #include "map.h"
 #include "object.h"
-#include "platform_compat.h"
 #include "settings.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

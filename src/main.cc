@@ -25,7 +25,6 @@
 #include "mouse.h"
 #include "object.h"
 #include "palette.h"
-#include "platform_compat.h"
 #include "preferences.h"
 #include "proto.h"
 #include "random.h"
@@ -40,6 +39,9 @@
 #include "window_manager_private.h"
 #include "word_wrap.h"
 #include "worldmap.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

@@ -37,7 +37,6 @@
 #include "party_member.h"
 #include "perk.h"
 #include "pipboy.h"
-#include "platform_compat.h"
 #include "preferences.h"
 #include "proto.h"
 #include "queue.h"
@@ -58,6 +57,7 @@
 #include "worldmap.h"
 
 // Migrated
+#include "platform_compat.h"
 #include "version.h"
 
 extern "C"

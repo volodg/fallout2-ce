@@ -4,8 +4,10 @@
 #include "db.h"
 #include "message.h"
 #include "obj_types.h"
-#include "platform_compat.h"
 #include "proto_types.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

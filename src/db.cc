@@ -1,11 +1,13 @@
 #include "db.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cstdlib>
+#include <cstring>
 
-#include "platform_compat.h"
 #include "xfile.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

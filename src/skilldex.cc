@@ -1,7 +1,7 @@
 #include "skilldex.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "art.h"
 #include "color.h"
@@ -18,11 +18,13 @@
 #include "memory.h"
 #include "message.h"
 #include "object.h"
-#include "platform_compat.h"
 #include "skill.h"
 #include "svga.h"
 #include "text_font.h"
 #include "window_manager.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

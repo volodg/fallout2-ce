@@ -1,8 +1,9 @@
 #include "dictionary.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {

@@ -1,15 +1,17 @@
 #include "sound_effects_list.h"
 
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <climits>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "db.h"
 #include "debug.h"
 #include "memory.h"
-#include "platform_compat.h"
 #include "sound_decoder.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

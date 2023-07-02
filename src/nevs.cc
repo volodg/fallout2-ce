@@ -1,11 +1,13 @@
 #include "nevs.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 #include "debug.h"
 #include "interpreter_lib.h"
 #include "memory_manager.h"
+
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {

@@ -1,12 +1,14 @@
 #include "random.h"
 
-#include <limits.h>
-#include <stdlib.h>
+#include <climits>
+#include <cstdlib>
 
 #include "debug.h"
-#include "platform_compat.h"
 #include "scripts.h"
 #include "sfall_config.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

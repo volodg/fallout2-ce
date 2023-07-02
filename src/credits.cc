@@ -15,11 +15,13 @@
 #include "message.h"
 #include "mouse.h"
 #include "palette.h"
-#include "platform_compat.h"
 #include "sound.h"
 #include "svga.h"
 #include "text_font.h"
 #include "window_manager.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 
