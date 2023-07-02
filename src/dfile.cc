@@ -42,8 +42,6 @@ namespace fallout {
 // Specifies that [DFile] was opened in text mode.
 #define DFILE_TEXT (0x08)
 
-static int dfileReadCharInternal(DFile* stream);
-
 // Reads .DAT file contents.
 //
 // 0x4E4F58
@@ -266,7 +264,7 @@ int dfileReadChar(DFile* stream)
         return stream->ungotten;
     }
 
-    int ch = dfileReadCharInternal(stream);
+    int ch = rust_dfile_read_char_internal(stream);
     if (ch == -1) {
         stream->flags |= DFILE_EOF;
     }
@@ -301,7 +299,7 @@ char* dfileReadString(char* string, int size, DFile* stream)
     // Read up to size - 1 characters one by one saving space for the null
     // terminator.
     for (int index = 0; index < size - 1; index++) {
-        int ch = dfileReadCharInternal(stream);
+        int ch = rust_dfile_read_char_internal(stream);
         if (ch == -1) {
             break;
         }
@@ -462,7 +460,7 @@ int dfileSeek(DFile* stream, long offset, int origin)
 
             // Consume characters one by one until we reach specified offset.
             while (offsetFromBeginning > stream->position) {
-                if (dfileReadCharInternal(stream) == -1) {
+                if (rust_dfile_read_char_internal(stream) == -1) {
                     return 1;
                 }
             }
@@ -539,12 +537,6 @@ int dfileEof(DFile* stream)
     assert(stream); // "stream", "dfile.c", 685
 
     return stream->flags & DFILE_EOF;
-}
-
-// 0x4E5F9C
-static int dfileReadCharInternal(DFile* stream)
-{
-    return rust_dfile_read_char_internal(stream);
 }
 
 } // namespace fallout
