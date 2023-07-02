@@ -15,7 +15,8 @@
 extern "C" {
     int rust_dbase_find_entry_my_file_path(const void* a1, const void* a2);
     int rust_dfile_close(fallout::DFile* stream);
-    // rust_dfile_close
+    fallout::DFile* rust_dfile_open_internal(fallout::DBase* dbase, const char* filePath, const char* mode, fallout::DFile* dfile);
+    // rust_dfile_open_internal
 }
 
 namespace fallout {
@@ -575,110 +576,9 @@ int dfileEof(DFile* stream)
 }
 
 // 0x4E5D9C
-// ????
 static DFile* dfileOpenInternal(DBase* dbase, const char* filePath, const char* mode, DFile* dfile)
 {
-    DBaseEntry* entry = (DBaseEntry*)bsearch(filePath, dbase->entries, dbase->entriesLength, sizeof(*dbase->entries), rust_dbase_find_entry_my_file_path);
-    if (entry == nullptr) {
-        goto err;
-    }
-
-    if (mode[0] != 'r') {
-        goto err;
-    }
-
-    if (dfile == nullptr) {
-        dfile = (DFile*)malloc(sizeof(*dfile));
-        if (dfile == nullptr) {
-            return nullptr;
-        }
-
-        memset(dfile, 0, sizeof(*dfile));
-        dfile->dbase = dbase;
-        dfile->next = dbase->dfileHead;
-        dbase->dfileHead = dfile;
-    } else {
-        if (dbase != dfile->dbase) {
-            goto err;
-        }
-
-        if (dfile->stream != nullptr) {
-            fclose(dfile->stream);
-            dfile->stream = nullptr;
-        }
-
-        dfile->compressedBytesRead = 0;
-        dfile->position = 0;
-        dfile->flags = 0;
-    }
-
-    dfile->entry = entry;
-
-    // Open stream to .DAT file.
-    dfile->stream = compat_fopen(dbase->path, "rb");
-    if (dfile->stream == nullptr) {
-        goto err;
-    }
-
-    // Relocate stream to the beginning of data for specified entry.
-    if (fseek(dfile->stream, dbase->dataOffset + entry->dataOffset, SEEK_SET) != 0) {
-        goto err;
-    }
-
-    if (entry->compressed == 1) {
-        // Entry is compressed, setup decompression stream and decompression
-        // buffer. This step is not needed when previous instance of dfile is
-        // passed via parameter, which might already have stream and
-        // buffer allocated.
-        if (dfile->decompressionStream == nullptr) {
-            dfile->decompressionStream = (z_streamp)malloc(sizeof(*dfile->decompressionStream));
-            if (dfile->decompressionStream == nullptr) {
-                goto err;
-            }
-
-            dfile->decompressionBuffer = (unsigned char*)malloc(DFILE_DECOMPRESSION_BUFFER_SIZE);
-            if (dfile->decompressionBuffer == nullptr) {
-                goto err;
-            }
-        }
-
-        dfile->decompressionStream->zalloc = Z_NULL;
-        dfile->decompressionStream->zfree = Z_NULL;
-        dfile->decompressionStream->opaque = Z_NULL;
-        dfile->decompressionStream->next_in = dfile->decompressionBuffer;
-        dfile->decompressionStream->avail_in = 0;
-
-        if (inflateInit(dfile->decompressionStream) != Z_OK) {
-            goto err;
-        }
-    } else {
-        // Entry is not compressed, there is no need to keep decompression
-        // stream and decompression buffer (in case [dfile] was passed via
-        // parameter).
-        if (dfile->decompressionStream != nullptr) {
-            free(dfile->decompressionStream);
-            dfile->decompressionStream = nullptr;
-        }
-
-        if (dfile->decompressionBuffer != nullptr) {
-            free(dfile->decompressionBuffer);
-            dfile->decompressionBuffer = nullptr;
-        }
-    }
-
-    if (mode[1] == 't') {
-        dfile->flags |= DFILE_TEXT;
-    }
-
-    return dfile;
-
-err:
-
-    if (dfile != nullptr) {
-        rust_dfile_close(dfile);
-    }
-
-    return nullptr;
+    return rust_dfile_open_internal(dbase, filePath, mode, dfile);
 }
 
 // 0x4E5F9C

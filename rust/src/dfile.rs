@@ -1,12 +1,15 @@
-use crate::platform_compat::rust_compat_stricmp;
-use libc::{c_char, c_int, c_long, c_uchar, c_uint, fclose, FILE, free, memset};
-use std::ffi::c_void;
+use crate::platform_compat::{rust_compat_fopen, rust_compat_stricmp};
+use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, FILE, free, fseek, malloc, memset, SEEK_SET, size_t};
+use std::ffi::{c_void, CString};
 use std::mem;
-use std::ptr::null_mut;
-use libz_sys::{inflateEnd, Z_OK, z_streamp};
+use std::ptr::{null, null_mut};
+use libz_sys::{alloc_func, free_func, inflateEnd, inflateInit_, voidpf, Z_OK, z_stream, z_streamp};
+
+const DFILE_DECOMPRESSION_BUFFER_SIZE: u32 = 0x400;
+const DFILE_TEXT: c_int = 0x08;
 
 #[repr(C)]
-struct DBaseEntry {
+pub struct DBaseEntry {
     path: *const c_char,
     compressed: c_uint,
     uncompressed_size: c_int,
@@ -16,7 +19,7 @@ struct DBaseEntry {
 
 // A representation of .DAT file.
 #[repr(C)]
-struct DBase {
+pub struct DBase {
     // The path of .DAT file that this structure represents.
     path: *mut c_char,
 
@@ -163,118 +166,119 @@ pub unsafe extern "C" fn rust_dfile_close(
     rc
 }
 
-/*
 #[no_mangle]
-pub unsafe extern "C" fn rust_dfileOpenInternal(
-    dbase: *const DBase, file_path: *const c_char, mode: *const c_char, dfile: *const DFile
+pub unsafe extern "C" fn rust_dfile_open_internal(
+    dbase: *mut DBase, file_path: *const c_char, mode: *const c_char, mut dfile: *mut DFile
 ) -> *const DFile {
-    let entry = bsearch(filePath, dbase->entries, dbase->entriesLength, sizeof(*dbase->entries), rust_dbase_find_entry_my_file_path) as *const DBaseEntry;
+    let entry = bsearch(file_path as *const c_void, (*dbase).entries as *const c_void, (*dbase).entries_length as size_t, mem::size_of::<DBaseEntry>(), Some(rust_dbase_find_entry_my_file_path)) as *mut DBaseEntry;
 
-    fn cleanup(dfile: *const DFile) {
-        if dfile != null() {
-            dfileClose(dfile);
+    unsafe fn cleanup(dfile: *mut DFile) {
+        if dfile != null_mut() {
+            rust_dfile_close(dfile);
         }
     }
 
-    if entry == nullptr {
-        goto err;
+    if entry == null_mut() {
+        cleanup(dfile);
+        return null()
     }
 
-    if (mode[0] != 'r') {
-        goto err;
+    if *mode != 'r' as c_char {
+        cleanup(dfile);
+        return null()
     }
 
-    if (dfile == nullptr) {
-        dfile = (DFile*)malloc(sizeof(*dfile));
-        if (dfile == nullptr) {
-            return nullptr;
+    if dfile == null_mut() {
+        dfile = malloc(mem::size_of::<DFile>()) as *mut DFile;
+        if dfile == null_mut() {
+            return null();
         }
 
-        memset(dfile, 0, sizeof(*dfile));
-        dfile->dbase = dbase;
-        dfile->next = dbase->dfileHead;
-        dbase->dfileHead = dfile;
+        memset(dfile as *mut c_void, 0, mem::size_of::<DFile>());
+        (*dfile).dbase = dbase;
+        (*dfile).next = (*dbase).dfile_head;
+        (*dbase).dfile_head = dfile;
     } else {
-        if (dbase != dfile->dbase) {
-            goto err;
+        if dbase != (*dfile).dbase {
+            cleanup(dfile);
+            return null()
         }
 
-        if (dfile->stream != nullptr) {
-            fclose(dfile->stream);
-            dfile->stream = nullptr;
+        if (*dfile).stream != null_mut() {
+            fclose((*dfile).stream);
+            (*dfile).stream = null_mut();
         }
 
-        dfile->compressedBytesRead = 0;
-        dfile->position = 0;
-        dfile->flags = 0;
+        (*dfile).compressed_bytes_read = 0;
+        (*dfile).position = 0;
+        (*dfile).flags = 0;
     }
 
-    dfile->entry = entry;
+    (*dfile).entry = entry;
 
     // Open stream to .DAT file.
-    dfile->stream = compat_fopen(dbase->path, "rb");
-    if (dfile->stream == nullptr) {
-        goto err;
+    let rb = CString::new("rb").expect("valid string");
+    (*dfile).stream = rust_compat_fopen((*dbase).path, rb.as_ptr());
+    if (*dfile).stream == null_mut() {
+        cleanup(dfile);
+        return null()
     }
 
     // Relocate stream to the beginning of data for specified entry.
-    if (fseek(dfile->stream, dbase->dataOffset + entry->dataOffset, SEEK_SET) != 0) {
-        goto err;
+    if fseek((*dfile).stream, ((*dbase).data_offset + (*entry).data_offset) as c_long, SEEK_SET) != 0 {
+        cleanup(dfile);
+        return null()
     }
 
-    if (entry->compressed == 1) {
+    if (*entry).compressed == 1 {
         // Entry is compressed, setup decompression stream and decompression
         // buffer. This step is not needed when previous instance of dfile is
         // passed via parameter, which might already have stream and
         // buffer allocated.
-        if (dfile->decompressionStream == nullptr) {
-            dfile->decompressionStream = (z_streamp)malloc(sizeof(*dfile->decompressionStream));
-            if (dfile->decompressionStream == nullptr) {
-                goto err;
+        if (*dfile).decompression_stream == null_mut() {
+            (*dfile).decompression_stream = malloc(mem::size_of::<z_stream>()) as z_streamp;
+            if (*dfile).decompression_stream == null_mut() {
+                cleanup(dfile);
+                return null()
             }
 
-            dfile->decompressionBuffer = (unsigned char*)malloc(DFILE_DECOMPRESSION_BUFFER_SIZE);
-            if (dfile->decompressionBuffer == nullptr) {
-                goto err;
+            (*dfile).decompression_buffer = malloc(DFILE_DECOMPRESSION_BUFFER_SIZE as size_t) as *mut c_uchar;
+            if (*dfile).decompression_buffer == null_mut() {
+                cleanup(dfile);
+                return null()
             }
         }
 
-        dfile->decompressionStream->zalloc = Z_NULL;
-        dfile->decompressionStream->zfree = Z_NULL;
-        dfile->decompressionStream->opaque = Z_NULL;
-        dfile->decompressionStream->next_in = dfile->decompressionBuffer;
-        dfile->decompressionStream->avail_in = 0;
+        (*(*dfile).decompression_stream).zalloc = mem::transmute::<*const c_void, alloc_func>(null());
+        (*(*dfile).decompression_stream).zfree = mem::transmute::<*const c_void, free_func>(null());
+        (*(*dfile).decompression_stream).opaque = mem::transmute::<*const c_void, voidpf>(null());
+        (*(*dfile).decompression_stream).next_in = (*dfile).decompression_buffer;
+        (*(*dfile).decompression_stream).avail_in = 0;
 
-        if (inflateInit(dfile->decompressionStream) != Z_OK) {
-            goto err;
+        // Used ZLIB_VERSION
+        let version = CString::new("1.2.11").expect("valid string");
+        if inflateInit_((*dfile).decompression_stream, version.as_ptr(), mem::size_of::<z_stream>() as c_int) != Z_OK {
+            cleanup(dfile);
+            return null()
         }
     } else {
         // Entry is not compressed, there is no need to keep decompression
         // stream and decompression buffer (in case [dfile] was passed via
         // parameter).
-        if (dfile->decompressionStream != nullptr) {
-            free(dfile->decompressionStream);
-            dfile->decompressionStream = nullptr;
+        if (*dfile).decompression_stream != null_mut() {
+            free((*dfile).decompression_stream as *mut c_void);
+            (*dfile).decompression_stream = null_mut();
         }
 
-        if (dfile->decompressionBuffer != nullptr) {
-            free(dfile->decompressionBuffer);
-            dfile->decompressionBuffer = nullptr;
+        if (*dfile).decompression_buffer != null_mut() {
+            free((*dfile).decompression_buffer as *mut c_void);
+            (*dfile).decompression_buffer = null_mut();
         }
     }
 
-    if (mode[1] == 't') {
-        dfile->flags |= DFILE_TEXT;
+    if *mode.offset(1) == 't' as c_char {
+        (*dfile).flags |= DFILE_TEXT;
     }
 
-    return dfile;
-
-    err:
-
-    if dfile != nullptr {
-        dfileClose(dfile);
-    }
-
-    null()
+    dfile
 }
-*/
