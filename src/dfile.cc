@@ -51,8 +51,6 @@ namespace fallout {
 bool callback(FILE* stream, DBaseEntry* entry, int pathLength) {
     // Migrated until HERE !!!
 
-    entry->path[pathLength] = '\0';
-
     if (fread(&(entry->compressed), sizeof(entry->compressed), 1, stream) != 1) {
         return false;
     }
