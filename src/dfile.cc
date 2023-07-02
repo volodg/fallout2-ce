@@ -16,7 +16,8 @@ extern "C" {
     bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
     int rust_dfile_read_char_internal(fallout::DFile* stream);
     bool rust_dbase_close(fallout::DBase* dbase);
-    // rust_dfile_unget_compressed
+    fallout::DBase* rust_dbase_open(const char* filePath);
+    // rust_dbase_open
 }
 
 namespace fallout {
@@ -47,6 +48,7 @@ namespace fallout {
 // 0x4E4F58
 DBase* dbaseOpen(const char* filePath)
 {
+    // return rust_dbase_open(filePath);
     assert(filePath); // "filename", "dfile.c", 74
 
     FILE* stream = compat_fopen(filePath, "rb");
@@ -66,13 +68,17 @@ DBase* dbaseOpen(const char* filePath)
     // 32-bits ints.
     int fileSize = getFileSize(stream);
     if (fseek(stream, fileSize - sizeof(int) * 2, SEEK_SET) != 0) {
-        goto err;
+        dbaseClose(dbase);
+        fclose(stream);
+        return nullptr;
     }
 
     // Read the size of entries table.
     int entriesDataSize;
     if (fread(&entriesDataSize, sizeof(entriesDataSize), 1, stream) != 1) {
-        goto err;
+        dbaseClose(dbase);
+        fclose(stream);
+        return nullptr;
     }
 
     // Read the size of entire dbase content.
@@ -81,21 +87,29 @@ DBase* dbaseOpen(const char* filePath)
     // the beginning of the .DAT file.
     int dbaseDataSize;
     if (fread(&dbaseDataSize, sizeof(dbaseDataSize), 1, stream) != 1) {
-        goto err;
+        dbaseClose(dbase);
+        fclose(stream);
+        return nullptr;
     }
 
     // Reposition stream to the beginning of the entries table.
     if (fseek(stream, fileSize - entriesDataSize - sizeof(int) * 2, SEEK_SET) != 0) {
-        goto err;
+        dbaseClose(dbase);
+        fclose(stream);
+        return nullptr;
     }
 
     if (fread(&(dbase->entriesLength), sizeof(dbase->entriesLength), 1, stream) != 1) {
-        goto err;
+        dbaseClose(dbase);
+        fclose(stream);
+        return nullptr;
     }
 
     dbase->entries = (DBaseEntry*)malloc(sizeof(*dbase->entries) * dbase->entriesLength);
     if (dbase->entries == nullptr) {
-        goto err;
+        dbaseClose(dbase);
+        fclose(stream);
+        return nullptr;
     }
 
     memset(dbase->entries, 0, sizeof(*dbase->entries) * dbase->entriesLength);
@@ -141,7 +155,9 @@ DBase* dbaseOpen(const char* filePath)
     if (entryIndex < dbase->entriesLength) {
         // We haven't reached the end, which means there was an error while
         // reading entries.
-        goto err;
+        dbaseClose(dbase);
+        fclose(stream);
+        return nullptr;
     }
 
     dbase->path = compat_strdup(filePath);
@@ -150,14 +166,6 @@ DBase* dbaseOpen(const char* filePath)
     fclose(stream);
 
     return dbase;
-
-err:
-
-    dbaseClose(dbase);
-
-    fclose(stream);
-
-    return nullptr;
 }
 
 // Closes [dbase], all open file handles, frees all associated resources,
