@@ -544,17 +544,17 @@ pub unsafe extern "C" fn rust_dbase_open_part(
             break;
         }
 
+        (*entry).path = malloc(path_length[0] as size_t + 1) as *mut c_char;
+        if (*entry).path == null_mut() {
+            break;
+        }
+
         if !callback(stream, entry, path_length[0]) {
             *out_success = false;
             close_on_error(dbase, stream);
             return null()
         }
 
-    //     (*entry).path = malloc(path_length[0] as size_t + 1) as *mut c_char;
-    //     if (*entry).path == null_mut() {
-    //         break;
-    //     }
-    //
     //     if fread((*entry).path as *mut c_void, path_length[0] as size_t, 1, stream) != 1 {
     //         break;
     //     }

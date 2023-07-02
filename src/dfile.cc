@@ -51,11 +51,6 @@ namespace fallout {
 bool callback(FILE* stream, DBaseEntry* entry, int pathLength) {
     // Migrated until HERE !!!
 
-    entry->path = (char*)malloc(pathLength + 1);
-    if (entry->path == nullptr) {
-        return false;
-    }
-
     if (fread(entry->path, pathLength, 1, stream) != 1) {
         return false;
     }
