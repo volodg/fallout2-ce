@@ -66,15 +66,6 @@ DBase* dbaseOpen(const char* filePath)
 
     // Migrated until HERE !!!
 
-    dbase->entries = (DBaseEntry*)malloc(sizeof(*dbase->entries) * dbase->entriesLength);
-    if (dbase->entries == nullptr) {
-        dbaseClose(dbase);
-        fclose(stream);
-        return nullptr;
-    }
-
-    memset(dbase->entries, 0, sizeof(*dbase->entries) * dbase->entriesLength);
-
     // Read entries one by one, stopping on any error.
     int entryIndex;
     for (entryIndex = 0; entryIndex < dbase->entriesLength; entryIndex++) {

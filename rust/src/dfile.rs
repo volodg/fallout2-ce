@@ -524,14 +524,16 @@ pub unsafe extern "C" fn rust_dbase_open_part(
         return null()
     }
 
-    // (*dbase).entries = malloc(mem::size_of_val(&(*dbase).entries) * (*dbase).entries_length[0] as usize) as *mut DBaseEntry;
-    // if (*dbase).entries == null_mut() {
-    //     close_on_error(dbase, stream);
-    //     return null()
-    // }
-    //
-    // memset((*dbase).entries as *mut c_void, 0, mem::size_of_val(&(*dbase).entries) * (*dbase).entries_length[0] as usize);
-    //
+    let entries_allocation_size = mem::size_of_val(&*(*dbase).entries) * (*dbase).entries_length[0] as usize;
+    (*dbase).entries = malloc(entries_allocation_size) as *mut DBaseEntry;
+    if (*dbase).entries == null_mut() {
+        *out_success = false;
+        close_on_error(dbase, stream);
+        return null()
+    }
+
+    memset((*dbase).entries as *mut c_void, 0, entries_allocation_size);
+
     // // Read entries one by one, stopping on any error.
     // let mut entry_index = 0;
     // for i in 0..(*dbase).entries_length[0] {
