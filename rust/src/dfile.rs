@@ -447,7 +447,8 @@ pub unsafe extern "C" fn rust_dbase_open_pard(
     file_path: *const c_char,
     out_stream: *mut *const FILE,
     out_dbase: *mut *const DBase,
-    out_file_size: *mut c_int) -> *const DBase {
+    out_file_size: *mut c_int,
+    out_entries_data_size: *mut c_int) -> *const DBase {
 
     assert_ne!(file_path, null()); // "filename", "dfile.c", 74
 
@@ -485,13 +486,15 @@ pub unsafe extern "C" fn rust_dbase_open_pard(
         return null()
     }
 
-    // // Read the size of entries table.
-    // let mut entries_data_size = [0 as c_int; 1];
-    // if fread(entries_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&entries_data_size), 1, stream) != 1 {
-    //     close_on_error(dbase, stream);
-    //     return null()
-    // }
-    //
+    // Read the size of entries table.
+    let mut entries_data_size = [0 as c_int; 1];
+    if fread(entries_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&entries_data_size), 1, stream) != 1 {
+        close_on_error(dbase, stream);
+        return null()
+    }
+
+    *out_entries_data_size = entries_data_size[0];
+
     // // Read the size of entire dbase content.
     // //
     // // NOTE: It appears that this approach allows existence of arbitrary data in

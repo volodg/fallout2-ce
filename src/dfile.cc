@@ -16,7 +16,7 @@ extern "C" {
     bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
     int rust_dfile_read_char_internal(fallout::DFile* stream);
     bool rust_dbase_close(fallout::DBase* dbase);
-    fallout::DBase* rust_dbase_open_pard(const char* filePath, FILE** outStream, fallout::DBase** outDbase, int* fileSize);
+    fallout::DBase* rust_dbase_open_pard(const char* filePath, FILE** outStream, fallout::DBase** outDbase, int* fileSize, int* entriesDataSize);
     // rust_dbase_open
 }
 
@@ -51,7 +51,8 @@ DBase* dbaseOpen(const char* filePath)
     FILE* stream2 = nullptr;
     DBase* dbase2 = nullptr;
     int fileSize2 = 0;
-    rust_dbase_open_pard(filePath, &stream2, &dbase2, &fileSize2);
+    int entriesDataSize2 = 0;
+    rust_dbase_open_pard(filePath, &stream2, &dbase2, &fileSize2, &entriesDataSize2);
 
     FILE* stream = stream2;
     if (stream == nullptr) {
@@ -66,10 +67,8 @@ DBase* dbaseOpen(const char* filePath)
     int fileSize = fileSize2;
 
     // Read the size of entries table.
-    int entriesDataSize;
-    if (fread(&entriesDataSize, sizeof(entriesDataSize), 1, stream) != 1) {
-        dbaseClose(dbase);
-        fclose(stream);
+    int entriesDataSize = entriesDataSize2;
+    if (entriesDataSize == 0) {
         return nullptr;
     }
 
