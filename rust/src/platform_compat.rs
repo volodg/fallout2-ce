@@ -1,7 +1,7 @@
-use libc::{c_char, c_int, c_uint, c_long, c_ulong, lseek, strcpy, SEEK_CUR, fopen, FILE, fgets, remove, rename, access};
+use libc::{c_char, c_int, c_uint, c_long, c_ulong, lseek, strcpy, SEEK_CUR, fopen, FILE, fgets, remove, rename, access, ftell, fseek, SEEK_END, SEEK_SET};
 #[cfg(not(target_family = "windows"))]
 use libc::{closedir, opendir, readdir, strchr, strlen, strncpy};
-use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
+use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strdup, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
 #[cfg(not(target_family = "windows"))]
 use std::ffi::CString;
 #[cfg(not(target_family = "windows"))]
@@ -444,6 +444,23 @@ pub unsafe extern "C" fn rust_compat_access(path: *const c_char, mode: c_int) ->
     rust_compat_windows_path_to_native(native_path.as_mut_ptr());
     rust_compat_resolve_path(native_path.as_mut_ptr());
     access(native_path.as_ptr(), mode)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_compat_strdup(string: *const c_char) -> *const c_char {
+    SDL_strdup(string)
+}
+
+// It's a replacement for compat_filelength(fileno(stream)) on platforms without
+// fileno defined.
+#[no_mangle]
+pub unsafe extern "C" fn rust_get_file_size(stream: *mut FILE) -> c_long
+{
+    let originalOffset = ftell(stream);
+    fseek(stream, 0, SEEK_END);
+    let filesize = ftell(stream);
+    fseek(stream, originalOffset, SEEK_SET);
+    filesize
 }
 
 #[cfg(test)]

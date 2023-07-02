@@ -1,7 +1,5 @@
 #include "platform_compat.h"
 
-#include <cstring>
-
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -11,15 +9,11 @@
 #include <io.h>
 #include <stdio.h>
 #include <stdlib.h>
-#else
-#include <unistd.h>
 #endif
 
 #ifdef _WIN32
 #include <timeapi.h>
 #endif
-
-#include <SDL.h>
 
 extern "C" {
     int rust_compat_stricmp(const char* string1, const char* string2);
@@ -41,9 +35,10 @@ extern "C" {
     int rust_compat_remove(const char* path);
     int rust_compat_rename(const char* oldFileName, const char* newFileName);
     int rust_compat_access(const char* path, int mode);
+    char* rust_compat_strdup(const char* string);
+    long rust_get_file_size(FILE* stream);
 }
 
-// Migrate
 namespace fallout {
 
 int compat_stricmp(const char* string1, const char* string2)
@@ -143,18 +138,12 @@ int compat_access(const char* path, int mode)
 
 char* compat_strdup(const char* string)
 {
-    return SDL_strdup(string);
+    return rust_compat_strdup(string);
 }
 
-// It's a replacement for compat_filelength(fileno(stream)) on platforms without
-// fileno defined.
 long getFileSize(FILE* stream)
 {
-    long originalOffset = ftell(stream);
-    fseek(stream, 0, SEEK_END);
-    long filesize = ftell(stream);
-    fseek(stream, originalOffset, SEEK_SET);
-    return filesize;
+    return rust_get_file_size(stream);
 }
 
 } // namespace fallout
