@@ -443,13 +443,12 @@ pub unsafe extern "C" fn rust_dbase_close(dbase: *const DBase) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_dbase_open_pard(
+pub unsafe extern "C" fn rust_dbase_open_part(
     file_path: *const c_char,
     out_success: *mut bool,
     out_stream: *mut *const FILE,
     out_dbase: *mut *const DBase,
     out_file_size: *mut c_int,
-    out_entries_data_size: *mut c_int,
     out_dbase_data_size: *mut c_int) -> *const DBase {
 
     assert_ne!(file_path, null()); // "filename", "dfile.c", 74
@@ -499,8 +498,6 @@ pub unsafe extern "C" fn rust_dbase_open_pard(
         return null()
     }
 
-    *out_entries_data_size = entries_data_size[0];
-
     // Read the size of entire dbase content.
     //
     // NOTE: It appears that this approach allows existence of arbitrary data in
@@ -521,11 +518,12 @@ pub unsafe extern "C" fn rust_dbase_open_pard(
         return null()
     }
 
-    // if fread((*dbase).entries_length.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*dbase).entries_length), 1, stream) != 1 {
-    //     close_on_error(dbase, stream);
-    //     return null()
-    // }
-    //
+    if fread((*dbase).entries_length.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*dbase).entries_length), 1, stream) != 1 {
+        *out_success = false;
+        close_on_error(dbase, stream);
+        return null()
+    }
+
     // (*dbase).entries = malloc(mem::size_of_val(&(*dbase).entries) * (*dbase).entries_length[0] as usize) as *mut DBaseEntry;
     // if (*dbase).entries == null_mut() {
     //     close_on_error(dbase, stream);

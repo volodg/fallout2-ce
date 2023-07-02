@@ -16,7 +16,7 @@ extern "C" {
     bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
     int rust_dfile_read_char_internal(fallout::DFile* stream);
     bool rust_dbase_close(fallout::DBase* dbase);
-    fallout::DBase* rust_dbase_open_pard(const char* filePath, bool* success, FILE** outStream, fallout::DBase** outDbase, int* fileSize, int* entriesDataSize, int* dbaseDataSize);
+    fallout::DBase* rust_dbase_open_part(const char* filePath, bool* success, FILE** outStream, fallout::DBase** outDbase, int* fileSize, int* dbaseDataSize);
     // rust_dbase_open
 }
 
@@ -52,9 +52,8 @@ DBase* dbaseOpen(const char* filePath)
     FILE* stream2 = nullptr;
     DBase* dbase2 = nullptr;
     int fileSize2 = 0;
-    int entriesDataSize2 = 0;
     int dbaseDataSize2 = 0;
-    rust_dbase_open_pard(filePath, &success, &stream2, &dbase2, &fileSize2, &entriesDataSize2, &dbaseDataSize2);
+    rust_dbase_open_part(filePath, &success, &stream2, &dbase2, &fileSize2, &dbaseDataSize2);
 
     if (!success) {
         return nullptr;
@@ -63,16 +62,9 @@ DBase* dbaseOpen(const char* filePath)
     FILE* stream = stream2;
     DBase* dbase = dbase2;
     int fileSize = fileSize2;
-    int entriesDataSize = entriesDataSize2;
     int dbaseDataSize = dbaseDataSize2;
 
     // Migrated until HERE !!!
-
-    if (fread(&(dbase->entriesLength), sizeof(dbase->entriesLength), 1, stream) != 1) {
-        dbaseClose(dbase);
-        fclose(stream);
-        return nullptr;
-    }
 
     dbase->entries = (DBaseEntry*)malloc(sizeof(*dbase->entries) * dbase->entriesLength);
     if (dbase->entries == nullptr) {
