@@ -8,6 +8,7 @@ use std::ffi::CString;
 use std::ptr::null_mut;
 #[cfg(not(target_family = "windows"))]
 use std::time::Instant;
+use libz_sys::{gzFile, gzopen};
 
 #[cfg(not(target_family = "windows"))]
 const COMPAT_MAX_DRIVE: u8 = 3;
@@ -373,6 +374,15 @@ pub unsafe extern "C" fn rust_compat_fopen(path: *const c_char, mode: *const c_c
     rust_compat_windows_path_to_native(native_path.as_mut_ptr());
     rust_compat_resolve_path(native_path.as_mut_ptr());
     return fopen(native_path.as_ptr(), mode);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_compat_gzopen(path: *const c_char, mode: *const c_char) -> gzFile {
+    let mut native_path = [0 as c_char; COMPAT_MAX_PATH as usize];
+    strcpy(native_path.as_mut_ptr(), path);
+    rust_compat_windows_path_to_native(native_path.as_mut_ptr());
+    rust_compat_resolve_path(native_path.as_mut_ptr());
+    return gzopen(native_path.as_ptr(), mode);
 }
 
 #[cfg(test)]
