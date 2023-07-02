@@ -16,7 +16,7 @@ extern "C" {
     bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
     int rust_dfile_read_char_internal(fallout::DFile* stream);
     bool rust_dbase_close(fallout::DBase* dbase);
-    fallout::DBase* rust_dbase_open_part(const char* filePath, bool* success, FILE** outStream, fallout::DBase** outDbase, int* fileSize, int* dbaseDataSize);
+    fallout::DBase* rust_dbase_open_part(const char* filePath, bool* success, FILE** outStream, int* fileSize, int* dbaseDataSize);
     // rust_dbase_open
 }
 
@@ -50,17 +50,15 @@ DBase* dbaseOpen(const char* filePath)
 {
     bool success = true;
     FILE* stream2 = nullptr;
-    DBase* dbase2 = nullptr;
     int fileSize2 = 0;
     int dbaseDataSize2 = 0;
-    rust_dbase_open_part(filePath, &success, &stream2, &dbase2, &fileSize2, &dbaseDataSize2);
+    DBase* dbase = rust_dbase_open_part(filePath, &success, &stream2, &fileSize2, &dbaseDataSize2);
 
     if (!success) {
         return nullptr;
     }
 
     FILE* stream = stream2;
-    DBase* dbase = dbase2;
     int fileSize = fileSize2;
     int dbaseDataSize = dbaseDataSize2;
 

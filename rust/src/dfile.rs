@@ -171,7 +171,7 @@ pub unsafe extern "C" fn rust_dfile_close(
 #[no_mangle]
 // 0x4E5D9C
 pub unsafe extern "C" fn rust_dfile_open_internal(
-    dbase: *mut DBase, file_path: *const c_char, mode: *const c_char, mut dfile: *mut DFile
+    dbase: *mut DBase, file_path: *const c_char, mode: *const c_char, mut dfile: *mut DFile,
 ) -> *const DFile {
     let entry = bsearch(file_path as *const c_void, (*dbase).entries as *const c_void, (*dbase).entries_length[0] as size_t, mem::size_of::<DBaseEntry>(), Some(rust_dbase_find_entry_my_file_path)) as *mut DBaseEntry;
 
@@ -183,12 +183,12 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
 
     if entry == null_mut() {
         cleanup(dfile);
-        return null()
+        return null();
     }
 
     if *mode != 'r' as c_char {
         cleanup(dfile);
-        return null()
+        return null();
     }
 
     if dfile == null_mut() {
@@ -204,7 +204,7 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
     } else {
         if dbase != (*dfile).dbase {
             cleanup(dfile);
-            return null()
+            return null();
         }
 
         if (*dfile).stream != null_mut() {
@@ -224,13 +224,13 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
     (*dfile).stream = rust_compat_fopen((*dbase).path, rb.as_ptr());
     if (*dfile).stream == null_mut() {
         cleanup(dfile);
-        return null()
+        return null();
     }
 
     // Relocate stream to the beginning of data for specified entry.
     if fseek((*dfile).stream, ((*dbase).data_offset + (*entry).data_offset[0]) as c_long, SEEK_SET) != 0 {
         cleanup(dfile);
-        return null()
+        return null();
     }
 
     if (*entry).compressed[0] == 1 {
@@ -242,13 +242,13 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
             (*dfile).decompression_stream = malloc(mem::size_of::<z_stream>()) as z_streamp;
             if (*dfile).decompression_stream == null_mut() {
                 cleanup(dfile);
-                return null()
+                return null();
             }
 
             (*dfile).decompression_buffer = malloc(DFILE_DECOMPRESSION_BUFFER_SIZE as size_t) as *mut c_uchar;
             if (*dfile).decompression_buffer == null_mut() {
                 cleanup(dfile);
-                return null()
+                return null();
             }
         }
 
@@ -262,7 +262,7 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
         let version = CString::new("1.2.11").expect("valid string");
         if inflateInit_((*dfile).decompression_stream, version.as_ptr(), mem::size_of::<z_stream>() as c_int) != Z_OK {
             cleanup(dfile);
-            return null()
+            return null();
         }
     } else {
         // Entry is not compressed, there is no need to keep decompression
@@ -328,7 +328,7 @@ pub unsafe extern "C" fn rust_dfile_read_compressed(stream: *mut DFile, mut ptr:
             (*stream).compressed_bytes_read += bytes_to_read as c_int;
         }
         if inflate((*stream).decompression_stream, Z_NO_FLUSH) != Z_OK {
-            break
+            break;
         }
     }
 
@@ -447,10 +447,8 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     file_path: *const c_char,
     out_success: *mut bool,
     out_stream: *mut *const FILE,
-    out_dbase: *mut *const DBase,
     out_file_size: *mut c_int,
     out_dbase_data_size: *mut c_int) -> *const DBase {
-
     assert_ne!(file_path, null()); // "filename", "dfile.c", 74
 
     let rb = CString::new("rb").expect("valid string");
@@ -470,8 +468,6 @@ pub unsafe extern "C" fn rust_dbase_open_part(
         return null();
     }
 
-    *out_dbase = dbase;
-
     memset(dbase as *mut c_void, 0, mem::size_of_val(&*dbase));
 
     unsafe fn close_on_error(dbase: *mut DBase, stream: *mut FILE) {
@@ -487,7 +483,7 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     if fseek(stream, (file_size - mem::size_of::<c_int>() as c_int * 2) as c_long, SEEK_SET) != 0 {
         *out_success = false;
         close_on_error(dbase, stream);
-        return null()
+        return null();
     }
 
     // Read the size of entries table.
@@ -495,7 +491,7 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     if fread(entries_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&entries_data_size), 1, stream) != 1 {
         *out_success = false;
         close_on_error(dbase, stream);
-        return null()
+        return null();
     }
 
     // Read the size of entire dbase content.
@@ -506,7 +502,7 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     if fread(dbase_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&dbase_data_size), 1, stream) != 1 {
         *out_success = false;
         close_on_error(dbase, stream);
-        return null()
+        return null();
     }
 
     *out_dbase_data_size = dbase_data_size[0];
@@ -515,13 +511,13 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     if fseek(stream, (file_size - entries_data_size[0] as c_int - mem::size_of::<c_int>() as c_int * 2) as c_long, SEEK_SET) != 0 {
         *out_success = false;
         close_on_error(dbase, stream);
-        return null()
+        return null();
     }
 
     if fread((*dbase).entries_length.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*dbase).entries_length), 1, stream) != 1 {
         *out_success = false;
         close_on_error(dbase, stream);
-        return null()
+        return null();
     }
 
     let entries_allocation_size = mem::size_of_val(&*(*dbase).entries) * (*dbase).entries_length[0] as usize;
@@ -529,7 +525,7 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     if (*dbase).entries == null_mut() {
         *out_success = false;
         close_on_error(dbase, stream);
-        return null()
+        return null();
     }
 
     memset((*dbase).entries as *mut c_void, 0, entries_allocation_size);
@@ -579,15 +575,13 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     //     // We haven't reached the end, which means there was an error while
     //     // reading entries.
     //     close_on_error(dbase, stream);
-    //     return null()
+    //     return null();
     // }
     //
     // (*dbase).path = rust_compat_strdup(file_path);
     // (*dbase).data_offset = file_size as c_int - dbase_data_size[0] as c_int;
     //
     // fclose(stream);
-    //
-    // dbase
 
-    null()
+    dbase
 }
