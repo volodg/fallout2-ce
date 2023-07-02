@@ -374,7 +374,7 @@ pub unsafe extern "C" fn rust_compat_time_get_time() -> c_uint {
 pub unsafe extern "C" fn rust_compat_fopen(
     path: *const c_char,
     mode: *const c_char,
-) -> *const FILE {
+) -> *mut FILE {
     let mut native_path = [0 as c_char; COMPAT_MAX_PATH as usize];
     strcpy(native_path.as_mut_ptr(), path);
     rust_compat_windows_path_to_native(native_path.as_mut_ptr());
