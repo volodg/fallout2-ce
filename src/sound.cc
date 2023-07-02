@@ -13,9 +13,9 @@
 #include <SDL.h>
 
 #include "debug.h"
-#include "platform_compat.h"
 
 // Migrated
+#include "platform_compat.h"
 #include "audio_engine.h"
 
 namespace fallout {

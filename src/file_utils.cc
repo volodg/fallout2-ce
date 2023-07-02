@@ -8,6 +8,9 @@
 
 #include <vector>
 
+// TODO Migrate
+
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {

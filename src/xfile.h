@@ -1,11 +1,14 @@
 #ifndef XFILE_H
 #define XFILE_H
 
-#include <stdio.h>
-
+#include <cstdio>
 #include <zlib.h>
 
 #include "dfile.h"
+
+// TODO Migrate
+
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {

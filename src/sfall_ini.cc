@@ -4,6 +4,8 @@
 #include <cstring>
 
 #include "config.h"
+
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {

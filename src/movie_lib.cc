@@ -7,9 +7,10 @@
 #include <assert.h>
 #include <string.h>
 
-#include "platform_compat.h"
+// TODO Migrate
 
 // Migrated
+#include "platform_compat.h"
 #include "audio_engine.h"
 
 namespace fallout {

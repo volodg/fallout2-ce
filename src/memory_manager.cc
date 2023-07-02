@@ -5,8 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+// TODO Migrate
+
 namespace fallout {
 
+// TODO migrate
 typedef void(MemoryManagerPrintErrorProc)(const char* string);
 
 static void memoryManagerDefaultPrintErrorImpl(const char* string);

@@ -1,8 +1,11 @@
 #include "game_config.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
+// TODO Migrate
+
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {
