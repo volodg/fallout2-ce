@@ -445,10 +445,12 @@ pub unsafe extern "C" fn rust_dbase_close(dbase: *const DBase) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn rust_dbase_open_pard(
     file_path: *const c_char,
+    out_success: *mut bool,
     out_stream: *mut *const FILE,
     out_dbase: *mut *const DBase,
     out_file_size: *mut c_int,
-    out_entries_data_size: *mut c_int) -> *const DBase {
+    out_entries_data_size: *mut c_int,
+    out_dbase_data_size: *mut c_int) -> *const DBase {
 
     assert_ne!(file_path, null()); // "filename", "dfile.c", 74
 
@@ -456,6 +458,7 @@ pub unsafe extern "C" fn rust_dbase_open_pard(
     let str = rb.as_ptr();
     let stream = rust_compat_fopen(file_path, str);
     if stream == null_mut() {
+        *out_success = false;
         return null();
     }
 
@@ -463,6 +466,7 @@ pub unsafe extern "C" fn rust_dbase_open_pard(
 
     let dbase = malloc(mem::size_of::<DBase>()) as *mut DBase;
     if dbase == null_mut() {
+        *out_success = false;
         fclose(stream);
         return null();
     }
@@ -482,6 +486,7 @@ pub unsafe extern "C" fn rust_dbase_open_pard(
     *out_file_size = file_size;
 
     if fseek(stream, (file_size - mem::size_of::<c_int>() as c_int * 2) as c_long, SEEK_SET) != 0 {
+        *out_success = false;
         close_on_error(dbase, stream);
         return null()
     }
@@ -489,28 +494,33 @@ pub unsafe extern "C" fn rust_dbase_open_pard(
     // Read the size of entries table.
     let mut entries_data_size = [0 as c_int; 1];
     if fread(entries_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&entries_data_size), 1, stream) != 1 {
+        *out_success = false;
         close_on_error(dbase, stream);
         return null()
     }
 
     *out_entries_data_size = entries_data_size[0];
 
-    // // Read the size of entire dbase content.
-    // //
-    // // NOTE: It appears that this approach allows existence of arbitrary data in
-    // // the beginning of the .DAT file.
-    // let mut dbase_data_size = [0 as c_int; 1];
-    // if fread(dbase_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&dbase_data_size), 1, stream) != 1 {
-    //     close_on_error(dbase, stream);
-    //     return null()
-    // }
+    // Read the size of entire dbase content.
     //
-    // // Reposition stream to the beginning of the entries table.
-    // if fseek(stream, file_size - entries_data_size[0] as i64 - mem::size_of::<c_int>() as i64 * 2, SEEK_SET) != 0 {
-    //     close_on_error(dbase, stream);
-    //     return null()
-    // }
-    //
+    // NOTE: It appears that this approach allows existence of arbitrary data in
+    // the beginning of the .DAT file.
+    let mut dbase_data_size = [0 as c_int; 1];
+    if fread(dbase_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&dbase_data_size), 1, stream) != 1 {
+        *out_success = false;
+        close_on_error(dbase, stream);
+        return null()
+    }
+
+    *out_dbase_data_size = dbase_data_size[0];
+
+    // Reposition stream to the beginning of the entries table.
+    if fseek(stream, (file_size - entries_data_size[0] as c_int - mem::size_of::<c_int>() as c_int * 2) as c_long, SEEK_SET) != 0 {
+        *out_success = false;
+        close_on_error(dbase, stream);
+        return null()
+    }
+
     // if fread((*dbase).entries_length.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*dbase).entries_length), 1, stream) != 1 {
     //     close_on_error(dbase, stream);
     //     return null()

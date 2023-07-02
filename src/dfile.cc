@@ -16,7 +16,7 @@ extern "C" {
     bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
     int rust_dfile_read_char_internal(fallout::DFile* stream);
     bool rust_dbase_close(fallout::DBase* dbase);
-    fallout::DBase* rust_dbase_open_pard(const char* filePath, FILE** outStream, fallout::DBase** outDbase, int* fileSize, int* entriesDataSize);
+    fallout::DBase* rust_dbase_open_pard(const char* filePath, bool* success, FILE** outStream, fallout::DBase** outDbase, int* fileSize, int* entriesDataSize, int* dbaseDataSize);
     // rust_dbase_open
 }
 
@@ -48,47 +48,25 @@ namespace fallout {
 // 0x4E4F58
 DBase* dbaseOpen(const char* filePath)
 {
+    bool success = true;
     FILE* stream2 = nullptr;
     DBase* dbase2 = nullptr;
     int fileSize2 = 0;
     int entriesDataSize2 = 0;
-    rust_dbase_open_pard(filePath, &stream2, &dbase2, &fileSize2, &entriesDataSize2);
+    int dbaseDataSize2 = 0;
+    rust_dbase_open_pard(filePath, &success, &stream2, &dbase2, &fileSize2, &entriesDataSize2, &dbaseDataSize2);
+
+    if (!success) {
+        return nullptr;
+    }
 
     FILE* stream = stream2;
-    if (stream == nullptr) {
-        return nullptr;
-    }
-
     DBase* dbase = dbase2;
-    if (dbase == nullptr) {
-        return nullptr;
-    }
-
     int fileSize = fileSize2;
-
-    // Read the size of entries table.
     int entriesDataSize = entriesDataSize2;
-    if (entriesDataSize == 0) {
-        return nullptr;
-    }
+    int dbaseDataSize = dbaseDataSize2;
 
-    // Read the size of entire dbase content.
-    //
-    // NOTE: It appears that this approach allows existence of arbitrary data in
-    // the beginning of the .DAT file.
-    int dbaseDataSize;
-    if (fread(&dbaseDataSize, sizeof(dbaseDataSize), 1, stream) != 1) {
-        dbaseClose(dbase);
-        fclose(stream);
-        return nullptr;
-    }
-
-    // Reposition stream to the beginning of the entries table.
-    if (fseek(stream, fileSize - entriesDataSize - sizeof(int) * 2, SEEK_SET) != 0) {
-        dbaseClose(dbase);
-        fclose(stream);
-        return nullptr;
-    }
+    // Migrated until HERE !!!
 
     if (fread(&(dbase->entriesLength), sizeof(dbase->entriesLength), 1, stream) != 1) {
         dbaseClose(dbase);
