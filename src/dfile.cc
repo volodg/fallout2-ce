@@ -64,11 +64,6 @@ DBase* dbaseOpen(const char* filePath)
     }
 
     int fileSize = fileSize2;
-    if (fseek(stream, fileSize - sizeof(int) * 2, SEEK_SET) != 0) {
-        dbaseClose(dbase);
-        fclose(stream);
-        return nullptr;
-    }
 
     // Read the size of entries table.
     int entriesDataSize;

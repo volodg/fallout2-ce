@@ -470,21 +470,21 @@ pub unsafe extern "C" fn rust_dbase_open_pard(
 
     memset(dbase as *mut c_void, 0, mem::size_of_val(&*dbase));
 
-    // unsafe fn close_on_error(dbase: *mut DBase, stream: *mut FILE) {
-    //     rust_dbase_close(dbase);
-    //     fclose(stream);
-    // }
+    unsafe fn close_on_error(dbase: *mut DBase, stream: *mut FILE) {
+        rust_dbase_close(dbase);
+        fclose(stream);
+    }
 
     // Get file size, and reposition stream to read footer, which contains two
     // 32-bits ints.
     let file_size = rust_get_file_size(stream) as c_int;
     *out_file_size = file_size;
 
-    // if fseek(stream, file_size - mem::size_of::<c_int>() as i64 * 2, SEEK_SET) != 0 {
-    //     close_on_error(dbase, stream);
-    //     return null()
-    // }
-    //
+    if fseek(stream, (file_size - mem::size_of::<c_int>() as c_int * 2) as c_long, SEEK_SET) != 0 {
+        close_on_error(dbase, stream);
+        return null()
+    }
+
     // // Read the size of entries table.
     // let mut entries_data_size = [0 as c_int; 1];
     // if fread(entries_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&entries_data_size), 1, stream) != 1 {
