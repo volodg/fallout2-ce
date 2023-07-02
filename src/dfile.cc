@@ -13,8 +13,9 @@
 #include "platform_compat.h"
 
 extern "C" {
-    static int rust_dbase_find_entry_my_file_path(const void* a1, const void* a2);
-    // rust_dbase_find_entry_my_file_path
+    int rust_dbase_find_entry_my_file_path(const void* a1, const void* a2);
+    int rust_dfile_close(fallout::DFile* stream);
+    // rust_dfile_close
 }
 
 namespace fallout {
@@ -177,7 +178,7 @@ bool dbaseClose(DBase* dbase)
     DFile* curr = dbase->dfileHead;
     while (curr != NULL) {
         DFile* next = curr->next;
-        dfileClose(curr);
+        rust_dfile_close(curr);
         curr = next;
     }
 
@@ -253,56 +254,7 @@ long dfileGetSize(DFile* stream)
 // 0x4E542C
 int dfileClose(DFile* stream)
 {
-    assert(stream); // "stream", "dfile.c", 253
-
-    int rc = 0;
-
-    if (stream->entry->compressed == 1) {
-        if (inflateEnd(stream->decompressionStream) != Z_OK) {
-            rc = -1;
-        }
-    }
-
-    if (stream->decompressionStream != NULL) {
-        free(stream->decompressionStream);
-    }
-
-    if (stream->decompressionBuffer != NULL) {
-        free(stream->decompressionBuffer);
-    }
-
-    if (stream->stream != NULL) {
-        fclose(stream->stream);
-    }
-
-    // Loop thru open file handles and find previous to remove current handle
-    // from linked list.
-    //
-    // NOTE: Compiled code is slightly different.
-    DFile* curr = stream->dbase->dfileHead;
-    DFile* prev = NULL;
-    while (curr != NULL) {
-        if (curr == stream) {
-            break;
-        }
-
-        prev = curr;
-        curr = curr->next;
-    }
-
-    if (curr != NULL) {
-        if (prev == NULL) {
-            stream->dbase->dfileHead = stream->next;
-        } else {
-            prev->next = stream->next;
-        }
-    }
-
-    memset(stream, 0, sizeof(*stream));
-
-    free(stream);
-
-    return rc;
+    return rust_dfile_close(stream);
 }
 
 // [fopen].
@@ -623,6 +575,7 @@ int dfileEof(DFile* stream)
 }
 
 // 0x4E5D9C
+// ????
 static DFile* dfileOpenInternal(DBase* dbase, const char* filePath, const char* mode, DFile* dfile)
 {
     DBaseEntry* entry = (DBaseEntry*)bsearch(filePath, dbase->entries, dbase->entriesLength, sizeof(*dbase->entries), rust_dbase_find_entry_my_file_path);
@@ -722,7 +675,7 @@ static DFile* dfileOpenInternal(DBase* dbase, const char* filePath, const char* 
 err:
 
     if (dfile != nullptr) {
-        dfileClose(dfile);
+        rust_dfile_close(dfile);
     }
 
     return nullptr;
