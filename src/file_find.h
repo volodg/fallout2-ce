@@ -7,6 +7,7 @@
 #include <dirent.h>
 #endif
 
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {

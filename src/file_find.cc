@@ -4,6 +4,9 @@
 
 #include <fpattern.h>
 
+// TODO Migrate
+
+// TODO migrate
 namespace fallout {
 
 // 0x4E6380
