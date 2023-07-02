@@ -1,5 +1,5 @@
 use crate::platform_compat::{rust_compat_fopen, rust_compat_stricmp};
-use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, FILE, free, fseek, malloc, memset, SEEK_SET, size_t};
+use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, free, fseek, malloc, memset, SEEK_SET, size_t, ungetc};
 use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
@@ -99,8 +99,7 @@ pub struct DFile {
 // specified [filePath].
 //
 // 0x4E5D70
-#[no_mangle]
-pub unsafe extern "C" fn rust_dbase_find_entry_my_file_path(
+unsafe extern "C" fn rust_dbase_find_entry_my_file_path(
     a1: *const c_void,
     a2: *const c_void,
 ) -> c_int {
@@ -167,6 +166,7 @@ pub unsafe extern "C" fn rust_dfile_close(
 }
 
 #[no_mangle]
+// 0x4E5D9C
 pub unsafe extern "C" fn rust_dfile_open_internal(
     dbase: *mut DBase, file_path: *const c_char, mode: *const c_char, mut dfile: *mut DFile
 ) -> *const DFile {
@@ -282,3 +282,59 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
 
     dfile
 }
+
+/*#[no_mangle]
+pub unsafe extern "C" fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_int {
+    if (*(*stream).entry).compressed == 1 {
+        let mut ch: c_char;
+        if !dfileReadCompressed(stream, &ch, sizeof(ch)) {
+            return -1;
+        }
+
+        if ((*stream).flags & DFILE_TEXT) != 0 {
+            // NOTE: I'm not sure if they are comparing as chars or ints. Since
+            // character literals are ints, let's cast read characters to int as
+            // well.
+            if ch == '\r' as c_char {
+                let next_ch: c_char;
+                if dfileReadCompressed(stream, &nextCh, mem::size_of::<c_char>()) {
+                    if (next_ch == '\n') {
+                        ch = next_ch;
+                    } else {
+                        // NOTE: Uninline.
+                        dfileUngetCompressed(stream, next_ch & 0xFF);
+                    }
+                }
+            }
+        }
+
+        return ch & 0xFF;
+    }
+
+    if (*(*stream).entry).uncompressed_size < 0 || (*stream).position >= (*(*stream).entry).uncompressed_size as c_long {
+        return -1;
+    }
+
+    let mut ch = fgetc((*stream).stream);
+    if ch != -1 {
+        if ((*stream).flags & DFILE_TEXT) != 0 {
+            // This is a text stream, attempt to detect \r\n sequence.
+            if ch == '\r' as c_int {
+                if (*stream).position + 1 < (*(*stream).entry).uncompressed_size {
+                    let next_ch = fgetc((*stream).stream);
+                    if next_ch == '\n' as c_int {
+                        ch = next_ch;
+                        (*stream).position += 1;
+                    } else {
+                        ungetc(nextCh, (*stream).stream);
+                    }
+                }
+            }
+        }
+
+        (*stream).position += 1;
+    }
+
+    ch
+}
+*/

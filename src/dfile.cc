@@ -13,7 +13,6 @@
 #include "platform_compat.h"
 
 extern "C" {
-    int rust_dbase_find_entry_my_file_path(const void* a1, const void* a2);
     int rust_dfile_close(fallout::DFile* stream);
     fallout::DFile* rust_dfile_open_internal(fallout::DBase* dbase, const char* filePath, const char* mode, fallout::DFile* dfile);
     // rust_dfile_open_internal
@@ -45,7 +44,6 @@ namespace fallout {
 // Specifies that [DFile] has unget compressed character.
 #define DFILE_HAS_COMPRESSED_UNGETC (0x10)
 
-static DFile* dfileOpenInternal(DBase* dbase, const char* filename, const char* mode, DFile* a4);
 static int dfileReadCharInternal(DFile* stream);
 static bool dfileReadCompressed(DFile* stream, void* ptr, size_t size);
 static void dfileUngetCompressed(DFile* stream, int ch);
@@ -267,7 +265,7 @@ DFile* dfileOpen(DBase* dbase, const char* filePath, const char* mode)
     assert(filePath); // dfile.c, 296
     assert(mode); // dfile.c, 297
 
-    return dfileOpenInternal(dbase, filePath, mode, 0);
+    return rust_dfile_open_internal(dbase, filePath, mode, 0);
 }
 
 // [vfprintf].
@@ -575,13 +573,8 @@ int dfileEof(DFile* stream)
     return stream->flags & DFILE_EOF;
 }
 
-// 0x4E5D9C
-static DFile* dfileOpenInternal(DBase* dbase, const char* filePath, const char* mode, DFile* dfile)
-{
-    return rust_dfile_open_internal(dbase, filePath, mode, dfile);
-}
-
 // 0x4E5F9C
+// ????
 static int dfileReadCharInternal(DFile* stream)
 {
     if (stream->entry->compressed == 1) {
@@ -638,6 +631,7 @@ static int dfileReadCharInternal(DFile* stream)
 }
 
 // 0x4E6078
+// ???
 static bool dfileReadCompressed(DFile* stream, void* ptr, size_t size)
 {
     if ((stream->flags & DFILE_HAS_COMPRESSED_UNGETC) != 0) {
