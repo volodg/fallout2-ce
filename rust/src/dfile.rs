@@ -1,12 +1,13 @@
 use crate::platform_compat::{rust_compat_fopen, rust_compat_stricmp};
-use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, free, fseek, malloc, memset, SEEK_SET, size_t, ungetc};
+use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, FILE, fread, free, fseek, malloc, memset, SEEK_SET, size_t};
 use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
-use libz_sys::{alloc_func, free_func, inflateEnd, inflateInit_, voidpf, Z_OK, z_stream, z_streamp};
+use libz_sys::{alloc_func, Bytef, free_func, inflate, inflateEnd, inflateInit_, voidpf, Z_NO_FLUSH, Z_OK, z_stream, z_streamp};
 
 const DFILE_DECOMPRESSION_BUFFER_SIZE: u32 = 0x400;
 const DFILE_TEXT: c_int = 0x08;
+const DFILE_HAS_COMPRESSED_UNGETC: c_int = 0x10;
 
 #[repr(C)]
 pub struct DBaseEntry {
@@ -283,7 +284,71 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
     dfile
 }
 
-/*#[no_mangle]
+#[no_mangle]
+// 0x4E6078
+pub unsafe extern "C" fn rust_dfile_read_compressed(stream: *mut DFile, mut ptr: *const c_void, mut size: size_t) -> bool {
+    if ((*stream).flags & DFILE_HAS_COMPRESSED_UNGETC) != 0 {
+        let mut byte_buffer = ptr as *mut c_uchar;
+        *byte_buffer = ((*stream).compressed_ungotten & 0xFF) as c_uchar;
+        byte_buffer = byte_buffer.offset(1);
+        ptr = byte_buffer as *const c_void;
+
+        size -= 1;
+
+        (*stream).flags &= !DFILE_HAS_COMPRESSED_UNGETC;
+        (*stream).position += 1;
+
+        if size == 0 {
+            return true;
+        }
+    }
+
+    (*(*stream).decompression_stream).next_out = ptr as *mut Bytef;
+    (*(*stream).decompression_stream).avail_out = size as c_uint;
+
+    loop {
+        if (*(*stream).decompression_stream).avail_out == 0 {
+            // Everything was decompressed.
+            break;
+        }
+
+        if (*(*stream).decompression_stream).avail_in == 0 {
+            // No more unprocessed data, request next chunk.
+            let bytes_to_read = DFILE_DECOMPRESSION_BUFFER_SIZE.min(((*(*stream).entry).data_size - (*stream).compressed_bytes_read) as u32) as size_t;
+
+            if fread((*stream).decompression_buffer as *mut c_void, bytes_to_read, 1, (*stream).stream) != 1 {
+                break;
+            }
+
+            (*(*stream).decompression_stream).avail_in = bytes_to_read as c_uint;
+            (*(*stream).decompression_stream).next_in = (*stream).decompression_buffer;
+
+            (*stream).compressed_bytes_read += bytes_to_read as c_int;
+        }
+        if inflate((*stream).decompression_stream, Z_NO_FLUSH) != Z_OK {
+            break
+        }
+    }
+
+    if (*(*stream).decompression_stream).avail_out != 0 {
+        // There are some data still waiting, which means there was in error
+        // during decompression loop above.
+        return false;
+    }
+
+    (*stream).position += size as c_long;
+
+    true
+}
+
+/*
+static bool dfileReadCompressed(DFile* stream, void* ptr, size_t size)
+{
+}
+ */
+
+/*
+#[no_mangle]
 pub unsafe extern "C" fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_int {
     if (*(*stream).entry).compressed == 1 {
         let mut ch: c_char;

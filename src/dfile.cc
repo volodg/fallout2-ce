@@ -15,7 +15,8 @@
 extern "C" {
     int rust_dfile_close(fallout::DFile* stream);
     fallout::DFile* rust_dfile_open_internal(fallout::DBase* dbase, const char* filePath, const char* mode, fallout::DFile* dfile);
-    // rust_dfile_open_internal
+    bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
+    // rust_dfile_read_compressed
 }
 
 namespace fallout {
@@ -45,7 +46,6 @@ namespace fallout {
 #define DFILE_HAS_COMPRESSED_UNGETC (0x10)
 
 static int dfileReadCharInternal(DFile* stream);
-static bool dfileReadCompressed(DFile* stream, void* ptr, size_t size);
 static void dfileUngetCompressed(DFile* stream, int ch);
 
 // Reads .DAT file contents.
@@ -413,7 +413,7 @@ size_t dfileRead(void* ptr, size_t size, size_t count, DFile* stream)
 
     size_t bytesRead;
     if (stream->entry->compressed == 1) {
-        if (!dfileReadCompressed(stream, ptr, bytesToRead)) {
+        if (!rust_dfile_read_compressed(stream, ptr, bytesToRead)) {
             stream->flags |= DFILE_ERROR;
             return false;
         }
@@ -579,7 +579,7 @@ static int dfileReadCharInternal(DFile* stream)
 {
     if (stream->entry->compressed == 1) {
         char ch;
-        if (!dfileReadCompressed(stream, &ch, sizeof(ch))) {
+        if (!rust_dfile_read_compressed(stream, &ch, sizeof(ch))) {
             return -1;
         }
 
@@ -589,7 +589,7 @@ static int dfileReadCharInternal(DFile* stream)
             // well.
             if (ch == '\r') {
                 char nextCh;
-                if (dfileReadCompressed(stream, &nextCh, sizeof(nextCh))) {
+                if (rust_dfile_read_compressed(stream, &nextCh, sizeof(nextCh))) {
                     if (nextCh == '\n') {
                         ch = nextCh;
                     } else {
@@ -628,60 +628,6 @@ static int dfileReadCharInternal(DFile* stream)
     }
 
     return ch;
-}
-
-// 0x4E6078
-// ???
-static bool dfileReadCompressed(DFile* stream, void* ptr, size_t size)
-{
-    if ((stream->flags & DFILE_HAS_COMPRESSED_UNGETC) != 0) {
-        unsigned char* byteBuffer = (unsigned char*)ptr;
-        *byteBuffer++ = stream->compressedUngotten & 0xFF;
-        ptr = byteBuffer;
-
-        size--;
-
-        stream->flags &= ~DFILE_HAS_COMPRESSED_UNGETC;
-        stream->position++;
-
-        if (size == 0) {
-            return true;
-        }
-    }
-
-    stream->decompressionStream->next_out = (Bytef*)ptr;
-    stream->decompressionStream->avail_out = size;
-
-    do {
-        if (stream->decompressionStream->avail_out == 0) {
-            // Everything was decompressed.
-            break;
-        }
-
-        if (stream->decompressionStream->avail_in == 0) {
-            // No more unprocessed data, request next chunk.
-            size_t bytesToRead = std::min(DFILE_DECOMPRESSION_BUFFER_SIZE, stream->entry->dataSize - stream->compressedBytesRead);
-
-            if (fread(stream->decompressionBuffer, bytesToRead, 1, stream->stream) != 1) {
-                break;
-            }
-
-            stream->decompressionStream->avail_in = bytesToRead;
-            stream->decompressionStream->next_in = stream->decompressionBuffer;
-
-            stream->compressedBytesRead += bytesToRead;
-        }
-    } while (inflate(stream->decompressionStream, Z_NO_FLUSH) == Z_OK);
-
-    if (stream->decompressionStream->avail_out != 0) {
-        // There are some data still waiting, which means there was in error
-        // during decompression loop above.
-        return false;
-    }
-
-    stream->position += size;
-
-    return true;
 }
 
 // NOTE: Inlined.
