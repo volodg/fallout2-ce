@@ -491,7 +491,7 @@ pub unsafe extern "C" fn rust_dbase_open(file_path: *const c_char) -> *const DBa
     }
 
     // Reposition stream to the beginning of the entries table.
-    if fseek(stream, file_size - dbase_data_size[0] as i64 - mem::size_of::<c_int>() as i64 * 2, SEEK_SET) != 0 {
+    if fseek(stream, file_size - entries_data_size[0] as i64 - mem::size_of::<c_int>() as i64 * 2, SEEK_SET) != 0 {
         close_on_error(dbase, stream);
         return null()
     }
