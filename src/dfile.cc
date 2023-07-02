@@ -1,15 +1,21 @@
 #include "dfile.h"
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <algorithm>
 
 #include <fpattern.h>
 
+// Migrated
 #include "platform_compat.h"
+
+extern "C" {
+    static int rust_dbase_find_entry_my_file_path(const void* a1, const void* a2);
+    // rust_dbase_find_entry_my_file_path
+}
 
 namespace fallout {
 
@@ -37,7 +43,6 @@ namespace fallout {
 // Specifies that [DFile] has unget compressed character.
 #define DFILE_HAS_COMPRESSED_UNGETC (0x10)
 
-static int dbaseFindEntryByFilePath(const void* a1, const void* a2);
 static DFile* dfileOpenInternal(DBase* dbase, const char* filename, const char* mode, DFile* a4);
 static int dfileReadCharInternal(DFile* stream);
 static bool dfileReadCompressed(DFile* stream, void* ptr, size_t size);
@@ -617,23 +622,11 @@ int dfileEof(DFile* stream)
     return stream->flags & DFILE_EOF;
 }
 
-// The [bsearch] comparison callback, which is used to find [DBaseEntry] for
-// specified [filePath].
-//
-// 0x4E5D70
-static int dbaseFindEntryByFilePath(const void* a1, const void* a2)
-{
-    const char* filePath = (const char*)a1;
-    DBaseEntry* entry = (DBaseEntry*)a2;
-
-    return compat_stricmp(filePath, entry->path);
-}
-
 // 0x4E5D9C
 static DFile* dfileOpenInternal(DBase* dbase, const char* filePath, const char* mode, DFile* dfile)
 {
-    DBaseEntry* entry = (DBaseEntry*)bsearch(filePath, dbase->entries, dbase->entriesLength, sizeof(*dbase->entries), dbaseFindEntryByFilePath);
-    if (entry == NULL) {
+    DBaseEntry* entry = (DBaseEntry*)bsearch(filePath, dbase->entries, dbase->entriesLength, sizeof(*dbase->entries), rust_dbase_find_entry_my_file_path);
+    if (entry == nullptr) {
         goto err;
     }
 
@@ -641,10 +634,10 @@ static DFile* dfileOpenInternal(DBase* dbase, const char* filePath, const char* 
         goto err;
     }
 
-    if (dfile == NULL) {
+    if (dfile == nullptr) {
         dfile = (DFile*)malloc(sizeof(*dfile));
-        if (dfile == NULL) {
-            return NULL;
+        if (dfile == nullptr) {
+            return nullptr;
         }
 
         memset(dfile, 0, sizeof(*dfile));
@@ -656,9 +649,9 @@ static DFile* dfileOpenInternal(DBase* dbase, const char* filePath, const char* 
             goto err;
         }
 
-        if (dfile->stream != NULL) {
+        if (dfile->stream != nullptr) {
             fclose(dfile->stream);
-            dfile->stream = NULL;
+            dfile->stream = nullptr;
         }
 
         dfile->compressedBytesRead = 0;
@@ -670,7 +663,7 @@ static DFile* dfileOpenInternal(DBase* dbase, const char* filePath, const char* 
 
     // Open stream to .DAT file.
     dfile->stream = compat_fopen(dbase->path, "rb");
-    if (dfile->stream == NULL) {
+    if (dfile->stream == nullptr) {
         goto err;
     }
 
@@ -684,14 +677,14 @@ static DFile* dfileOpenInternal(DBase* dbase, const char* filePath, const char* 
         // buffer. This step is not needed when previous instance of dfile is
         // passed via parameter, which might already have stream and
         // buffer allocated.
-        if (dfile->decompressionStream == NULL) {
+        if (dfile->decompressionStream == nullptr) {
             dfile->decompressionStream = (z_streamp)malloc(sizeof(*dfile->decompressionStream));
-            if (dfile->decompressionStream == NULL) {
+            if (dfile->decompressionStream == nullptr) {
                 goto err;
             }
 
             dfile->decompressionBuffer = (unsigned char*)malloc(DFILE_DECOMPRESSION_BUFFER_SIZE);
-            if (dfile->decompressionBuffer == NULL) {
+            if (dfile->decompressionBuffer == nullptr) {
                 goto err;
             }
         }
@@ -709,14 +702,14 @@ static DFile* dfileOpenInternal(DBase* dbase, const char* filePath, const char* 
         // Entry is not compressed, there is no need to keep decompression
         // stream and decompression buffer (in case [dfile] was passed via
         // parameter).
-        if (dfile->decompressionStream != NULL) {
+        if (dfile->decompressionStream != nullptr) {
             free(dfile->decompressionStream);
-            dfile->decompressionStream = NULL;
+            dfile->decompressionStream = nullptr;
         }
 
-        if (dfile->decompressionBuffer != NULL) {
+        if (dfile->decompressionBuffer != nullptr) {
             free(dfile->decompressionBuffer);
-            dfile->decompressionBuffer = NULL;
+            dfile->decompressionBuffer = nullptr;
         }
     }
 
@@ -728,11 +721,11 @@ static DFile* dfileOpenInternal(DBase* dbase, const char* filePath, const char* 
 
 err:
 
-    if (dfile != NULL) {
+    if (dfile != nullptr) {
         dfileClose(dfile);
     }
 
-    return NULL;
+    return nullptr;
 }
 
 // 0x4E5F9C

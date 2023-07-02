@@ -1,10 +1,11 @@
 #ifndef DFILE_H
 #define DFILE_H
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <zlib.h>
 
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {
