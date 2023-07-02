@@ -1,4 +1,4 @@
-use crate::platform_compat::{rust_compat_fopen, rust_compat_stricmp, rust_get_file_size};
+use crate::platform_compat::{rust_compat_fopen, rust_compat_strdup, rust_compat_stricmp, rust_get_file_size};
 use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, fread, free, fseek, malloc, memset, SEEK_SET, size_t, ungetc};
 use std::ffi::{c_void, CString};
 use std::mem;
@@ -571,7 +571,6 @@ pub unsafe extern "C" fn rust_dbase_open_part(
         entry_index = i + 1;
     }
 
-    // let entries_length = (*dbase).entries_length[0];
     if entry_index < (*dbase).entries_length[0] {
         // We haven't reached the end, which means there was an error while
         // reading entries.
@@ -580,10 +579,10 @@ pub unsafe extern "C" fn rust_dbase_open_part(
         return null();
     }
 
-    // (*dbase).path = rust_compat_strdup(file_path);
-    // (*dbase).data_offset = file_size as c_int - dbase_data_size[0] as c_int;
-    //
-    // fclose(stream);
+    (*dbase).path = rust_compat_strdup(file_path);
+    (*dbase).data_offset = file_size as c_int - dbase_data_size[0] as c_int;
+
+    fclose(stream);
 
     dbase
 }

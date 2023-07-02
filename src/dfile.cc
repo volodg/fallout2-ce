@@ -58,17 +58,6 @@ DBase* dbaseOpen(const char* filePath)
         return nullptr;
     }
 
-    FILE* stream = stream2;
-    int fileSize = fileSize2;
-    int dbaseDataSize = dbaseDataSize2;
-
-    // Migrated until HERE !!!
-
-    dbase->path = compat_strdup(filePath);
-    dbase->dataOffset = fileSize - dbaseDataSize;
-
-    fclose(stream);
-
     return dbase;
 }
 
