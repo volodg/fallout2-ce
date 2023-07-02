@@ -35,8 +35,12 @@ extern "C" {
     int rust_compat_mkdir(const char* path);
     unsigned int rust_compat_time_get_time();
     FILE* rust_compat_fopen(const char* path, const char* mode);
+    gzFile rust_compat_gzopen(const char* path, const char* mode);
+    char* rust_compat_fgets(char* buffer, int maxCount, FILE* stream);
+    // rust_compat_fgets
 }
 
+// Migrate
 namespace fallout {
 
 int compat_stricmp(const char* string1, const char* string2)
@@ -96,26 +100,12 @@ FILE* compat_fopen(const char* path, const char* mode)
 
 gzFile compat_gzopen(const char* path, const char* mode)
 {
-    char nativePath[COMPAT_MAX_PATH];
-    strcpy(nativePath, path);
-    rust_compat_windows_path_to_native(nativePath);
-    rust_compat_resolve_path(nativePath);
-    return gzopen(nativePath, mode);
+    return rust_compat_gzopen(path, mode);
 }
 
 char* compat_fgets(char* buffer, int maxCount, FILE* stream)
 {
-    buffer = fgets(buffer, maxCount, stream);
-
-    if (buffer != nullptr) {
-        size_t len = strlen(buffer);
-        if (len >= 2 && buffer[len - 1] == '\n' && buffer[len - 2] == '\r') {
-            buffer[len - 2] = '\n';
-            buffer[len - 1] = '\0';
-        }
-    }
-
-    return buffer;
+    return rust_compat_fgets(buffer, maxCount, stream);
 }
 
 char* compat_gzgets(gzFile stream, char* buffer, int maxCount)

@@ -1,4 +1,4 @@
-use libc::{c_char, c_int, c_uint, c_long, c_ulong, lseek, strcpy, SEEK_CUR, fopen, FILE};
+use libc::{c_char, c_int, c_uint, c_long, c_ulong, lseek, strcpy, SEEK_CUR, fopen, FILE, fgets};
 #[cfg(not(target_family = "windows"))]
 use libc::{closedir, opendir, readdir, strchr, strlen, strncpy};
 use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
@@ -384,6 +384,38 @@ pub unsafe extern "C" fn rust_compat_gzopen(path: *const c_char, mode: *const c_
     rust_compat_resolve_path(native_path.as_mut_ptr());
     return gzopen(native_path.as_ptr(), mode);
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_compat_fgets(mut buffer: *mut c_char, mac_count: c_int, stream: *mut FILE) -> *const c_char {
+    buffer = fgets(buffer, mac_count, stream);
+
+    if buffer != null_mut() {
+        let len = strlen(buffer);
+        if len >= 2 && *buffer.offset((len - 1) as isize) == '\n' as c_char && *buffer.offset((len - 2) as isize) == '\r' as c_char {
+            *buffer.offset((len - 2) as isize) = '\n' as c_char;
+            *buffer.offset((len - 1) as isize) = '\0' as c_char;
+        }
+    }
+
+    buffer
+}
+
+/*
+char* compat_fgets(char* buffer, int maxCount, FILE* stream)
+{
+    buffer = fgets(buffer, maxCount, stream);
+
+    if (buffer != nullptr) {
+        size_t len = strlen(buffer);
+        if (len >= 2 && buffer[len - 1] == '\n' && buffer[len - 2] == '\r') {
+            buffer[len - 2] = '\n';
+            buffer[len - 1] = '\0';
+        }
+    }
+
+    return buffer;
+}
+ */
 
 #[cfg(test)]
 mod tests {
