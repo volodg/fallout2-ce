@@ -549,16 +549,16 @@ pub unsafe extern "C" fn rust_dbase_open_part(
             break;
         }
 
+        if fread((*entry).path as *mut c_void, path_length[0] as size_t, 1, stream) != 1 {
+            break;
+        }
+
         if !callback(stream, entry, path_length[0]) {
             *out_success = false;
             close_on_error(dbase, stream);
             return null()
         }
 
-    //     if fread((*entry).path as *mut c_void, path_length[0] as size_t, 1, stream) != 1 {
-    //         break;
-    //     }
-    //
     //     *(*entry).path.offset(path_length[0] as isize) = '\0' as c_char;
     //
     //     if fread((*entry).compressed.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).compressed), 1, stream) != 1 {
