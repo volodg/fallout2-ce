@@ -51,10 +51,6 @@ namespace fallout {
 bool callback(FILE* stream, DBaseEntry* entry) {
     // Migrated until HERE !!!
 
-    if (fread(&(entry->dataSize), sizeof(entry->dataSize), 1, stream) != 1) {
-        return false;
-    }
-
     if (fread(&(entry->dataOffset), sizeof(entry->dataOffset), 1, stream) != 1) {
         return false;
     }
