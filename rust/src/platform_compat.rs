@@ -1,4 +1,4 @@
-use libc::{c_char, c_int, c_uint, c_long, c_ulong, lseek, strcpy, SEEK_CUR, fopen, FILE, fgets};
+use libc::{c_char, c_int, c_uint, c_long, c_ulong, lseek, strcpy, SEEK_CUR, fopen, FILE, fgets, remove, rename};
 #[cfg(not(target_family = "windows"))]
 use libc::{closedir, opendir, readdir, strchr, strlen, strncpy};
 use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
@@ -8,7 +8,7 @@ use std::ffi::CString;
 use std::ptr::null_mut;
 #[cfg(not(target_family = "windows"))]
 use std::time::Instant;
-use libz_sys::{gzFile, gzopen};
+use libz_sys::{gzFile, gzgets, gzopen};
 
 #[cfg(not(target_family = "windows"))]
 const COMPAT_MAX_DRIVE: u8 = 3;
@@ -385,10 +385,7 @@ pub unsafe extern "C" fn rust_compat_gzopen(path: *const c_char, mode: *const c_
     return gzopen(native_path.as_ptr(), mode);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_compat_fgets(mut buffer: *mut c_char, mac_count: c_int, stream: *mut FILE) -> *const c_char {
-    buffer = fgets(buffer, mac_count, stream);
-
+unsafe fn adjust_new_line(buffer: *mut c_char) {
     if buffer != null_mut() {
         let len = strlen(buffer);
         if len >= 2 && *buffer.offset((len - 1) as isize) == '\n' as c_char && *buffer.offset((len - 2) as isize) == '\r' as c_char {
@@ -396,24 +393,53 @@ pub unsafe extern "C" fn rust_compat_fgets(mut buffer: *mut c_char, mac_count: c
             *buffer.offset((len - 1) as isize) = '\0' as c_char;
         }
     }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_compat_fgets(mut buffer: *mut c_char, mac_count: c_int, stream: *mut FILE) -> *const c_char {
+    buffer = fgets(buffer, mac_count, stream);
+
+    adjust_new_line(buffer);
 
     buffer
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_compat_gzgets(stream: gzFile, mut buffer: *mut c_char, mac_count: c_int) -> *const c_char {
+    buffer = gzgets(stream, buffer, mac_count);
+
+    adjust_new_line(buffer);
+
+    buffer
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_compat_remove(path: *const c_char) -> c_int {
+    let mut native_path = [0 as c_char; COMPAT_MAX_PATH as usize];
+    strcpy(native_path.as_mut_ptr(), path);
+    rust_compat_windows_path_to_native(native_path.as_mut_ptr());
+    rust_compat_resolve_path(native_path.as_mut_ptr());
+    remove(native_path.as_ptr())
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_compat_rename(old_file_name: *const c_char, new_file_name: *const c_char) -> c_int {
+    let mut native_old_file_name = [0 as c_char; COMPAT_MAX_PATH as usize];
+    strcpy(native_old_file_name.as_mut_ptr(), old_file_name);
+    rust_compat_windows_path_to_native(native_old_file_name.as_mut_ptr());
+    rust_compat_resolve_path(native_old_file_name.as_mut_ptr());
+
+    let mut native_new_file_name = [0 as c_char; COMPAT_MAX_PATH as usize];
+    strcpy(native_new_file_name.as_mut_ptr(), new_file_name);
+    rust_compat_windows_path_to_native(native_new_file_name.as_mut_ptr());
+    rust_compat_resolve_path(native_new_file_name.as_mut_ptr());
+
+    rename(native_old_file_name.as_ptr(), native_new_file_name.as_ptr())
+}
 /*
-char* compat_fgets(char* buffer, int maxCount, FILE* stream)
+int compat_rename(const char* oldFileName, const char* newFileName)
 {
-    buffer = fgets(buffer, maxCount, stream);
 
-    if (buffer != nullptr) {
-        size_t len = strlen(buffer);
-        if (len >= 2 && buffer[len - 1] == '\n' && buffer[len - 2] == '\r') {
-            buffer[len - 2] = '\n';
-            buffer[len - 1] = '\0';
-        }
-    }
-
-    return buffer;
 }
  */
 

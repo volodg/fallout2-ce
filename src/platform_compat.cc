@@ -37,10 +37,11 @@ extern "C" {
     FILE* rust_compat_fopen(const char* path, const char* mode);
     gzFile rust_compat_gzopen(const char* path, const char* mode);
     char* rust_compat_fgets(char* buffer, int maxCount, FILE* stream);
-    // rust_compat_fgets
+    char* rust_compat_gzgets(gzFile stream, char* buffer, int maxCount);
+    int rust_compat_remove(const char* path);
+    int rust_compat_rename(const char* oldFileName, const char* newFileName);
 }
 
-// Migrate
 namespace fallout {
 
 int compat_stricmp(const char* string1, const char* string2)
@@ -110,41 +111,17 @@ char* compat_fgets(char* buffer, int maxCount, FILE* stream)
 
 char* compat_gzgets(gzFile stream, char* buffer, int maxCount)
 {
-    buffer = gzgets(stream, buffer, maxCount);
-
-    if (buffer != nullptr) {
-        size_t len = strlen(buffer);
-        if (len >= 2 && buffer[len - 1] == '\n' && buffer[len - 2] == '\r') {
-            buffer[len - 2] = '\n';
-            buffer[len - 1] = '\0';
-        }
-    }
-
-    return buffer;
+    return rust_compat_gzgets(stream, buffer, maxCount);
 }
 
 int compat_remove(const char* path)
 {
-    char nativePath[COMPAT_MAX_PATH];
-    strcpy(nativePath, path);
-    rust_compat_windows_path_to_native(nativePath);
-    rust_compat_resolve_path(nativePath);
-    return remove(nativePath);
+    return rust_compat_remove(path);
 }
 
 int compat_rename(const char* oldFileName, const char* newFileName)
 {
-    char nativeOldFileName[COMPAT_MAX_PATH];
-    strcpy(nativeOldFileName, oldFileName);
-    rust_compat_windows_path_to_native(nativeOldFileName);
-    rust_compat_resolve_path(nativeOldFileName);
-
-    char nativeNewFileName[COMPAT_MAX_PATH];
-    strcpy(nativeNewFileName, newFileName);
-    rust_compat_windows_path_to_native(nativeNewFileName);
-    rust_compat_resolve_path(nativeNewFileName);
-
-    return rename(nativeOldFileName, nativeNewFileName);
+    return rust_compat_rename(oldFileName, newFileName);
 }
 
 void compat_windows_path_to_native(char* path)
