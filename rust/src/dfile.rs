@@ -449,7 +449,6 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     out_stream: *mut *const FILE,
     out_file_size: *mut c_int,
     out_dbase_data_size: *mut c_int,
-    callback: extern "C" fn(*mut FILE, *mut DBaseEntry) -> bool
 ) -> *const DBase {
     assert_ne!(file_path, null()); // "filename", "dfile.c", 74
 
@@ -535,9 +534,7 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     // Read entries one by one, stopping on any error.
     let mut entry_index = 0;
     for i in 0..(*dbase).entries_length[0] {
-        entry_index = i;
-
-        let entry = (*dbase).entries.offset(entry_index as isize);
+        let entry = (*dbase).entries.offset(i as isize);
 
         let mut path_length = [0 as c_int; 1];
         if fread(path_length.as_mut_ptr() as *mut c_void, mem::size_of_val(&path_length), 1, stream) != 1 {
@@ -571,21 +568,18 @@ pub unsafe extern "C" fn rust_dbase_open_part(
             break;
         }
 
-        if !callback(stream, entry) {
-            *out_success = false;
-            close_on_error(dbase, stream);
-            return null()
-        }
+        entry_index = i + 1;
     }
 
     // let entries_length = (*dbase).entries_length[0];
-    // if entry_index < (*dbase).entries_length[0] {
-    //     // We haven't reached the end, which means there was an error while
-    //     // reading entries.
-    //     close_on_error(dbase, stream);
-    //     return null();
-    // }
-    //
+    if entry_index < (*dbase).entries_length[0] {
+        // We haven't reached the end, which means there was an error while
+        // reading entries.
+        *out_success = false;
+        close_on_error(dbase, stream);
+        return null();
+    }
+
     // (*dbase).path = rust_compat_strdup(file_path);
     // (*dbase).data_offset = file_size as c_int - dbase_data_size[0] as c_int;
     //

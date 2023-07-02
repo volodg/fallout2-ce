@@ -16,9 +16,7 @@ extern "C" {
     bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
     int rust_dfile_read_char_internal(fallout::DFile* stream);
     bool rust_dbase_close(fallout::DBase* dbase);
-    fallout::DBase* rust_dbase_open_part(const char* filePath, bool* success, FILE** outStream, int* fileSize, int* dbaseDataSize,
-        bool (*callback)(FILE*, fallout::DBaseEntry*)
-        );
+    fallout::DBase* rust_dbase_open_part(const char* filePath, bool* success, FILE** outStream, int* fileSize, int* dbaseDataSize);
     // rust_dbase_open
 }
 
@@ -48,18 +46,13 @@ namespace fallout {
 // Reads .DAT file contents.
 //
 // 0x4E4F58
-bool callback(FILE* stream, DBaseEntry* entry) {
-    // Migrated until HERE !!!
-    return true;
-}
-
 DBase* dbaseOpen(const char* filePath)
 {
     bool success = true;
     FILE* stream2 = nullptr;
     int fileSize2 = 0;
     int dbaseDataSize2 = 0;
-    DBase* dbase = rust_dbase_open_part(filePath, &success, &stream2, &fileSize2, &dbaseDataSize2, callback);
+    DBase* dbase = rust_dbase_open_part(filePath, &success, &stream2, &fileSize2, &dbaseDataSize2);
 
     if (!success) {
         return nullptr;
@@ -70,14 +63,6 @@ DBase* dbaseOpen(const char* filePath)
     int dbaseDataSize = dbaseDataSize2;
 
     // Migrated until HERE !!!
-//
-//    if (entryIndex < dbase->entriesLength) {
-//        // We haven't reached the end, which means there was an error while
-//        // reading entries.
-//        dbaseClose(dbase);
-//        fclose(stream);
-//        return nullptr;
-//    }
 
     dbase->path = compat_strdup(filePath);
     dbase->dataOffset = fileSize - dbaseDataSize;
