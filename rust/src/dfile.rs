@@ -5,6 +5,7 @@ use std::mem;
 use std::ptr::{null, null_mut};
 use libz_sys::{alloc_func, Bytef, free_func, inflate, inflateEnd, inflateInit_, voidpf, Z_NO_FLUSH, Z_OK, z_stream, z_streamp};
 
+// The size of decompression buffer for reading compressed [DFile]s.
 const DFILE_DECOMPRESSION_BUFFER_SIZE: u32 = 0x400;
 const DFILE_TEXT: c_int = 0x08;
 
@@ -443,28 +444,18 @@ pub unsafe extern "C" fn rust_dbase_close(dbase: *const DBase) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_dbase_open_part(
-    file_path: *const c_char,
-    out_success: *mut bool,
-    out_stream: *mut *const FILE,
-    out_file_size: *mut c_int,
-    out_dbase_data_size: *mut c_int,
-) -> *const DBase {
+pub unsafe extern "C" fn rust_dbase_open_part(file_path: *const c_char) -> *const DBase {
     assert_ne!(file_path, null()); // "filename", "dfile.c", 74
 
     let rb = CString::new("rb").expect("valid string");
     let str = rb.as_ptr();
     let stream = rust_compat_fopen(file_path, str);
     if stream == null_mut() {
-        *out_success = false;
         return null();
     }
 
-    *out_stream = stream;
-
     let dbase = malloc(mem::size_of::<DBase>()) as *mut DBase;
     if dbase == null_mut() {
-        *out_success = false;
         fclose(stream);
         return null();
     }
@@ -479,10 +470,8 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     // Get file size, and reposition stream to read footer, which contains two
     // 32-bits ints.
     let file_size = rust_get_file_size(stream) as c_int;
-    *out_file_size = file_size;
 
     if fseek(stream, (file_size - mem::size_of::<c_int>() as c_int * 2) as c_long, SEEK_SET) != 0 {
-        *out_success = false;
         close_on_error(dbase, stream);
         return null();
     }
@@ -490,7 +479,6 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     // Read the size of entries table.
     let mut entries_data_size = [0 as c_int; 1];
     if fread(entries_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&entries_data_size), 1, stream) != 1 {
-        *out_success = false;
         close_on_error(dbase, stream);
         return null();
     }
@@ -501,22 +489,17 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     // the beginning of the .DAT file.
     let mut dbase_data_size = [0 as c_int; 1];
     if fread(dbase_data_size.as_mut_ptr() as *mut c_void, mem::size_of_val(&dbase_data_size), 1, stream) != 1 {
-        *out_success = false;
         close_on_error(dbase, stream);
         return null();
     }
 
-    *out_dbase_data_size = dbase_data_size[0];
-
     // Reposition stream to the beginning of the entries table.
     if fseek(stream, (file_size - entries_data_size[0] as c_int - mem::size_of::<c_int>() as c_int * 2) as c_long, SEEK_SET) != 0 {
-        *out_success = false;
         close_on_error(dbase, stream);
         return null();
     }
 
     if fread((*dbase).entries_length.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*dbase).entries_length), 1, stream) != 1 {
-        *out_success = false;
         close_on_error(dbase, stream);
         return null();
     }
@@ -524,7 +507,6 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     let entries_allocation_size = mem::size_of_val(&*(*dbase).entries) * (*dbase).entries_length[0] as usize;
     (*dbase).entries = malloc(entries_allocation_size) as *mut DBaseEntry;
     if (*dbase).entries == null_mut() {
-        *out_success = false;
         close_on_error(dbase, stream);
         return null();
     }
@@ -574,7 +556,6 @@ pub unsafe extern "C" fn rust_dbase_open_part(
     if entry_index < (*dbase).entries_length[0] {
         // We haven't reached the end, which means there was an error while
         // reading entries.
-        *out_success = false;
         close_on_error(dbase, stream);
         return null();
     }

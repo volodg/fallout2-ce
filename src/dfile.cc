@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 
 #include <fpattern.h>
@@ -16,14 +15,11 @@ extern "C" {
     bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
     int rust_dfile_read_char_internal(fallout::DFile* stream);
     bool rust_dbase_close(fallout::DBase* dbase);
-    fallout::DBase* rust_dbase_open_part(const char* filePath, bool* success, FILE** outStream, int* fileSize, int* dbaseDataSize);
+    fallout::DBase* rust_dbase_open_part(const char* filePath);
     // rust_dbase_open
 }
 
 namespace fallout {
-
-// The size of decompression buffer for reading compressed [DFile]s.
-#define DFILE_DECOMPRESSION_BUFFER_SIZE (0x400)
 
 // Specifies that [DFile] has unget character.
 //
@@ -48,17 +44,7 @@ namespace fallout {
 // 0x4E4F58
 DBase* dbaseOpen(const char* filePath)
 {
-    bool success = true;
-    FILE* stream2 = nullptr;
-    int fileSize2 = 0;
-    int dbaseDataSize2 = 0;
-    DBase* dbase = rust_dbase_open_part(filePath, &success, &stream2, &fileSize2, &dbaseDataSize2);
-
-    if (!success) {
-        return nullptr;
-    }
-
-    return dbase;
+    return rust_dbase_open_part(filePath);
 }
 
 // Closes [dbase], all open file handles, frees all associated resources,
