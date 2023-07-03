@@ -174,6 +174,10 @@ pub unsafe extern "C" fn rust_dfile_close(
 pub unsafe extern "C" fn rust_dfile_open_internal(
     dbase: *mut DBase, file_path: *const c_char, mode: *const c_char, mut dfile: *mut DFile,
 ) -> *const DFile {
+    assert_ne!(dbase, null_mut()); // dfile.c, 295
+    assert_ne!(file_path, null()); // dfile.c, 296
+    assert_ne!(mode, null()); // dfile.c, 297
+
     let entry = bsearch(file_path as *const c_void, (*dbase).entries as *const c_void, (*dbase).entries_length[0] as size_t, mem::size_of::<DBaseEntry>(), Some(rust_dbase_find_entry_my_file_path)) as *mut DBaseEntry;
 
     unsafe fn cleanup(dfile: *mut DFile) {

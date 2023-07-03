@@ -114,10 +114,6 @@ int dfileClose(DFile* stream)
 // 0x4E5504
 DFile* dfileOpen(DBase* dbase, const char* filePath, const char* mode)
 {
-    assert(dbase); // dfile.c, 295
-    assert(filePath); // dfile.c, 296
-    assert(mode); // dfile.c, 297
-
     return rust_dfile_open_internal(dbase, filePath, mode, 0);
 }
 
