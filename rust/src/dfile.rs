@@ -606,3 +606,17 @@ pub unsafe extern "C" fn rust_dbase_find_first_entry(dbase: *const DBase, find_f
 
     false
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_dbase_find_next_entry(dbase: *const DBase, find_file_data: *mut DFileFindData) -> bool {
+    for index in ((*find_file_data).index + 1)..(*dbase).entries_length[0] {
+        let entry = (*dbase).entries.offset(index as isize);
+        if rust_fpattern_match((*find_file_data).pattern.as_mut_ptr() as *mut c_char, (*entry).path) {
+            strcpy((*find_file_data).file_name.as_mut_ptr() as *mut c_char, (*entry).path);
+            (*find_file_data).index = index;
+            return true
+        }
+    }
+
+    false
+}

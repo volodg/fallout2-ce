@@ -20,7 +20,8 @@ extern "C" {
     fallout::DBase* rust_dbase_open_part(const char* filePath);
     bool rust_fpattern_match(const char *pat, const char *fname);
     bool rust_dbase_find_first_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData, const char* pattern);
-    // rust_dbase_find_first_entry
+    bool rust_dbase_find_next_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData);
+    // rust_dbase_find_next_entry
 }
 
 namespace fallout {
@@ -69,16 +70,7 @@ bool dbaseFindFirstEntry(DBase* dbase, DFileFindData* findFileData, const char* 
 // 0x4E53A0
 bool dbaseFindNextEntry(DBase* dbase, DFileFindData* findFileData)
 {
-    for (int index = findFileData->index + 1; index < dbase->entriesLength; index++) {
-        DBaseEntry* entry = &(dbase->entries[index]);
-        if (rust_fpattern_match(findFileData->pattern, entry->path)) {
-            strcpy(findFileData->fileName, entry->path);
-            findFileData->index = index;
-            return true;
-        }
-    }
-
-    return false;
+    return rust_dbase_find_next_entry(dbase, findFileData);
 }
 
 // 0x4E541C
