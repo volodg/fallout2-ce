@@ -1,8 +1,8 @@
 #include "interpreter_extra.h"
 
-#include <climits>
-#include <cstdio>
-#include <cstring>
+#include <limits.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "actions.h"
 #include "animation.h"
