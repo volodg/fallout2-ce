@@ -18,7 +18,8 @@ extern "C" {
     bool rust_fpattern_match(const char *pat, const char *fname);
     bool rust_dbase_find_first_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData, const char* pattern);
     bool rust_dbase_find_next_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData);
-    // rust_dbase_find_next_entry
+    int rust_dfile_read_char(fallout::DFile* stream);
+    // rust_dfile_read_char
 }
 
 namespace fallout {
@@ -119,23 +120,7 @@ int dfilePrintFormattedArgs(DFile* stream, const char* format, va_list args)
 // 0x4E5700
 int dfileReadChar(DFile* stream)
 {
-    assert(stream); // "stream", "dfile.c", 384
-
-    if ((stream->flags & DFILE_EOF) != 0 || (stream->flags & DFILE_ERROR) != 0) {
-        return -1;
-    }
-
-    if ((stream->flags & DFILE_HAS_UNGETC) != 0) {
-        stream->flags &= ~DFILE_HAS_UNGETC;
-        return stream->ungotten;
-    }
-
-    int ch = rust_dfile_read_char_internal(stream);
-    if (ch == -1) {
-        stream->flags |= DFILE_EOF;
-    }
-
-    return ch;
+    return rust_dfile_read_char(stream);
 }
 
 // [fgets].

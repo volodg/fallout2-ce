@@ -10,10 +10,27 @@ use crate::fpattern::rust_fpattern_match;
 
 // The size of decompression buffer for reading compressed [DFile]s.
 const DFILE_DECOMPRESSION_BUFFER_SIZE: u32 = 0x400;
-const DFILE_TEXT: c_int = 0x08;
 
 // Specifies that [DFile] has unget compressed character.
 const DFILE_HAS_COMPRESSED_UNGETC: c_int = 0x10;
+
+// Specifies that [DFile] has unget character.
+//
+// NOTE: There is an unused function at 0x4E5894 which ungets one character and
+// stores it in [ungotten]. Since that function is not used, this flag will
+// never be set.
+const DFILE_HAS_UNGETC: u32 = 0x01;
+
+// Specifies that [DFile] has reached end of stream.
+const DFILE_EOF: u32 = 0x02;
+
+// Specifies that [DFile] is in error state.
+//
+// [dfileRewind] can be used to clear this flag.
+const DFILE_ERROR: u32 = 0x04;
+
+// Specifies that [DFile] was opened in text mode.
+const DFILE_TEXT: u32 = 0x08;
 
 #[repr(C)]
 pub struct DBaseEntry {
@@ -318,7 +335,7 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
     }
 
     if *mode.offset(1) == 't' as c_char {
-        (*dfile).flags |= DFILE_TEXT;
+        (*dfile).flags |= DFILE_TEXT as c_int;
     }
 
     dfile
@@ -400,7 +417,7 @@ pub unsafe extern "C" fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_
             return -1;
         }
 
-        if ((*stream).flags & DFILE_TEXT) != 0 {
+        if ((*stream).flags & DFILE_TEXT as c_int) != 0 {
             // NOTE: I'm not sure if they are comparing as chars or ints. Since
             // character literals are ints, let's cast read characters to int as
             // well.
@@ -426,7 +443,7 @@ pub unsafe extern "C" fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_
 
     let mut ch = fgetc((*stream).stream);
     if ch != -1 {
-        if ((*stream).flags & DFILE_TEXT) != 0 {
+        if ((*stream).flags & DFILE_TEXT as c_int) != 0 {
             // This is a text stream, attempt to detect \r\n sequence.
             if ch == '\r' as c_int {
                 if (*stream).position + 1 < ((*(*stream).entry).uncompressed_size[0] as c_long) {
@@ -632,4 +649,25 @@ pub unsafe extern "C" fn rust_dbase_find_next_entry(dbase: *const DBase, find_fi
     }
 
     false
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_dfile_read_char(stream: *mut DFile) -> c_int {
+    assert_ne!(stream, null_mut()); // "stream", "dfile.c", 384
+
+    if ((*stream).flags & DFILE_EOF as c_int) != 0 || ((*stream).flags & DFILE_ERROR as c_int) != 0 {
+        return -1;
+    }
+
+    if ((*stream).flags & DFILE_HAS_UNGETC as c_int) != 0 {
+        (*stream).flags &= !DFILE_HAS_UNGETC as c_int;
+        return (*stream).ungotten;
+    }
+
+    let ch = rust_dfile_read_char_internal(stream);
+    if ch == -1 {
+        (*stream).flags |= DFILE_EOF as c_int;
+    }
+
+    ch
 }
