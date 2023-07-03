@@ -1,8 +1,8 @@
 #ifndef PLATFORM_COMPAT_H
 #define PLATFORM_COMPAT_H
 
-#include <stddef.h>
-#include <stdio.h>
+#include <cstddef>
+#include <cstdio>
 
 #include <zlib.h>
 

@@ -1,6 +1,6 @@
 #include "palette.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "color.h"
 #include "cycle.h"

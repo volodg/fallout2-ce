@@ -4,8 +4,8 @@
 
 #include "movie_lib.h"
 
-#include <assert.h>
-#include <string.h>
+#include <cassert>
+#include <cstring>
 
 // TODO Migrate
 

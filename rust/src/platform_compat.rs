@@ -1,14 +1,13 @@
 use libc::{
     access, c_char, c_int, c_long, c_uint, c_ulong, fgets, fopen, fseek, ftell, lseek, remove,
-    rename, strcpy, FILE, SEEK_CUR, SEEK_END, SEEK_SET,
+    rename, strcpy, strlen, FILE, SEEK_CUR, SEEK_END, SEEK_SET,
 };
 #[cfg(not(target_family = "windows"))]
-use libc::{closedir, opendir, readdir, strchr, strlen, strncpy};
+use libc::{closedir, opendir, readdir, strchr, strncpy};
 use libz_sys::{gzFile, gzgets, gzopen};
 use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strdup, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
 #[cfg(not(target_family = "windows"))]
 use std::ffi::CString;
-#[cfg(not(target_family = "windows"))]
 use std::ptr::null_mut;
 #[cfg(not(target_family = "windows"))]
 use std::time::Instant;
@@ -370,7 +369,6 @@ pub unsafe extern "C" fn rust_compat_time_get_time() -> c_uint {
 }
 
 #[no_mangle]
-#[cfg(not(target_family = "windows"))]
 pub unsafe extern "C" fn rust_compat_fopen(
     path: *const c_char,
     mode: *const c_char,

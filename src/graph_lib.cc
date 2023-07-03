@@ -1,6 +1,6 @@
 #include "graph_lib.h"
 
-#include <string.h>
+#include <cstring>
 
 #include <algorithm>
 

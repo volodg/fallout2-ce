@@ -1,7 +1,7 @@
 #include "main.h"
 
-#include <limits.h>
-#include <string.h>
+#include <climits>
+#include <cstring>
 
 #include "art.h"
 #include "autorun.h"

@@ -1,7 +1,7 @@
 #include "select_file_list.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 #include "db.h"
 

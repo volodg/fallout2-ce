@@ -1,8 +1,8 @@
 #include "game_dialog.h"
 
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
+#include <cassert>
+#include <cstdio>
+#include <cstring>
 
 #include "actions.h"
 #include "animation.h"

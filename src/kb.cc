@@ -1,6 +1,6 @@
 #include "kb.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "input.h"
 #include "vcr.h"

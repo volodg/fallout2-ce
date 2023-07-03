@@ -1,7 +1,6 @@
 #include "interpreter.h"
 
 #include <cassert>
-#include <cstdint>
 #include <climits>
 #include <cstdarg>
 #include <cstdio>

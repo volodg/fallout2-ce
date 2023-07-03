@@ -8,8 +8,6 @@
 
 namespace fallout {
 
-#define STAT_ERR_INVALID_STAT (-5)
-
 int statsInit();
 int statsReset();
 int statsExit();

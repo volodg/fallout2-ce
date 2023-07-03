@@ -1,6 +1,6 @@
 #include "movie.h"
 
-#include <string.h>
+#include <cstring>
 
 #include <SDL.h>
 

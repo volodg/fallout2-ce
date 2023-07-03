@@ -1,7 +1,7 @@
 #ifndef MEMORY_DEFS_H
 #define MEMORY_DEFS_H
 
-#include <stddef.h>
+#include <cstddef>
 
 namespace fallout {
 

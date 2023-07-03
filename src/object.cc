@@ -1,7 +1,7 @@
 #include "object.h"
 
-#include <assert.h>
-#include <string.h>
+#include <cassert>
+#include <cstring>
 
 #include <algorithm>
 

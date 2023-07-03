@@ -1,7 +1,7 @@
 #include "font_manager.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "color.h"
 #include "db.h"

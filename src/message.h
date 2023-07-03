@@ -1,7 +1,7 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
-#include <stddef.h>
+#include <cstddef>
 
 namespace fallout {
 

@@ -1,6 +1,6 @@
 #include "item.h"
 
-#include <string.h>
+#include <cstring>
 
 #include <algorithm>
 #include <vector>

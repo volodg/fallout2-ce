@@ -1,7 +1,7 @@
 #include "game_sound.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "animation.h"
 #include "art.h"

@@ -2,8 +2,6 @@
 
 #include <cstring>
 
-#include <fpattern.h>
-
 extern "C" {
     bool rust_fpattern_match(const char *pat, const char *fname);
 }

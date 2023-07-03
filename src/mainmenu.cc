@@ -1,6 +1,6 @@
 #include "mainmenu.h"
 
-#include <ctype.h>
+#include <cctype>
 
 #include "art.h"
 #include "color.h"

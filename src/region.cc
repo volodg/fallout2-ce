@@ -1,7 +1,7 @@
 #include "region.h"
 
-#include <limits.h>
-#include <string.h>
+#include <climits>
+#include <cstring>
 
 #include "debug.h"
 #include "memory_manager.h"

@@ -1,7 +1,7 @@
 #include "lips.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "audio.h"
 #include "db.h"
