@@ -1,8 +1,8 @@
 #include "interpreter_extra.h"
 
-#include <limits.h>
-#include <stdio.h>
-#include <string.h>
+#include <climits>
+#include <cstdio>
+#include <cstring>
 
 #include "actions.h"
 #include "animation.h"
@@ -46,6 +46,9 @@
 #include "worldmap.h"
 
 namespace fallout {
+
+// 0x518854
+int gGameDialogSid = -1;
 
 typedef enum ScriptError {
     SCRIPT_ERROR_NOT_IMPLEMENTED,
