@@ -1,5 +1,7 @@
 use crate::platform_compat::{COMPAT_MAX_PATH, rust_compat_fopen, rust_compat_strdup, rust_compat_stricmp, rust_get_file_size};
-use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, fread, free, fseek, malloc, memset, SEEK_SET, size_t, strcpy, ungetc};
+#[cfg(not(target_family = "windows"))]
+use libc::bsearch;
+use libc::{c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, fread, free, fseek, malloc, memset, SEEK_SET, size_t, strcpy, ungetc};
 use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
@@ -187,6 +189,17 @@ pub unsafe extern "C" fn rust_dfile_close(
     free(stream as *mut c_void);
 
     rc
+}
+
+#[cfg(target_family = "windows")]
+extern "C" {
+    fn bsearch(
+        key: *const c_void,
+        base: *const c_void,
+        num: size_t,
+        size: size_t,
+        compar: Option<unsafe extern "C" fn(*const c_void, *const c_void) -> c_int>,
+    ) -> *mut c_void;
 }
 
 #[no_mangle]

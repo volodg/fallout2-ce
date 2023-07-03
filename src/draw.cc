@@ -1,6 +1,6 @@
 #include "draw.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "color.h"
 

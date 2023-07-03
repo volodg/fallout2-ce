@@ -13,7 +13,7 @@
 namespace fallout {
 
 // 0x5184AC
-DatafileLoader* gDatafileLoader = NULL;
+DatafileLoader* gDatafileLoader = nullptr;
 
 // 0x5184B0
 DatafileNameMangler* gDatafileNameMangler = datafileDefaultNameManglerImpl;

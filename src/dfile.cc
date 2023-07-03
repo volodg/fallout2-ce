@@ -2,9 +2,6 @@
 
 #include <cassert>
 #include <cstdio>
-#include <cstring>
-
-#include <fpattern.h>
 
 // TODO migrate
 

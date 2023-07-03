@@ -1,6 +1,6 @@
 #include "display_monitor.h"
 
-#include <string.h>
+#include <cstring>
 
 #include <fstream>
 
