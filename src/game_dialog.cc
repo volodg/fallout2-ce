@@ -310,9 +310,6 @@ bool gGameDialogSpeakerIsPartyMember = false;
 // 0x518850
 int gGameDialogHeadFid = 0;
 
-// 0x518854
-int gGameDialogSid = -1;
-
 // Maps phoneme to talking head frame.
 //
 // 0x518858
