@@ -1,7 +1,7 @@
 #ifndef WINDOW_MANAGER_H
 #define WINDOW_MANAGER_H
 
-#include <stddef.h>
+#include <cstddef>
 
 #include "geometry.h"
 

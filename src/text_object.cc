@@ -1,6 +1,6 @@
 #include "text_object.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "debug.h"
 #include "draw.h"

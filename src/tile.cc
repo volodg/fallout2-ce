@@ -1,7 +1,7 @@
 #include "tile.h"
 
-#include <assert.h>
-#include <math.h>
+#include <cassert>
+#include <cmath>
 
 #include <algorithm>
 #include <stack>

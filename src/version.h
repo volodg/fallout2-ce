@@ -1,7 +1,7 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#include <stddef.h>
+#include <cstddef>
 
 // The size of buffer for version string.
 // Duplicated rust constant

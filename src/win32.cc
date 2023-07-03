@@ -1,7 +1,5 @@
 #include "win32.h"
 
-#include <stdlib.h>
-
 #include <SDL.h>
 
 #ifndef _WIN32
