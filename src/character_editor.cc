@@ -1,9 +1,9 @@
 #include "character_editor.h"
 
-#include <assert.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <string.h>
+#include <cassert>
+#include <cctype>
+#include <cstdio>
+#include <cstring>
 
 #include <algorithm>
 #include <vector>

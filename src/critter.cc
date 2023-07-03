@@ -1,7 +1,7 @@
 #include "critter.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "animation.h"
 #include "art.h"

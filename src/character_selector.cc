@@ -1,7 +1,7 @@
 #include "character_selector.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include <algorithm>
 #include <vector>

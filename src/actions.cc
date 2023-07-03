@@ -1,7 +1,7 @@
 #include "actions.h"
 
-#include <limits.h>
-#include <string.h>
+#include <climits>
+#include <cstring>
 
 #include "animation.h"
 #include "art.h"

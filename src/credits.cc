@@ -1,6 +1,6 @@
 #include "credits.h"
 
-#include <string.h>
+#include <cstring>
 
 #include <algorithm>
 
