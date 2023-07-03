@@ -19,7 +19,8 @@ extern "C" {
     bool rust_dbase_find_first_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData, const char* pattern);
     bool rust_dbase_find_next_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData);
     int rust_dfile_read_char(fallout::DFile* stream);
-    // rust_dfile_read_char
+    char* rust_dfile_read_string(char* string, int size, fallout::DFile* stream);
+    // rust_dfile_read_string
 }
 
 namespace fallout {
@@ -131,45 +132,7 @@ int dfileReadChar(DFile* stream)
 // 0x4E5764
 char* dfileReadString(char* string, int size, DFile* stream)
 {
-    assert(string); // "s", "dfile.c", 407
-    assert(size); // "n", "dfile.c", 408
-    assert(stream); // "stream", "dfile.c", 409
-
-    if ((stream->flags & DFILE_EOF) != 0 || (stream->flags & DFILE_ERROR) != 0) {
-        return NULL;
-    }
-
-    char* pch = string;
-
-    if ((stream->flags & DFILE_HAS_UNGETC) != 0) {
-        *pch++ = stream->ungotten & 0xFF;
-        size--;
-        stream->flags &= ~DFILE_HAS_UNGETC;
-    }
-
-    // Read up to size - 1 characters one by one saving space for the null
-    // terminator.
-    for (int index = 0; index < size - 1; index++) {
-        int ch = rust_dfile_read_char_internal(stream);
-        if (ch == -1) {
-            break;
-        }
-
-        *pch++ = ch & 0xFF;
-
-        if (ch == '\n') {
-            break;
-        }
-    }
-
-    if (pch == string) {
-        // No character was set into the buffer.
-        return nullptr;
-    }
-
-    *pch = '\0';
-
-    return string;
+    return rust_dfile_read_string(string, size, stream);
 }
 
 // [fputc].

@@ -671,3 +671,54 @@ pub unsafe extern "C" fn rust_dfile_read_char(stream: *mut DFile) -> c_int {
 
     ch
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_dfile_read_string(string: *mut c_char, mut size: c_int, stream: *mut DFile) -> *const c_char {
+    assert_ne!(string, null_mut()); // "s", "dfile.c", 407
+    assert_ne!(size, 0); // "n", "dfile.c", 408
+    assert_ne!(stream, null_mut()); // "stream", "dfile.c", 409
+
+    if ((*stream).flags & DFILE_EOF as c_int) != 0 || ((*stream).flags & DFILE_ERROR as c_int) != 0 {
+        return null();
+    }
+
+    let mut pch = string;
+
+    if ((*stream).flags & DFILE_HAS_UNGETC as c_int) != 0 {
+        *pch = ((*stream).ungotten & 0xFF as c_int) as c_char;
+        pch = pch.offset(1);
+        size -= 1;
+        (*stream).flags &= !DFILE_HAS_UNGETC as c_int;
+    }
+
+    // Read up to size - 1 characters one by one saving space for the null
+    // terminator.
+    for _ in 0..(size - 1) {
+        let ch = rust_dfile_read_char_internal(stream);
+        if ch == -1 {
+            break;
+        }
+
+        *pch = (ch & 0xFF as c_int) as c_char;
+        pch = pch.offset(1);
+
+        if ch == '\n' as c_int {
+            break;
+        }
+    }
+
+    if pch == string {
+        // No character was set into the buffer.
+        return null();
+    }
+
+    *pch = '\0' as c_char;
+
+    string
+}
+
+/*
+char* dfileReadString(char* string, int size, DFile* stream)
+{
+}
+ */
