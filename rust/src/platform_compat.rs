@@ -22,7 +22,7 @@ const COMPAT_MAX_FNAME: u16 = 256;
 #[cfg(not(target_family = "windows"))]
 const COMPAT_MAX_EXT: u16 = 256;
 
-const COMPAT_MAX_PATH: u16 = 260;
+pub const COMPAT_MAX_PATH: usize = 260;
 
 #[cfg(not(target_family = "windows"))]
 static NOW: spin::Once<Instant> = spin::Once::new();

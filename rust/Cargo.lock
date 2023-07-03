@@ -61,6 +61,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "nu-glob"
+version = "0.81.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a413281323e07a2367c7fdbf2e4afa4c941349df4e6bf3d937d6888eb39e28d"
+
+[[package]]
 name = "parking_lot"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -105,6 +111,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "libz-sys",
+ "nu-glob",
  "parking_lot",
  "sdl2",
  "sdl2-sys",

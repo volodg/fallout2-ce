@@ -6,6 +6,8 @@
 
 #include <fpattern.h>
 
+// TODO migrate
+
 // Migrated
 #include "platform_compat.h"
 
@@ -16,6 +18,7 @@ extern "C" {
     int rust_dfile_read_char_internal(fallout::DFile* stream);
     bool rust_dbase_close(fallout::DBase* dbase);
     fallout::DBase* rust_dbase_open_part(const char* filePath);
+    bool rust_fpattern_match(const char *pat, const char *fname);
     // rust_dbase_open
 }
 
@@ -57,11 +60,12 @@ bool dbaseClose(DBase* dbase)
 }
 
 // 0x4E5308
+// ???
 bool dbaseFindFirstEntry(DBase* dbase, DFileFindData* findFileData, const char* pattern)
 {
     for (int index = 0; index < dbase->entriesLength; index++) {
         DBaseEntry* entry = &(dbase->entries[index]);
-        if (fpattern_match(pattern, entry->path)) {
+        if (rust_fpattern_match(pattern, entry->path)) {
             strcpy(findFileData->fileName, entry->path);
             strcpy(findFileData->pattern, pattern);
             findFileData->index = index;
@@ -77,7 +81,7 @@ bool dbaseFindNextEntry(DBase* dbase, DFileFindData* findFileData)
 {
     for (int index = findFileData->index + 1; index < dbase->entriesLength; index++) {
         DBaseEntry* entry = &(dbase->entries[index]);
-        if (fpattern_match(findFileData->pattern, entry->path)) {
+        if (rust_fpattern_match(findFileData->pattern, entry->path)) {
             strcpy(findFileData->fileName, entry->path);
             findFileData->index = index;
             return true;

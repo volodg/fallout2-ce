@@ -5,3 +5,4 @@ mod fps_limiter;
 mod platform_compat;
 mod version;
 mod win32;
+mod fpattern;

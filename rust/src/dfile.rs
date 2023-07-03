@@ -1,4 +1,4 @@
-use crate::platform_compat::{rust_compat_fopen, rust_compat_strdup, rust_compat_stricmp, rust_get_file_size};
+use crate::platform_compat::{COMPAT_MAX_PATH, rust_compat_fopen, rust_compat_strdup, rust_compat_stricmp, rust_get_file_size};
 use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, fread, free, fseek, malloc, memset, SEEK_SET, size_t, ungetc};
 use std::ffi::{c_void, CString};
 use std::mem;
@@ -97,6 +97,25 @@ pub struct DFile {
     // [DFile]s are stored in [DBase] in reverse order, so it's actually a
     // previous opened file, not next.
     next: *mut DFile,
+}
+
+#[repr(C)]
+pub struct DFileFindData {
+    // The name of file that was found during previous search.
+    file_name: [c_char; COMPAT_MAX_PATH],
+
+    // The pattern to search.
+    //
+    // This value is set automatically when [dbaseFindFirstEntry] succeeds so
+    // that subsequent calls to [dbaseFindNextEntry] know what to look for.
+    pattern: [c_char; COMPAT_MAX_PATH],
+
+    // The index of entry that was found during previous search.
+    //
+    // This value is set automatically when [dbaseFindFirstEntry] and
+    // [dbaseFindNextEntry] succeed so that subsequent calls to [dbaseFindNextEntry]
+    // knows where to start search from.
+    index: c_int
 }
 
 // The [bsearch] comparison callback, which is used to find [DBaseEntry] for
@@ -571,3 +590,19 @@ pub unsafe extern "C" fn rust_dbase_open_part(file_path: *const c_char) -> *cons
 
     dbase
 }
+
+/*#[no_mangle]
+pub unsafe extern "C" fn rust_dbase_find_first_entry(dbase: *const DBase, find_file_data: *const DFileFindData, pattern: *const c_char) -> bool {
+    for index in 0..(*dbase).entries_length {
+    // for (int index = 0; index < dbase->entriesLength; index++) {
+        let entry = (*dbase).entries.offset(index);
+        if rust_fpattern_match(pattern, entry->path) {
+            strcpy(findFileData->fileName, entry->path);
+            strcpy(findFileData->pattern, pattern);
+            findFileData->index = index;
+            return true;
+        }
+    }
+
+    false
+}*/

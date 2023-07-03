@@ -4,6 +4,10 @@
 
 #include <fpattern.h>
 
+extern "C" {
+    bool rust_fpattern_match(const char *pat, const char *fname);
+}
+
 // TODO Migrate
 
 // TODO migrate
@@ -36,7 +40,7 @@ bool fileFindFirst(const char* path, DirectoryFileFindData* findData)
     while (findData->entry != nullptr) {
         char entryPath[COMPAT_MAX_PATH];
         compat_makepath(entryPath, drive, dir, fileFindGetName(findData), nullptr);
-        if (fpattern_match(findData->path, entryPath)) {
+        if (rust_fpattern_match(findData->path, entryPath)) {
             break;
         }
         findData->entry = readdir(findData->dir);
@@ -68,7 +72,7 @@ bool fileFindNext(DirectoryFileFindData* findData)
     while (findData->entry != nullptr) {
         char entryPath[COMPAT_MAX_PATH];
         compat_makepath(entryPath, drive, dir, fileFindGetName(findData), nullptr);
-        if (fpattern_match(findData->path, entryPath)) {
+        if (rust_fpattern_match(findData->path, entryPath)) {
             break;
         }
         findData->entry = readdir(findData->dir);
