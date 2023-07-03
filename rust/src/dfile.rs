@@ -1,9 +1,10 @@
 use crate::platform_compat::{COMPAT_MAX_PATH, rust_compat_fopen, rust_compat_strdup, rust_compat_stricmp, rust_get_file_size};
-use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, fread, free, fseek, malloc, memset, SEEK_SET, size_t, ungetc};
+use libc::{bsearch, c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, fread, free, fseek, malloc, memset, SEEK_SET, size_t, strcpy, ungetc};
 use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use libz_sys::{alloc_func, Bytef, free_func, inflate, inflateEnd, inflateInit_, voidpf, Z_NO_FLUSH, Z_OK, z_stream, z_streamp};
+use crate::fpattern::rust_fpattern_match;
 
 // The size of decompression buffer for reading compressed [DFile]s.
 const DFILE_DECOMPRESSION_BUFFER_SIZE: u32 = 0x400;
@@ -591,18 +592,17 @@ pub unsafe extern "C" fn rust_dbase_open_part(file_path: *const c_char) -> *cons
     dbase
 }
 
-/*#[no_mangle]
-pub unsafe extern "C" fn rust_dbase_find_first_entry(dbase: *const DBase, find_file_data: *const DFileFindData, pattern: *const c_char) -> bool {
-    for index in 0..(*dbase).entries_length {
-    // for (int index = 0; index < dbase->entriesLength; index++) {
-        let entry = (*dbase).entries.offset(index);
-        if rust_fpattern_match(pattern, entry->path) {
-            strcpy(findFileData->fileName, entry->path);
-            strcpy(findFileData->pattern, pattern);
-            findFileData->index = index;
+#[no_mangle]
+pub unsafe extern "C" fn rust_dbase_find_first_entry(dbase: *const DBase, find_file_data: *mut DFileFindData, pattern: *const c_char) -> bool {
+    for index in 0..(*dbase).entries_length[0] {
+        let entry = (*dbase).entries.offset(index as isize);
+        if rust_fpattern_match(pattern, (*entry).path) {
+            strcpy((*find_file_data).file_name.as_mut_ptr() as *mut c_char, (*entry).path);
+            strcpy((*find_file_data).pattern.as_mut_ptr() as *mut c_char, pattern);
+            (*find_file_data).index = index as c_int;
             return true;
         }
     }
 
     false
-}*/
+}
