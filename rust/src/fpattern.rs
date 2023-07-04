@@ -12,4 +12,3 @@ pub extern "C" fn rust_fpattern_match(pat: *const c_char, fname: *const c_char) 
         Err(_) => false,
     }
 }
-

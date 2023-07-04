@@ -13,9 +13,12 @@
 // Migrated
 #include "platform_compat.h"
 
-namespace fallout {
+extern "C" {
+    void rust_file_copy(const char* existingFilePath, const char* newFilePath);
+    // rust_file_copy_decompressed
+}
 
-static void fileCopy(const char* existingFilePath, const char* newFilePath);
+namespace fallout {
 
 // 0x452740
 int fileCopyDecompressed(const char* existingFilePath, const char* newFilePath)
@@ -58,7 +61,7 @@ int fileCopyDecompressed(const char* existingFilePath, const char* newFilePath)
             return -1;
         }
     } else {
-        fileCopy(existingFilePath, newFilePath);
+        rust_file_copy(existingFilePath, newFilePath);
     }
 
     return 0;
@@ -68,7 +71,7 @@ int fileCopyDecompressed(const char* existingFilePath, const char* newFilePath)
 int fileCopyCompressed(const char* existingFilePath, const char* newFilePath)
 {
     FILE* inStream = compat_fopen(existingFilePath, "rb");
-    if (inStream == NULL) {
+    if (inStream == nullptr) {
         return -1;
     }
 
@@ -81,7 +84,7 @@ int fileCopyCompressed(const char* existingFilePath, const char* newFilePath)
         // Source file is already gzipped, there is no need to do anything
         // besides copying.
         fclose(inStream);
-        fileCopy(existingFilePath, newFilePath);
+        rust_file_copy(existingFilePath, newFilePath);
     } else {
         gzFile outStream = compat_gzopen(newFilePath, "wb");
         if (outStream == nullptr) {
@@ -110,7 +113,7 @@ int fileCopyCompressed(const char* existingFilePath, const char* newFilePath)
 int _gzdecompress_file(const char* existingFilePath, const char* newFilePath)
 {
     FILE* stream = compat_fopen(existingFilePath, "rb");
-    if (stream == NULL) {
+    if (stream == nullptr) {
         return -1;
     }
 
@@ -122,12 +125,12 @@ int _gzdecompress_file(const char* existingFilePath, const char* newFilePath)
     // TODO: Is it broken?
     if (magic[0] != 0x1F || magic[1] != 0x8B) {
         gzFile gzstream = compat_gzopen(existingFilePath, "rb");
-        if (gzstream == NULL) {
+        if (gzstream == nullptr) {
             return -1;
         }
 
         stream = compat_fopen(newFilePath, "wb");
-        if (stream == NULL) {
+        if (stream == nullptr) {
             gzclose(gzstream);
             return -1;
         }
@@ -144,42 +147,10 @@ int _gzdecompress_file(const char* existingFilePath, const char* newFilePath)
         gzclose(gzstream);
         fclose(stream);
     } else {
-        fileCopy(existingFilePath, newFilePath);
+        rust_file_copy(existingFilePath, newFilePath);
     }
 
     return 0;
-}
-
-static void fileCopy(const char* existingFilePath, const char* newFilePath)
-{
-    FILE* in = compat_fopen(existingFilePath, "rb");
-    FILE* out = compat_fopen(newFilePath, "wb");
-    if (in != NULL && out != NULL) {
-        std::vector<unsigned char> buffer(0xFFFF);
-
-        size_t bytesRead;
-        while ((bytesRead = fread(buffer.data(), sizeof(*buffer.data()), buffer.size(), in)) > 0) {
-            size_t bytesWritten;
-            size_t offset = 0;
-            while ((bytesWritten = fwrite(buffer.data() + offset, sizeof(*buffer.data()), bytesRead, out)) > 0) {
-                bytesRead -= bytesWritten;
-                offset += bytesWritten;
-            }
-
-            if (bytesWritten < 0) {
-                bytesRead = -1;
-                break;
-            }
-        }
-    }
-
-    if (in != NULL) {
-        fclose(in);
-    }
-
-    if (out != NULL) {
-        fclose(out);
-    }
 }
 
 } // namespace fallout

@@ -6,3 +6,4 @@ mod platform_compat;
 mod version;
 mod win32;
 mod fpattern;
+mod file_utils;
