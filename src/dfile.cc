@@ -11,8 +11,6 @@
 extern "C" {
     int rust_dfile_close(fallout::DFile* stream);
     fallout::DFile* rust_dfile_open_internal(fallout::DBase* dbase, const char* filePath, const char* mode, fallout::DFile* dfile);
-    bool rust_dfile_read_compressed(fallout::DFile* stream, void* ptr, size_t size);
-    int rust_dfile_read_char_internal(fallout::DFile* stream);
     bool rust_dbase_close(fallout::DBase* dbase);
     fallout::DBase* rust_dbase_open_part(const char* filePath);
     bool rust_fpattern_match(const char *pat, const char *fname);
@@ -21,7 +19,8 @@ extern "C" {
     int rust_dfile_read_char(fallout::DFile* stream);
     char* rust_dfile_read_string(char* string, int size, fallout::DFile* stream);
     size_t rust_dfile_read(void* ptr, size_t size, size_t count, fallout::DFile* stream);
-    // rust_dfile_read
+    int rust_dfile_seek(fallout::DFile* stream, long offset, int origin);
+    void rust_dfile_rewind(fallout::DFile* stream);
 }
 
 namespace fallout {
@@ -181,102 +180,7 @@ size_t dfileWrite(const void* ptr, size_t size, size_t count, DFile* stream)
 // 0x4E5A74
 int dfileSeek(DFile* stream, long offset, int origin)
 {
-    assert(stream); // "stream", "dfile.c", 569
-
-    if ((stream->flags & DFILE_ERROR) != 0) {
-        return 1;
-    }
-
-    if ((stream->flags & DFILE_TEXT) != 0) {
-        if (offset != 0 && origin != SEEK_SET) {
-            // NOTE: For unknown reason this function does not allow arbitrary
-            // seeks in text streams, whether compressed or not. It only
-            // supports rewinding. Probably because of reading functions which
-            // handle \r\n sequence as \n.
-            return 1;
-        }
-    }
-
-    long offsetFromBeginning;
-    switch (origin) {
-    case SEEK_SET:
-        offsetFromBeginning = offset;
-        break;
-    case SEEK_CUR:
-        offsetFromBeginning = stream->position + offset;
-        break;
-    case SEEK_END:
-        offsetFromBeginning = stream->entry->uncompressedSize + offset;
-        break;
-    default:
-        return 1;
-    }
-
-    if (offsetFromBeginning >= stream->entry->uncompressedSize) {
-        return 1;
-    }
-
-    long pos = stream->position;
-    if (offsetFromBeginning == pos) {
-        stream->flags &= ~(DFILE_HAS_UNGETC | DFILE_EOF);
-        return 0;
-    }
-
-    if (offsetFromBeginning != 0) {
-        if (stream->entry->compressed == 1) {
-            if (offsetFromBeginning < pos) {
-                // We cannot go backwards in compressed stream, so the only way
-                // is to start from the beginning.
-                dfileRewind(stream);
-            }
-
-            // Consume characters one by one until we reach specified offset.
-            while (offsetFromBeginning > stream->position) {
-                if (rust_dfile_read_char_internal(stream) == -1) {
-                    return 1;
-                }
-            }
-        } else {
-            if (fseek(stream->stream, offsetFromBeginning - pos, SEEK_CUR) != 0) {
-                stream->flags |= DFILE_ERROR;
-                return 1;
-            }
-
-            // FIXME: I'm not sure what this assignment means. This field is
-            // only meaningful when reading compressed streams.
-            stream->compressedBytesRead = offsetFromBeginning;
-        }
-
-        stream->flags &= ~(DFILE_HAS_UNGETC | DFILE_EOF);
-        return 0;
-    }
-
-    if (fseek(stream->stream, stream->dbase->dataOffset + stream->entry->dataOffset, SEEK_SET) != 0) {
-        stream->flags |= DFILE_ERROR;
-        return 1;
-    }
-
-    if (inflateEnd(stream->decompressionStream) != Z_OK) {
-        stream->flags |= DFILE_ERROR;
-        return 1;
-    }
-
-    stream->decompressionStream->zalloc = Z_NULL;
-    stream->decompressionStream->zfree = Z_NULL;
-    stream->decompressionStream->opaque = Z_NULL;
-    stream->decompressionStream->next_in = stream->decompressionBuffer;
-    stream->decompressionStream->avail_in = 0;
-
-    if (inflateInit(stream->decompressionStream) != Z_OK) {
-        stream->flags |= DFILE_ERROR;
-        return 1;
-    }
-
-    stream->position = 0;
-    stream->compressedBytesRead = 0;
-    stream->flags &= ~(DFILE_HAS_UNGETC | DFILE_EOF);
-
-    return 0;
+    return rust_dfile_seek(stream, offset, origin);
 }
 
 // [ftell].
@@ -294,11 +198,7 @@ long dfileTell(DFile* stream)
 // 0x4E5CB0
 void dfileRewind(DFile* stream)
 {
-    assert(stream); // "stream", "dfile.c", 664
-
-    dfileSeek(stream, 0, SEEK_SET);
-
-    stream->flags &= ~DFILE_ERROR;
+    rust_dfile_rewind(stream);
 }
 
 // [feof].

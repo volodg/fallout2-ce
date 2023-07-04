@@ -1,7 +1,7 @@
 use crate::platform_compat::{COMPAT_MAX_PATH, rust_compat_fopen, rust_compat_strdup, rust_compat_stricmp, rust_get_file_size};
 #[cfg(not(target_family = "windows"))]
 use libc::bsearch;
-use libc::{c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, fread, free, fseek, malloc, memset, SEEK_SET, size_t, strcpy, ungetc};
+use libc::{c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, FILE, fread, free, fseek, malloc, memset, SEEK_CUR, SEEK_END, SEEK_SET, size_t, strcpy, ungetc};
 use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
@@ -341,9 +341,8 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
     dfile
 }
 
-#[no_mangle]
 // 0x4E6078
-pub unsafe extern "C" fn rust_dfile_read_compressed(stream: *mut DFile, mut ptr: *const c_void, mut size: size_t) -> bool {
+unsafe fn rust_dfile_read_compressed(stream: *mut DFile, mut ptr: *const c_void, mut size: size_t) -> bool {
     if ((*stream).flags & DFILE_HAS_COMPRESSED_UNGETC) != 0 {
         let mut byte_buffer = ptr as *mut c_uchar;
         *byte_buffer = ((*stream).compressed_ungotten & 0xFF) as c_uchar;
@@ -409,8 +408,7 @@ unsafe fn rust_dfile_unget_compressed(stream: *mut DFile, ch: c_int) {
 }
 
 // 0x4E5F9C
-#[no_mangle]
-pub unsafe extern "C" fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_int {
+unsafe fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_int {
     if (*(*stream).entry).compressed[0] == 1 {
         let mut ch = ['\0' as c_char; 1];
         if !rust_dfile_read_compressed(stream, ch.as_mut_ptr() as *const c_void, mem::size_of::<c_char>()) {
@@ -765,9 +763,110 @@ pub unsafe extern "C" fn rust_dfile_read(mut ptr: *const c_void, size: size_t, c
 
     bytes_read / size
 }
-/*
-size_t dfileRead(void* ptr, size_t size, size_t count, DFile* stream)
-{
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_dfile_seek(stream: *mut DFile, offset: c_long, origin: c_int) -> c_int {
+    assert_ne!(stream, null_mut()); // "stream", "dfile.c", 569
+
+    if ((*stream).flags & DFILE_ERROR as c_int) != 0 {
+        return 1;
+    }
+
+    if ((*stream).flags & DFILE_TEXT as c_int) != 0 {
+        if offset != 0 && origin != SEEK_SET {
+            // NOTE: For unknown reason this function does not allow arbitrary
+            // seeks in text streams, whether compressed or not. It only
+            // supports rewinding. Probably because of reading functions which
+            // handle \r\n sequence as \n.
+            return 1;
+        }
+    }
+
+    let offset_from_beginning = match origin {
+        SEEK_SET => offset,
+        SEEK_CUR => (*stream).position + offset,
+        SEEK_END => (*(*stream).entry).uncompressed_size[0] as c_long + offset,
+        _ => return 1
+    };
+
+    if offset_from_beginning >= (*(*stream).entry).uncompressed_size[0] as c_long {
+        return 1;
+    }
+
+    let pos = (*stream).position;
+    if offset_from_beginning == pos {
+        (*stream).flags &= !(DFILE_HAS_UNGETC | DFILE_EOF) as c_int;
+        return 0;
+    }
+
+    if offset_from_beginning != 0 {
+        if (*(*stream).entry).compressed[0] == 1 {
+            if offset_from_beginning < pos {
+                // We cannot go backwards in compressed stream, so the only way
+                // is to start from the beginning.
+                rust_dfile_rewind(stream);
+            }
+
+            // Consume characters one by one until we reach specified offset.
+            while offset_from_beginning > (*stream).position {
+                if rust_dfile_read_char_internal(stream) == -1 {
+                    return 1;
+                }
+            }
+        } else {
+            if fseek((*stream).stream, offset_from_beginning - pos, SEEK_CUR) != 0 {
+                (*stream).flags |= DFILE_ERROR as c_int;
+                return 1;
+            }
+
+            // FIXME: I'm not sure what this assignment means. This field is
+            // only meaningful when reading compressed streams.
+            (*stream).compressed_bytes_read = offset_from_beginning as c_int;
+        }
+
+        (*stream).flags &= !(DFILE_HAS_UNGETC | DFILE_EOF) as c_int;
+        return 0;
+    }
+
+    if fseek((*stream).stream, ((*(*stream).dbase).data_offset + (*(*stream).entry).data_offset[0]) as c_long, SEEK_SET) != 0 {
+        (*stream).flags |= DFILE_ERROR as c_int;
+        return 1;
+    }
+
+    if inflateEnd((*stream).decompression_stream) != Z_OK {
+        (*stream).flags |= DFILE_ERROR as c_int;
+        return 1;
+    }
+
+    (*(*stream).decompression_stream).zalloc = mem::transmute::<*const c_void, alloc_func>(null());
+    (*(*stream).decompression_stream).zfree = mem::transmute::<*const c_void, free_func>(null());
+    (*(*stream).decompression_stream).opaque = mem::transmute::<*const c_void, voidpf>(null());
+    (*(*stream).decompression_stream).next_in = (*stream).decompression_buffer;
+    (*(*stream).decompression_stream).avail_in = 0;
+
+    //inflateInit_((strm), ZLIB_VERSION, (int)sizeof(z_stream))
+    // Used ZLIB_VERSION
+    let version = CString::new("1.2.11").expect("valid string");
+    if inflateInit_((*stream).decompression_stream, version.as_ptr(), mem::size_of::<z_stream>() as c_int) != Z_OK {
+        (*stream).flags |= DFILE_ERROR as c_int;
+        return 1;
+    }
+
+    (*stream).position = 0;
+    (*stream).compressed_bytes_read = 0;
+    (*stream).flags &= !(DFILE_HAS_UNGETC | DFILE_EOF) as c_int;
+
+    0
 }
- */
+
+#[no_mangle]
+// 0x4E5D9C
+pub unsafe extern "C" fn rust_dfile_rewind(stream: *mut DFile)
+{
+    assert_ne!(stream, null_mut()); // "stream", "dfile.c", 664
+
+    rust_dfile_seek(stream, 0, SEEK_SET);
+
+    (*stream).flags &= !DFILE_ERROR as c_int;
+}
+
