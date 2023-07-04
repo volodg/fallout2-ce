@@ -4,11 +4,10 @@
 #include <cstdio>
 #include <zlib.h>
 
-#include "dfile.h"
-
 // TODO Migrate
 
 // Migrated
+#include "dfile.h"
 #include "platform_compat.h"
 
 namespace fallout {

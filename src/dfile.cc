@@ -1,12 +1,6 @@
 #include "dfile.h"
 
 #include <cassert>
-#include <cstdio>
-
-// TODO migrate
-
-// Migrated
-#include "platform_compat.h"
 
 extern "C" {
     int rust_dfile_close(fallout::DFile* stream);

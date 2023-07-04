@@ -126,11 +126,6 @@ void compat_windows_path_to_native(char* path)
     rust_compat_windows_path_to_native(path);
 }
 
-void compat_resolve_path(char* path)
-{
-    rust_compat_resolve_path(path);
-}
-
 int compat_access(const char* path, int mode)
 {
     return rust_compat_access(path, mode);
