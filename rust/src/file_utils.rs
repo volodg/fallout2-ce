@@ -1,8 +1,8 @@
 use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::null_mut;
-use libc::{c_char, c_int, c_uchar, fclose, fgetc, fputc, fread, fwrite, size_t};
-use libz_sys::{gzclose, gzgetc};
+use libc::{c_char, c_int, c_uchar, fclose, fgetc, fputc, fread, fwrite, rewind, size_t};
+use libz_sys::{gzclose, gzgetc, gzputc};
 use crate::platform_compat::{rust_compat_fopen, rust_compat_gzopen};
 
 #[no_mangle]
@@ -88,50 +88,44 @@ pub unsafe extern "C" fn rust_file_copy_decompressed(existing_file_path: *const 
     0
 }
 
-/*
-int fileCopyDecompressed(const char* existingFilePath, const char* newFilePath)
-{
-    FILE* stream = compat_fopen(existingFilePath, "rb");
-    if (stream == nullptr) {
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_copy_compressed(existing_file_path: *const c_char, new_file_path: *const c_char) -> c_int {
+    let rb = CString::new("rb").expect("valid string");
+
+    let in_stream = rust_compat_fopen(existing_file_path, rb.as_ptr());
+    if in_stream == null_mut() {
         return -1;
     }
 
-    int magic[2];
-    magic[0] = fgetc(stream);
-    magic[1] = fgetc(stream);
-    fclose(stream);
+    let magic = [fgetc(in_stream), fgetc(in_stream)];
+    rewind(in_stream);
 
-    if (magic[0] == 0x1F && magic[1] == 0x8B) {
-        gzFile inStream = compat_gzopen(existingFilePath, "rb");
-        FILE* outStream = compat_fopen(newFilePath, "wb");
-
-        if (inStream != nullptr && outStream != nullptr) {
-            for (;;) {
-                int ch = gzgetc(inStream);
-                if (ch == -1) {
-                    break;
-                }
-
-                fputc(ch, outStream);
-            }
-
-            gzclose(inStream);
-            fclose(outStream);
-        } else {
-            if (inStream != nullptr) {
-                gzclose(inStream);
-            }
-
-            if (outStream != nullptr) {
-                fclose(outStream);
-            }
-
+    if magic[0] == 0x1F && magic[1] == 0x8B {
+        // Source file is already gzipped, there is no need to do anything
+        // besides copying.
+        fclose(in_stream);
+        rust_file_copy(existing_file_path, new_file_path);
+    } else {
+        let wb = CString::new("wb").expect("valid string");
+        let out_stream = rust_compat_gzopen(new_file_path, wb.as_ptr());
+        if out_stream == null_mut() {
+            fclose(in_stream);
             return -1;
         }
-    } else {
-        fileCopy(existingFilePath, newFilePath);
+
+        // Copy byte-by-byte.
+        loop {
+            let ch = fgetc(in_stream);
+            if ch == -1 {
+                break;
+            }
+
+            gzputc(out_stream, ch);
+        }
+
+        fclose(in_stream);
+        gzclose(out_stream);
     }
 
-    return 0;
+    0
 }
- */

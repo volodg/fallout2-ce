@@ -14,6 +14,8 @@
 extern "C" {
     void rust_file_copy(const char* existingFilePath, const char* newFilePath);
     int rust_file_copy_decompressed(const char* existingFilePath, const char* newFilePath);
+    int rust_file_copy_compressed(const char* existingFilePath, const char* newFilePath);
+    // rust_file_copy_compressed
 }
 
 namespace fallout {
@@ -27,43 +29,7 @@ int fileCopyDecompressed(const char* existingFilePath, const char* newFilePath)
 // 0x452804
 int fileCopyCompressed(const char* existingFilePath, const char* newFilePath)
 {
-    FILE* inStream = compat_fopen(existingFilePath, "rb");
-    if (inStream == nullptr) {
-        return -1;
-    }
-
-    int magic[2];
-    magic[0] = fgetc(inStream);
-    magic[1] = fgetc(inStream);
-    rewind(inStream);
-
-    if (magic[0] == 0x1F && magic[1] == 0x8B) {
-        // Source file is already gzipped, there is no need to do anything
-        // besides copying.
-        fclose(inStream);
-        rust_file_copy(existingFilePath, newFilePath);
-    } else {
-        gzFile outStream = compat_gzopen(newFilePath, "wb");
-        if (outStream == nullptr) {
-            fclose(inStream);
-            return -1;
-        }
-
-        // Copy byte-by-byte.
-        for (;;) {
-            int ch = fgetc(inStream);
-            if (ch == -1) {
-                break;
-            }
-
-            gzputc(outStream, ch);
-        }
-
-        fclose(inStream);
-        gzclose(outStream);
-    }
-
-    return 0;
+    return rust_file_copy_compressed(existingFilePath, newFilePath);
 }
 
 // TODO: Check, implementation looks odd.
