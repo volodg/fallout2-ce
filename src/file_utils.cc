@@ -6,8 +6,6 @@
 #include <cstdio>
 #include <zlib.h>
 
-#include <vector>
-
 // TODO Migrate
 
 // Migrated
@@ -24,7 +22,7 @@ namespace fallout {
 int fileCopyDecompressed(const char* existingFilePath, const char* newFilePath)
 {
     FILE* stream = compat_fopen(existingFilePath, "rb");
-    if (stream == NULL) {
+    if (stream == nullptr) {
         return -1;
     }
 
@@ -50,11 +48,11 @@ int fileCopyDecompressed(const char* existingFilePath, const char* newFilePath)
             gzclose(inStream);
             fclose(outStream);
         } else {
-            if (inStream != NULL) {
+            if (inStream != nullptr) {
                 gzclose(inStream);
             }
 
-            if (outStream != NULL) {
+            if (outStream != nullptr) {
                 fclose(outStream);
             }
 
