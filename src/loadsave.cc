@@ -20,7 +20,6 @@
 #include "debug.h"
 #include "display_monitor.h"
 #include "draw.h"
-#include "file_utils.h"
 #include "game.h"
 #include "game_mouse.h"
 #include "game_movie.h"
@@ -57,8 +56,8 @@
 #include "worldmap.h"
 
 // Migrated
+#include "file_utils.h"
 #include "platform_compat.h"
-#include "version.h"
 
 extern "C"
 {
