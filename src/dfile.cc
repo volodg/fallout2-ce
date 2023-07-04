@@ -20,7 +20,8 @@ extern "C" {
     bool rust_dbase_find_next_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData);
     int rust_dfile_read_char(fallout::DFile* stream);
     char* rust_dfile_read_string(char* string, int size, fallout::DFile* stream);
-    // rust_dfile_read_string
+    size_t rust_dfile_read(void* ptr, size_t size, size_t count, fallout::DFile* stream);
+    // rust_dfile_read
 }
 
 namespace fallout {
@@ -161,50 +162,7 @@ int dfileWriteString(const char* string, DFile* stream)
 // 0x4E58FC
 size_t dfileRead(void* ptr, size_t size, size_t count, DFile* stream)
 {
-    assert(ptr); // "ptr", "dfile.c", 499
-    assert(stream); // "stream", dfile.c, 500
-
-    if ((stream->flags & DFILE_EOF) != 0 || (stream->flags & DFILE_ERROR) != 0) {
-        return 0;
-    }
-
-    size_t remainingSize = stream->entry->uncompressedSize - stream->position;
-    if ((stream->flags & DFILE_HAS_UNGETC) != 0) {
-        remainingSize++;
-    }
-
-    size_t bytesToRead = size * count;
-    if (remainingSize < bytesToRead) {
-        bytesToRead = remainingSize;
-        stream->flags |= DFILE_EOF;
-    }
-
-    size_t extraBytesRead = 0;
-    if ((stream->flags & DFILE_HAS_UNGETC) != 0) {
-        unsigned char* byteBuffer = (unsigned char*)ptr;
-        *byteBuffer++ = stream->ungotten & 0xFF;
-        ptr = byteBuffer;
-
-        bytesToRead--;
-
-        stream->flags &= ~DFILE_HAS_UNGETC;
-        extraBytesRead = 1;
-    }
-
-    size_t bytesRead;
-    if (stream->entry->compressed == 1) {
-        if (!rust_dfile_read_compressed(stream, ptr, bytesToRead)) {
-            stream->flags |= DFILE_ERROR;
-            return false;
-        }
-
-        bytesRead = bytesToRead;
-    } else {
-        bytesRead = fread(ptr, 1, bytesToRead, stream->stream) + extraBytesRead;
-        stream->position += bytesRead;
-    }
-
-    return bytesRead / size;
+    return rust_dfile_read(ptr, size, count, stream);
 }
 
 // [fwrite].

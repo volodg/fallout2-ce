@@ -717,8 +717,57 @@ pub unsafe extern "C" fn rust_dfile_read_string(string: *mut c_char, mut size: c
     string
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_dfile_read(mut ptr: *const c_void, size: size_t, count: size_t, stream: *mut DFile) -> size_t {
+    assert_ne!(ptr, null_mut()); // "ptr", "dfile.c", 499
+    assert_ne!(stream, null_mut()); // "stream", dfile.c, 500
+
+    if ((*stream).flags & DFILE_EOF as c_int) != 0 || ((*stream).flags & DFILE_ERROR as c_int) != 0 {
+        return 0;
+    }
+
+    let mut remaining_size = (*(*stream).entry).uncompressed_size[0] as c_long - (*stream).position;
+    if ((*stream).flags & DFILE_HAS_UNGETC as c_int) != 0 {
+        remaining_size += 1;
+    }
+
+    let mut bytes_to_read = size * count;
+    if remaining_size < bytes_to_read as c_long {
+        bytes_to_read = remaining_size as size_t;
+        (*stream).flags |= DFILE_EOF as c_int;
+    }
+
+    let mut extra_bytes_read = 0;
+    if ((*stream).flags & DFILE_HAS_UNGETC as c_int) != 0 {
+        let mut byte_buffer = ptr as *mut c_uchar;
+        *byte_buffer = ((*stream).ungotten & 0xFF as c_int) as c_uchar;
+        byte_buffer = byte_buffer.offset(1);
+        ptr = byte_buffer as *const c_void;
+
+        bytes_to_read -= 1;
+
+        (*stream).flags &= !DFILE_HAS_UNGETC as c_int;
+        extra_bytes_read = 1;
+    }
+
+    let bytes_read;
+    if (*(*stream).entry).compressed[0] == 1 {
+        if !rust_dfile_read_compressed(stream, ptr, bytes_to_read) {
+            (*stream).flags |= DFILE_ERROR as c_int;
+            return 0;
+        }
+
+        bytes_read = bytes_to_read;
+    } else {
+        bytes_read = fread(ptr as *mut c_void, 1, bytes_to_read, (*stream).stream) + extra_bytes_read;
+        (*stream).position += bytes_read as c_long;
+    }
+
+    bytes_read / size
+}
 /*
-char* dfileReadString(char* string, int size, DFile* stream)
+size_t dfileRead(void* ptr, size_t size, size_t count, DFile* stream)
 {
+
 }
  */
