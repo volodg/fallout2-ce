@@ -1,8 +1,9 @@
 use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::null_mut;
-use libc::{c_char, c_uchar, fclose, fread, fwrite, size_t};
-use crate::platform_compat::rust_compat_fopen;
+use libc::{c_char, c_int, c_uchar, fclose, fgetc, fputc, fread, fwrite, size_t};
+use libz_sys::{gzclose, gzgetc};
+use crate::platform_compat::{rust_compat_fopen, rust_compat_gzopen};
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_file_copy(existing_file_path: *const c_char, new_file_path: *const c_char) {
@@ -40,58 +41,52 @@ pub unsafe extern "C" fn rust_file_copy(existing_file_path: *const c_char, new_f
     }
 }
 
-/*
-static void fileCopy(const char* existingFilePath, const char* newFilePath)
-{
-}
- */
-
-/*
 #[no_mangle]
 pub unsafe extern "C" fn rust_file_copy_decompressed(existing_file_path: *const c_char, new_file_path: *const c_char) -> c_int {
-    FILE* stream = compat_fopen(existingFilePath, "rb");
-    if stream == null() {
+    let rb = CString::new("rb").expect("valid string");
+
+    let stream = rust_compat_fopen(existing_file_path, rb.as_ptr());
+    if stream == null_mut() {
         return -1;
     }
 
-    let magic = [c_int; 2];
-    magic[0] = fgetc(stream);
-    magic[1] = fgetc(stream);
+    let magic = [fgetc(stream), fgetc(stream)];
     fclose(stream);
 
     if magic[0] == 0x1F && magic[1] == 0x8B {
-        let inStream = rust_compat_gzopen(existingFilePath, "rb");
-        FILE* outStream = rust_compat_fopen(newFilePath, "wb");
+        let in_stream = rust_compat_gzopen(existing_file_path, rb.as_ptr());
+        let wb = CString::new("wb").expect("valid string");
+        let out_stream = rust_compat_fopen(new_file_path, wb.as_ptr());
 
-        if inStream != null() && outStream != null() {
+        if in_stream != null_mut() && out_stream != null_mut() {
             loop {
-                let ch = gzgetc(inStream);
+                let ch = gzgetc(in_stream);
                 if ch == -1 {
                     break;
                 }
 
-                fputc(ch, outStream);
+                fputc(ch, out_stream);
             }
 
-            gzclose(inStream);
-            fclose(outStream);
+            gzclose(in_stream);
+            fclose(out_stream);
         } else {
-            if inStream != null() {
-                gzclose(inStream);
+            if in_stream != null_mut() {
+                gzclose(in_stream);
             }
 
-            if outStream != null() {
-                fclose(outStream);
+            if out_stream != null_mut() {
+                fclose(out_stream);
             }
 
             return -1;
         }
     } else {
-        fileCopy(existingFilePath, newFilePath);
+        rust_file_copy(existing_file_path, new_file_path);
     }
 
     0
-}*/
+}
 
 /*
 int fileCopyDecompressed(const char* existingFilePath, const char* newFilePath)
