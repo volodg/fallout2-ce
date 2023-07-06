@@ -3,7 +3,7 @@ use libc::c_char;
 use nu_glob::Pattern;
 
 #[no_mangle]
-pub unsafe fn rust_fpattern_match(pat: *const c_char, fname: *const c_char) -> bool {
+pub unsafe fn fpattern_match(pat: *const c_char, fname: *const c_char) -> bool {
     let pat = CStr::from_ptr(pat).to_str().expect("valid input string");
     let fname = CStr::from_ptr(fname).to_str().expect("valid input string");
 

@@ -276,7 +276,7 @@ fn rust_compat_resolve_path(_path: *mut c_char) {}
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
-unsafe fn rust_compat_resolve_path(path: *mut c_char) {
+unsafe fn compat_resolve_path(path: *mut c_char) {
     let mut pch = path;
 
     let mut dir;
@@ -350,7 +350,7 @@ pub unsafe extern "C" fn rust_compat_mkdir(path: *const c_char) -> c_int {
     let mut native_path = ['\0' as c_char; COMPAT_MAX_PATH as usize];
     strcpy(native_path.as_mut_ptr(), path);
     rust_compat_windows_path_to_native(native_path.as_mut_ptr());
-    rust_compat_resolve_path(native_path.as_mut_ptr());
+    compat_resolve_path(native_path.as_mut_ptr());
     native_mkdir(native_path.as_ptr())
 }
 
@@ -376,7 +376,7 @@ pub unsafe extern "C" fn rust_compat_fopen(
     let mut native_path = [0 as c_char; COMPAT_MAX_PATH as usize];
     strcpy(native_path.as_mut_ptr(), path);
     rust_compat_windows_path_to_native(native_path.as_mut_ptr());
-    rust_compat_resolve_path(native_path.as_mut_ptr());
+    compat_resolve_path(native_path.as_mut_ptr());
     return fopen(native_path.as_ptr(), mode);
 }
 
@@ -385,7 +385,7 @@ pub unsafe extern "C" fn rust_compat_gzopen(path: *const c_char, mode: *const c_
     let mut native_path = [0 as c_char; COMPAT_MAX_PATH as usize];
     strcpy(native_path.as_mut_ptr(), path);
     rust_compat_windows_path_to_native(native_path.as_mut_ptr());
-    rust_compat_resolve_path(native_path.as_mut_ptr());
+    compat_resolve_path(native_path.as_mut_ptr());
     return gzopen(native_path.as_ptr(), mode);
 }
 
@@ -433,7 +433,7 @@ pub unsafe extern "C" fn rust_compat_remove(path: *const c_char) -> c_int {
     let mut native_path = [0 as c_char; COMPAT_MAX_PATH as usize];
     strcpy(native_path.as_mut_ptr(), path);
     rust_compat_windows_path_to_native(native_path.as_mut_ptr());
-    rust_compat_resolve_path(native_path.as_mut_ptr());
+    compat_resolve_path(native_path.as_mut_ptr());
     remove(native_path.as_ptr())
 }
 
@@ -445,12 +445,12 @@ pub unsafe extern "C" fn rust_compat_rename(
     let mut native_old_file_name = [0 as c_char; COMPAT_MAX_PATH as usize];
     strcpy(native_old_file_name.as_mut_ptr(), old_file_name);
     rust_compat_windows_path_to_native(native_old_file_name.as_mut_ptr());
-    rust_compat_resolve_path(native_old_file_name.as_mut_ptr());
+    compat_resolve_path(native_old_file_name.as_mut_ptr());
 
     let mut native_new_file_name = [0 as c_char; COMPAT_MAX_PATH as usize];
     strcpy(native_new_file_name.as_mut_ptr(), new_file_name);
     rust_compat_windows_path_to_native(native_new_file_name.as_mut_ptr());
-    rust_compat_resolve_path(native_new_file_name.as_mut_ptr());
+    compat_resolve_path(native_new_file_name.as_mut_ptr());
 
     rename(native_old_file_name.as_ptr(), native_new_file_name.as_ptr())
 }
@@ -460,7 +460,7 @@ pub unsafe extern "C" fn rust_compat_access(path: *const c_char, mode: c_int) ->
     let mut native_path = [0 as c_char; COMPAT_MAX_PATH as usize];
     strcpy(native_path.as_mut_ptr(), path);
     rust_compat_windows_path_to_native(native_path.as_mut_ptr());
-    rust_compat_resolve_path(native_path.as_mut_ptr());
+    compat_resolve_path(native_path.as_mut_ptr());
     access(native_path.as_ptr(), mode)
 }
 

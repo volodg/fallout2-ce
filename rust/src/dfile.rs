@@ -6,7 +6,7 @@ use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use libz_sys::{alloc_func, Bytef, free_func, inflate, inflateEnd, inflateInit_, voidpf, Z_NO_FLUSH, Z_OK, z_stream, z_streamp};
-use crate::fpattern::rust_fpattern_match;
+use crate::fpattern::fpattern_match;
 
 // The size of decompression buffer for reading compressed [DFile]s.
 const DFILE_DECOMPRESSION_BUFFER_SIZE: u32 = 0x400;
@@ -135,7 +135,7 @@ pub struct DFileFindData {
     // This value is set automatically when [dbaseFindFirstEntry] and
     // [dbaseFindNextEntry] succeed so that subsequent calls to [dbaseFindNextEntry]
     // knows where to start search from.
-    index: c_int
+    index: c_int,
 }
 
 // The [bsearch] comparison callback, which is used to find [DBaseEntry] for
@@ -223,7 +223,7 @@ extern "C" {
 // 0x4E5D9C
 pub unsafe extern "C" fn rust_dfile_open_internal(
     dbase: *mut DBase, file_path: *const c_char, mode: *const c_char, mut dfile: *mut DFile,
-) -> *const DFile {
+) -> *mut DFile {
     assert_ne!(dbase, null_mut()); // dfile.c, 295
     assert_ne!(file_path, null()); // dfile.c, 296
     assert_ne!(mode, null()); // dfile.c, 297
@@ -238,18 +238,18 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
 
     if entry == null_mut() {
         cleanup(dfile);
-        return null();
+        return null_mut();
     }
 
     if *mode != 'r' as c_char {
         cleanup(dfile);
-        return null();
+        return null_mut();
     }
 
     if dfile == null_mut() {
         dfile = malloc(mem::size_of::<DFile>()) as *mut DFile;
         if dfile == null_mut() {
-            return null();
+            return null_mut();
         }
 
         memset(dfile as *mut c_void, 0, mem::size_of::<DFile>());
@@ -259,7 +259,7 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
     } else {
         if dbase != (*dfile).dbase {
             cleanup(dfile);
-            return null();
+            return null_mut();
         }
 
         if (*dfile).stream != null_mut() {
@@ -279,13 +279,13 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
     (*dfile).stream = rust_compat_fopen((*dbase).path, rb.as_ptr());
     if (*dfile).stream == null_mut() {
         cleanup(dfile);
-        return null();
+        return null_mut();
     }
 
     // Relocate stream to the beginning of data for specified entry.
     if fseek((*dfile).stream, ((*dbase).data_offset + (*entry).data_offset[0]) as c_long, SEEK_SET) != 0 {
         cleanup(dfile);
-        return null();
+        return null_mut();
     }
 
     if (*entry).compressed[0] == 1 {
@@ -297,13 +297,13 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
             (*dfile).decompression_stream = malloc(mem::size_of::<z_stream>()) as z_streamp;
             if (*dfile).decompression_stream == null_mut() {
                 cleanup(dfile);
-                return null();
+                return null_mut();
             }
 
             (*dfile).decompression_buffer = malloc(DFILE_DECOMPRESSION_BUFFER_SIZE as size_t) as *mut c_uchar;
             if (*dfile).decompression_buffer == null_mut() {
                 cleanup(dfile);
-                return null();
+                return null_mut();
             }
         }
 
@@ -317,7 +317,7 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
         let version = CString::new("1.2.11").expect("valid string");
         if inflateInit_((*dfile).decompression_stream, version.as_ptr(), mem::size_of::<z_stream>() as c_int) != Z_OK {
             cleanup(dfile);
-            return null();
+            return null_mut();
         }
     } else {
         // Entry is not compressed, there is no need to keep decompression
@@ -341,8 +341,14 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
     dfile
 }
 
+pub unsafe extern "C" fn rust_dfile_open(
+    dbase: *mut DBase, file_path: *const c_char, mode: *const c_char,
+) -> *mut DFile {
+    rust_dfile_open_internal(dbase, file_path, mode, null_mut())
+}
+
 // 0x4E6078
-unsafe fn rust_dfile_read_compressed(stream: *mut DFile, mut ptr: *const c_void, mut size: size_t) -> bool {
+unsafe fn dfile_read_compressed(stream: *mut DFile, mut ptr: *const c_void, mut size: size_t) -> bool {
     if ((*stream).flags & DFILE_HAS_COMPRESSED_UNGETC) != 0 {
         let mut byte_buffer = ptr as *mut c_uchar;
         *byte_buffer = ((*stream).compressed_ungotten & 0xFF) as c_uchar;
@@ -401,17 +407,17 @@ unsafe fn rust_dfile_read_compressed(stream: *mut DFile, mut ptr: *const c_void,
 //
 // 0x4E613C
 #[no_mangle]
-unsafe fn rust_dfile_unget_compressed(stream: *mut DFile, ch: c_int) {
+unsafe fn dfile_unget_compressed(stream: *mut DFile, ch: c_int) {
     (*stream).compressed_ungotten = ch;
     (*stream).flags |= DFILE_HAS_COMPRESSED_UNGETC;
     (*stream).position -= 1;
 }
 
 // 0x4E5F9C
-unsafe fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_int {
+unsafe fn dfile_read_char_internal(stream: *mut DFile) -> c_int {
     if (*(*stream).entry).compressed[0] == 1 {
         let mut ch = ['\0' as c_char; 1];
-        if !rust_dfile_read_compressed(stream, ch.as_mut_ptr() as *const c_void, mem::size_of::<c_char>()) {
+        if !dfile_read_compressed(stream, ch.as_mut_ptr() as *const c_void, mem::size_of::<c_char>()) {
             return -1;
         }
 
@@ -421,12 +427,12 @@ unsafe fn rust_dfile_read_char_internal(stream: *mut DFile) -> c_int {
             // well.
             if ch[0] == '\r' as c_char {
                 let mut next_ch = ['\0' as c_char; 1];
-                if rust_dfile_read_compressed(stream, next_ch.as_mut_ptr() as *const c_void, mem::size_of::<c_char>()) {
+                if dfile_read_compressed(stream, next_ch.as_mut_ptr() as *const c_void, mem::size_of::<c_char>()) {
                     if next_ch[0] == '\n' as c_char as c_char {
                         ch[0] = next_ch[0];
                     } else {
                         // NOTE: Uninline.
-                        rust_dfile_unget_compressed(stream, (next_ch[0] as c_int) & 0xFF);
+                        dfile_unget_compressed(stream, (next_ch[0] as c_int) & 0xFF);
                     }
                 }
             }
@@ -624,7 +630,7 @@ pub unsafe extern "C" fn rust_dbase_open_part(file_path: *const c_char) -> *cons
 pub unsafe extern "C" fn rust_dbase_find_first_entry(dbase: *const DBase, find_file_data: *mut DFileFindData, pattern: *const c_char) -> bool {
     for index in 0..(*dbase).entries_length[0] {
         let entry = (*dbase).entries.offset(index as isize);
-        if rust_fpattern_match(pattern, (*entry).path) {
+        if fpattern_match(pattern, (*entry).path) {
             strcpy((*find_file_data).file_name.as_mut_ptr() as *mut c_char, (*entry).path);
             strcpy((*find_file_data).pattern.as_mut_ptr() as *mut c_char, pattern);
             (*find_file_data).index = index as c_int;
@@ -639,10 +645,10 @@ pub unsafe extern "C" fn rust_dbase_find_first_entry(dbase: *const DBase, find_f
 pub unsafe extern "C" fn rust_dbase_find_next_entry(dbase: *const DBase, find_file_data: *mut DFileFindData) -> bool {
     for index in ((*find_file_data).index + 1)..(*dbase).entries_length[0] {
         let entry = (*dbase).entries.offset(index as isize);
-        if rust_fpattern_match((*find_file_data).pattern.as_mut_ptr() as *mut c_char, (*entry).path) {
+        if fpattern_match((*find_file_data).pattern.as_mut_ptr() as *mut c_char, (*entry).path) {
             strcpy((*find_file_data).file_name.as_mut_ptr() as *mut c_char, (*entry).path);
             (*find_file_data).index = index;
-            return true
+            return true;
         }
     }
 
@@ -662,7 +668,7 @@ pub unsafe extern "C" fn rust_dfile_read_char(stream: *mut DFile) -> c_int {
         return (*stream).ungotten;
     }
 
-    let ch = rust_dfile_read_char_internal(stream);
+    let ch = dfile_read_char_internal(stream);
     if ch == -1 {
         (*stream).flags |= DFILE_EOF as c_int;
     }
@@ -692,7 +698,7 @@ pub unsafe extern "C" fn rust_dfile_read_string(string: *mut c_char, mut size: c
     // Read up to size - 1 characters one by one saving space for the null
     // terminator.
     for _ in 0..(size - 1) {
-        let ch = rust_dfile_read_char_internal(stream);
+        let ch = dfile_read_char_internal(stream);
         if ch == -1 {
             break;
         }
@@ -750,7 +756,7 @@ pub unsafe extern "C" fn rust_dfile_read(mut ptr: *const c_void, size: size_t, c
 
     let bytes_read;
     if (*(*stream).entry).compressed[0] == 1 {
-        if !rust_dfile_read_compressed(stream, ptr, bytes_to_read) {
+        if !dfile_read_compressed(stream, ptr, bytes_to_read) {
             (*stream).flags |= DFILE_ERROR as c_int;
             return 0;
         }
@@ -809,7 +815,7 @@ pub unsafe extern "C" fn rust_dfile_seek(stream: *mut DFile, offset: c_long, ori
 
             // Consume characters one by one until we reach specified offset.
             while offset_from_beginning > (*stream).position {
-                if rust_dfile_read_char_internal(stream) == -1 {
+                if dfile_read_char_internal(stream) == -1 {
                     return 1;
                 }
             }

@@ -1,14 +1,14 @@
-use std::ffi::{c_int, c_void};
+use std::ffi::{c_int, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicPtr, Ordering};
 use libc::{c_char, fclose, fgetc, FILE, free, malloc, memset, rewind, snprintf};
 use libz_sys::{gzclose, gzFile};
-use sdl2_sys::__pthread_cond_s;
-use crate::dfile::{DBase, DFile, rust_dfile_close};
-// use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_splitpath};
+use crate::dfile::{DBase, DFile, rust_dfile_close, rust_dfile_open};
+use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, rust_compat_gzopen, rust_compat_splitpath};
 
 #[repr(C)]
+#[derive(PartialEq)]
 enum XFileType {
     #[allow(dead_code)]
     XfileTypeFile = 0,
@@ -38,7 +38,7 @@ pub struct XBase {
     path: *const c_char,
 
     // The [DBase] instance that this xbase represents.
-    dbase: *const DBase,
+    dbase: *mut DBase,
 
     // A flag used to denote that this xbase represents .DAT file (true), or
     // a directory (false).
@@ -47,7 +47,7 @@ pub struct XBase {
     is_dbase: bool,
 
     // Next [XBase] in linked list.
-    next: *const XBase,
+    next: *mut XBase,
 }
 
 // 0x6B24D0
@@ -85,94 +85,89 @@ pub unsafe extern "C" fn rust_xfile_open(file_path: *const c_char, mode: *const 
     assert_ne!(file_path, null_mut()); // "filename", "xfile.c", 162
     assert_ne!(mode, null_mut()); // "mode", "xfile.c", 163
 
-    let stream = malloc(mem::size_of::<XFile>()) as *const XFile;
-    /*if stream == null_mut() {
+    let stream = malloc(mem::size_of::<XFile>()) as *mut XFile;
+    if stream == null_mut() {
         return null();
     }
 
-    memset(stream, 0, mem::size_of_val(&*stream));
+    memset(stream as *mut c_void, 0, mem::size_of_val(&*stream));
 
     // NOTE: Compiled code uses different lengths.
-    let mut drive = [0 as c_char; COMPAT_MAX_DRIVE];
-    let mut dir = [0 as c_char; COMPAT_MAX_DIR];
-    rust_compat_splitpath(filePath, drive.as_mut_ptr(), dir.as_mut_ptr(), null_mut(), null_mut());
+    let mut drive = [0 as c_char; COMPAT_MAX_DRIVE as usize];
+    let mut dir = [0 as c_char; COMPAT_MAX_DIR as usize];
+    rust_compat_splitpath(file_path, drive.as_mut_ptr(), dir.as_mut_ptr(), null_mut(), null_mut());
 
-    let path = [0 as c_char; COMPAT_MAX_PATH];
+    let mut path = [0 as c_char; COMPAT_MAX_PATH];
+    let sformat = CString::new("%s").expect("valid string");
     if drive[0] != '\0' as c_char || dir[0] == '\\' as c_char || dir[0] == '/' as c_char || dir[0] == '.' as c_char {
         // [filePath] is an absolute path. Attempt to open as plain stream.
-        (*stream).file = compat_fopen(filePath, mode);
-        if (*stream).file == nullptr {
-            free(stream);
+        (*stream).file.file = rust_compat_fopen(file_path, mode);
+        if (*stream).file.file == null_mut() {
+            free(stream as *mut c_void);
             return null();
         }
 
-        (*stream)._type = XFILE_TYPE_FILE;
-        snprintf(path, sizeof(path), "%s", filePath);
+        (*stream)._type = XFileType::XfileTypeFile;
+        snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat.as_ptr(), file_path);
     } else {
         // [filePath] is a relative path. Loop thru open xbases and attempt to
         // open [filePath] from appropriate xbase.
-        let curr = gXbaseHead;
-        while curr != nullptr {
-            if curr->isDbase {
+        let mut curr = G_X_BASE_HEAD.load(Ordering::Relaxed);
+        let sformat_sformat = CString::new("%s\\%s").expect("valid string");
+        while curr != null_mut() {
+            if (*curr).is_dbase {
                 // Attempt to open dfile stream from dbase.
-                (*stream).dfile = rust_dfile_open(curr->dbase, filePath, mode);
-                if (*stream).dfile != nullptr {
-                    (*stream)._type = XFILE_TYPE_DFILE;
-                    snprintf(path, sizeof(path), "%s", filePath);
+                (*stream).file.dfile = rust_dfile_open((*curr).dbase, file_path, mode);
+                if (*stream).file.dfile != null_mut() {
+                    (*stream)._type = XFileType::XfileTypeDfile;
+                    snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat.as_ptr(), file_path);
                     break;
                 }
             } else {
                 // Build path relative to directory-based xbase.
-                snprintf(path, sizeof(path), "%s\\%s", curr->path, filePath);
+                snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat_sformat.as_ptr(), (*curr).path, file_path);
 
                 // Attempt to open plain stream.
-                (*stream).file = compat_fopen(path, mode);
-                if (*stream).file != nullptr {
-                    (*stream)._type = XFILE_TYPE_FILE;
+                (*stream).file.file = rust_compat_fopen(path.as_ptr(), mode);
+                if (*stream).file.file != null_mut() {
+                    (*stream)._type = XFileType::XfileTypeFile;
                     break;
                 }
             }
-            curr = curr->next;
+            curr = (*curr).next;
         }
 
-        if (*stream).file == nullptr {
+        if (*stream).file.file == null_mut() {
             // File was not opened during the loop above. Attempt to open file
             // relative to the current working directory.
-            (*stream).file = compat_fopen(filePath, mode);
-            if (*stream).file == nullptr {
-                free(stream);
+            (*stream).file.file = rust_compat_fopen(file_path, mode);
+            if (*stream).file.file == null_mut() {
+                free(stream as *mut c_void);
                 return null();
             }
 
-            (*stream)._type = XFILE_TYPE_FILE;
-            snprintf(path, sizeof(path), "%s", filePath);
+            (*stream)._type = XFileType::XfileTypeFile;
+            snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat.as_ptr(), file_path);
         }
     }
 
-    if (*stream)._type == XFILE_TYPE_FILE {
+    if (*stream)._type == XFileType::XfileTypeFile {
         // Opened file is a plain stream, which might be gzipped. In this case
         // first two bytes will contain magic numbers.
-        int ch1 = fgetc(stream->file);
-        int ch2 = fgetc(stream->file);
+        let ch1 = fgetc((*stream).file.file);
+        let ch2 = fgetc((*stream).file.file);
         if ch1 == 0x1F && ch2 == 0x8B {
             // File is gzipped. Close plain stream and reopen this file as
             // gzipped stream.
-            fclose(stream->file);
+            fclose((*stream).file.file);
 
-            (*stream)._type = XFILE_TYPE_GZFILE;
-            (*stream).gzfile = compat_gzopen(path, mode);
+            (*stream)._type = XFileType::XfileTypeGzfile;
+            (*stream).file.gzfile = rust_compat_gzopen(path.as_ptr(), mode);
         } else {
             // File is not gzipped.
-            rewind(stream->file);
+            rewind((*stream).file.file);
         }
-    }*/
+    }
 
     stream
 }
-
-/*
-XFile* xfileOpen(const char* filePath, const char* mode)
-{
-
-}
- */

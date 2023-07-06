@@ -19,7 +19,7 @@ use windows::Win32::Storage::FileSystem::{FindClose, FindFileHandle, FindFirstFi
 #[cfg(target_family = "windows")]
 use windows::Win32::Storage::FileSystem::WIN32_FIND_DATAA;
 #[cfg(not(target_family = "windows"))]
-use crate::fpattern::rust_fpattern_match;
+use crate::fpattern::fpattern_match;
 #[cfg(not(target_family = "windows"))]
 use crate::platform_compat::COMPAT_MAX_PATH;
 #[cfg(not(target_family = "windows"))]
@@ -97,7 +97,7 @@ pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *m
     while (*find_data).entry != null() {
         let mut entry_path = [0 as c_char; COMPAT_MAX_PATH];
         rust_compat_makepath(entry_path.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), rust_file_find_get_name(find_data), null());
-        if rust_fpattern_match((*find_data).path.as_ptr(), entry_path.as_ptr()) {
+        if fpattern_match((*find_data).path.as_ptr(), entry_path.as_ptr()) {
             break;
         }
         (*find_data).entry = readdir((*find_data).dir);
@@ -130,7 +130,7 @@ pub unsafe extern "C" fn rust_file_find_next(find_data: *mut DirectoryFileFindDa
     while (*find_data).entry != null() {
         let mut entry_path = [0 as c_char; COMPAT_MAX_PATH];
         rust_compat_makepath(entry_path.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), rust_file_find_get_name(find_data), null());
-        if rust_fpattern_match((*find_data).path.as_ptr(), entry_path.as_ptr()) {
+        if fpattern_match((*find_data).path.as_ptr(), entry_path.as_ptr()) {
             break;
         }
         (*find_data).entry = readdir((*find_data).dir)

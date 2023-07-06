@@ -20,7 +20,8 @@ extern "C" {
     int rust_xfile_close(fallout::XFile* stream);
     fallout::XBase* rust_get_g_xbase_head();
     void rust_set_g_xbase_head(fallout::XBase* base);
-    // rust_get_g_xbase_head
+    fallout::XFile* rust_xfile_open(const char* filePath, const char* mode);
+    // rust_xfile_open
 }
 
 namespace fallout {
@@ -57,92 +58,7 @@ int xfileClose(XFile* stream)
 // 0x4DEE2C
 XFile* xfileOpen(const char* filePath, const char* mode)
 {
-    assert(filePath); // "filename", "xfile.c", 162
-    assert(mode); // "mode", "xfile.c", 163
-
-    XFile* stream = (XFile*)malloc(sizeof(*stream));
-    if (stream == nullptr) {
-        return nullptr;
-    }
-
-    memset(stream, 0, sizeof(*stream));
-
-    // NOTE: Compiled code uses different lengths.
-    char drive[COMPAT_MAX_DRIVE];
-    char dir[COMPAT_MAX_DIR];
-    compat_splitpath(filePath, drive, dir, nullptr, nullptr);
-
-    char path[COMPAT_MAX_PATH];
-    if (drive[0] != '\0' || dir[0] == '\\' || dir[0] == '/' || dir[0] == '.') {
-        // [filePath] is an absolute path. Attempt to open as plain stream.
-        stream->file = compat_fopen(filePath, mode);
-        if (stream->file == nullptr) {
-            free(stream);
-            return nullptr;
-        }
-
-        stream->type = XFILE_TYPE_FILE;
-        snprintf(path, sizeof(path), "%s", filePath);
-    } else {
-        // [filePath] is a relative path. Loop thru open xbases and attempt to
-        // open [filePath] from appropriate xbase.
-        XBase* curr = rust_get_g_xbase_head();
-        while (curr != nullptr) {
-            if (curr->isDbase) {
-                // Attempt to open dfile stream from dbase.
-                stream->dfile = dfileOpen(curr->dbase, filePath, mode);
-                if (stream->dfile != nullptr) {
-                    stream->type = XFILE_TYPE_DFILE;
-                    snprintf(path, sizeof(path), "%s", filePath);
-                    break;
-                }
-            } else {
-                // Build path relative to directory-based xbase.
-                snprintf(path, sizeof(path), "%s\\%s", curr->path, filePath);
-
-                // Attempt to open plain stream.
-                stream->file = compat_fopen(path, mode);
-                if (stream->file != nullptr) {
-                    stream->type = XFILE_TYPE_FILE;
-                    break;
-                }
-            }
-            curr = curr->next;
-        }
-
-        if (stream->file == nullptr) {
-            // File was not opened during the loop above. Attempt to open file
-            // relative to the current working directory.
-            stream->file = compat_fopen(filePath, mode);
-            if (stream->file == nullptr) {
-                free(stream);
-                return nullptr;
-            }
-
-            stream->type = XFILE_TYPE_FILE;
-            snprintf(path, sizeof(path), "%s", filePath);
-        }
-    }
-
-    if (stream->type == XFILE_TYPE_FILE) {
-        // Opened file is a plain stream, which might be gzipped. In this case
-        // first two bytes will contain magic numbers.
-        int ch1 = fgetc(stream->file);
-        int ch2 = fgetc(stream->file);
-        if (ch1 == 0x1F && ch2 == 0x8B) {
-            // File is gzipped. Close plain stream and reopen this file as
-            // gzipped stream.
-            fclose(stream->file);
-
-            stream->type = XFILE_TYPE_GZFILE;
-            stream->gzfile = compat_gzopen(path, mode);
-        } else {
-            // File is not gzipped.
-            rewind(stream->file);
-        }
-    }
-
-    return stream;
+    return rust_xfile_open(filePath, mode);
 }
 
 // [vfprintf].
