@@ -112,6 +112,51 @@ pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *m
 
 #[no_mangle]
 #[cfg(target_family = "windows")]
+pub unsafe extern "C" fn rust_file_find_next(find_data: *mut DirectoryFileFindData) -> bool {
+    FindNextFileA((*find_data).hFind, (*find_data).ffd)
+}
+
+#[no_mangle]
+#[cfg(not(target_family = "windows"))]
+pub unsafe extern "C" fn rust_file_find_next(_find_data: *mut DirectoryFileFindData) -> bool {
+    true
+}
+
+/*
+bool fileFindNext(DirectoryFileFindData* findData)
+{
+#if defined(_WIN32)
+    if (!FindNextFileA(findData->hFind, &(findData->ffd))) {
+        return false;
+    }
+#else
+    char drive[COMPAT_MAX_DRIVE];
+    char dir[COMPAT_MAX_DIR];
+    compat_splitpath(findData->path, drive, dir, nullptr, nullptr);
+
+    findData->entry = readdir(findData->dir);
+    while (findData->entry != nullptr) {
+        char entryPath[COMPAT_MAX_PATH];
+        compat_makepath(entryPath, drive, dir, fileFindGetName(findData), nullptr);
+        if (rust_fpattern_match(findData->path, entryPath)) {
+            break;
+        }
+        findData->entry = readdir(findData->dir);
+    }
+
+    if (findData->entry == nullptr) {
+        closedir(findData->dir);
+        findData->dir = nullptr;
+        return false;
+    }
+#endif
+
+    return true;
+}
+ */
+
+#[no_mangle]
+#[cfg(target_family = "windows")]
 pub unsafe extern "C" fn rust_file_find_get_name(find_data: *mut DirectoryFileFindData) -> *const c_char {
     (*find_data).ffd.cFileName.as_ptr() as *const c_char
 }
