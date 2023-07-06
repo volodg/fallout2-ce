@@ -13,11 +13,9 @@ use std::ptr::{null, null_mut};
 #[cfg(target_family = "windows")]
 use windows::core::PCSTR;
 #[cfg(target_family = "windows")]
-use windows::Win32::Foundation;
-#[cfg(target_family = "windows")]
 use windows::Win32::Foundation::{INVALID_HANDLE_VALUE};
 #[cfg(target_family = "windows")]
-use windows::Win32::Storage::FileSystem::{FindFileHandle, FindFirstFileA, FindNextFileA};
+use windows::Win32::Storage::FileSystem::{FindClose, FindFileHandle, FindFirstFileA, FindNextFileA};
 #[cfg(target_family = "windows")]
 use windows::Win32::Storage::FileSystem::WIN32_FIND_DATAA;
 #[cfg(not(target_family = "windows"))]
@@ -116,7 +114,7 @@ pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *m
 #[cfg(target_family = "windows")]
 pub unsafe extern "C" fn rust_file_find_next(find_data: *mut DirectoryFileFindData) -> bool {
     let handle = FindFileHandle((*find_data).h_find as isize);
-    FindNextFileA(handle, &mut (*find_data).ffd) == Foundation::BOOL::from(true)
+    FindNextFileA(handle, &mut (*find_data).ffd).into()
 }
 
 #[no_mangle]
@@ -160,7 +158,8 @@ pub unsafe extern "C" fn rust_file_find_get_name(find_data: *mut DirectoryFileFi
 #[no_mangle]
 #[cfg(target_family = "windows")]
 pub unsafe extern "C" fn rust_file_find_close(find_data: *mut DirectoryFileFindData) -> bool {
-    FindClose((*find_data).h_find)
+    let handle = FindFileHandle((*find_data).h_find as isize);
+    FindClose(handle).into()
 }
 
 #[no_mangle]
