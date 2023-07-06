@@ -16,9 +16,20 @@
 // Migrated
 #include "file_find.h"
 
+namespace fallout {
+// 0x6B24D0
+static XBase* gXbaseHead_;
+}
+
 extern "C" {
     int rust_xfile_close(fallout::XFile* stream);
-    // rust_xfile_close
+    fallout::XBase* rust_get_g_xbase_head() {
+        return fallout::gXbaseHead_;
+    }
+    void rust_set_g_xbase_head(fallout::XBase* base) {
+        fallout::gXbaseHead_ = base;
+    }
+    // rust_get_g_xbase_head
 }
 
 namespace fallout {
@@ -42,9 +53,6 @@ static int xbaseMakeDirectory(const char* path);
 static void xbaseCloseAll();
 static void xbaseExitHandler(void);
 static bool xlistEnumerateHandler(XListEnumerationContext* context);
-
-// 0x6B24D0
-static XBase* gXbaseHead;
 
 // 0x6B24D4
 static bool gXbaseExitHandlerRegistered;
@@ -87,7 +95,7 @@ XFile* xfileOpen(const char* filePath, const char* mode)
     } else {
         // [filePath] is a relative path. Loop thru open xbases and attempt to
         // open [filePath] from appropriate xbase.
-        XBase* curr = gXbaseHead;
+        XBase* curr = rust_get_g_xbase_head();
         while (curr != nullptr) {
             if (curr->isDbase) {
                 // Attempt to open dfile stream from dbase.
@@ -144,21 +152,6 @@ XFile* xfileOpen(const char* filePath, const char* mode)
     }
 
     return stream;
-}
-
-// 0x4DF11C
-int xfilePrintFormatted(XFile* stream, const char* format, ...)
-{
-    assert(format); // "format", "xfile.c", 305
-
-    va_list args;
-    va_start(args, format);
-
-    int rc = xfilePrintFormattedArgs(stream, format, args);
-
-    va_end(args);
-
-    return rc;
 }
 
 // [vfprintf].
@@ -475,7 +468,7 @@ bool xbaseOpen(const char* path)
         gXbaseExitHandlerRegistered = true;
     }
 
-    XBase* curr = gXbaseHead;
+    XBase* curr = rust_get_g_xbase_head();
     XBase* prev = nullptr;
     while (curr != nullptr) {
         if (compat_stricmp(path, curr->path) == 0) {
@@ -490,8 +483,8 @@ bool xbaseOpen(const char* path)
         if (prev != nullptr) {
             // Move found xbase to the top.
             prev->next = curr->next;
-            curr->next = gXbaseHead;
-            gXbaseHead = curr;
+            curr->next = rust_get_g_xbase_head();
+            rust_set_g_xbase_head(curr);
         }
         return true;
     }
@@ -513,8 +506,8 @@ bool xbaseOpen(const char* path)
     if (dbase != nullptr) {
         xbase->isDbase = true;
         xbase->dbase = dbase;
-        xbase->next = gXbaseHead;
-        gXbaseHead = xbase;
+        xbase->next = rust_get_g_xbase_head();
+        rust_set_g_xbase_head(xbase);
         return true;
     }
 
@@ -526,8 +519,8 @@ bool xbaseOpen(const char* path)
 
     if (chdir(path) == 0) {
         chdir(workingDirectory);
-        xbase->next = gXbaseHead;
-        gXbaseHead = xbase;
+        xbase->next = rust_get_g_xbase_head();
+        rust_set_g_xbase_head(xbase);
         return true;
     }
 
@@ -538,8 +531,8 @@ bool xbaseOpen(const char* path)
 
     chdir(workingDirectory);
 
-    xbase->next = gXbaseHead;
-    gXbaseHead = xbase;
+    xbase->next = rust_get_g_xbase_head();
+    rust_set_g_xbase_head(xbase);
 
     return true;
 }
@@ -590,7 +583,7 @@ static bool xlistEnumerate(const char* pattern, XListEnumerationHandler* handler
         return findFindClose(&directoryFileFindData);
     }
 
-    XBase* xbase = gXbaseHead;
+    XBase* xbase = rust_get_g_xbase_head();
     while (xbase != nullptr) {
         if (xbase->isDbase) {
             DFileFindData dbaseFindData;
@@ -707,7 +700,7 @@ static int xbaseMakeDirectory(const char* filePath)
         strcpy(path, filePath);
     } else {
         // Find first directory-based xbase.
-        XBase* curr = gXbaseHead;
+        XBase* curr = rust_get_g_xbase_head();
         while (curr != nullptr) {
             if (!curr->isDbase) {
                 snprintf(path, sizeof(path), "%s\\%s", curr->path, filePath);
@@ -763,8 +756,8 @@ static int xbaseMakeDirectory(const char* filePath)
 // 0x4E01F8
 static void xbaseCloseAll()
 {
-    XBase* curr = gXbaseHead;
-    gXbaseHead = nullptr;
+    XBase* curr = rust_get_g_xbase_head();
+    rust_set_g_xbase_head(nullptr);
 
     while (curr != nullptr) {
         XBase* next = curr->next;

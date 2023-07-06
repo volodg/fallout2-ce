@@ -2,12 +2,12 @@ use std::cell::RefCell;
 use std::ffi::{c_int, c_void};
 use std::mem;
 use std::ptr::{null, null_mut};
+use std::sync::Mutex;
 use libc::{c_char, fclose, fgetc, FILE, free, malloc, memset, rewind, snprintf};
 use libz_sys::{gzclose, gzFile};
 use sdl2_sys::__pthread_cond_s;
-use spin::Mutex;
 use crate::dfile::{DBase, DFile, rust_dfile_close};
-use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_splitpath};
+// use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_splitpath};
 
 #[repr(C)]
 enum XFileType {
@@ -55,16 +55,16 @@ pub struct XBase {
 const G_X_BASE_HEAD: Mutex<RefCell<*const XBase>> = Mutex::new(RefCell::new(null()));
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_get_g_xbase_head() -> *const XBase {
+pub unsafe extern "C" fn _rust_get_g_xbase_head() -> *const XBase {
     let binding = G_X_BASE_HEAD;
-    let lock = binding.lock();
+    let lock = binding.lock().expect("locked");
     *lock.as_ptr()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_set_g_xbase_head(value: *const XBase) {
+pub unsafe extern "C" fn _rust_set_g_xbase_head(value: *const XBase) {
     let binding = G_X_BASE_HEAD;
-    let mut lock = binding.lock();
+    let mut lock = binding.lock().expect("locked");
     *lock.get_mut() = value
 }
 
