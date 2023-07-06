@@ -1,6 +1,18 @@
+#[cfg(target_family = "windows")]
 #[cfg(not(target_family = "windows"))]
 use libc::DIR;
-use libc::{c_char, dirent};
+#[cfg(not(target_family = "windows"))]
+use libc::{DIR, dirent};
+use libc::c_char;
+#[cfg(target_family = "windows")]
+use windows::core::PCSTR;
+#[cfg(target_family = "windows")]
+use windows::Win32::Foundation::{HANDLE, INVALID_HANDLE_VALUE};
+#[cfg(target_family = "windows")]
+use windows::Win32::Storage::FileSystem::{FindFileHandle, FindFirstFileA};
+#[cfg(target_family = "windows")]
+use windows::Win32::Storage::FileSystem::WIN32_FIND_DATAA;
+#[cfg(not(target_family = "windows"))]
 use crate::platform_compat::COMPAT_MAX_PATH;
 
 // NOTE: This structure is significantly different from what was in the
@@ -24,14 +36,30 @@ use crate::platform_compat::COMPAT_MAX_PATH;
 // in other compilers, so for now just stick with the error.
 
 #[cfg(target_family = "windows")]
-struct DirectoryFileFindData {
-    // HANDLE hFind;
-    // WIN32_FIND_DATAA ffd;
+pub struct DirectoryFileFindData {
+    h_find: HANDLE,
+    ffd: WIN32_FIND_DATAA
 }
 
 #[cfg(not(target_family = "windows"))]
-struct DirectoryFileFindData {
+pub struct DirectoryFileFindData {
     dir: *const DIR,
     entry: *const dirent,
     path: [c_char; COMPAT_MAX_PATH]
+}
+
+#[no_mangle]
+#[cfg(target_family = "windows")]
+pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *mut DirectoryFileFindData) -> bool {
+    let path = PCSTR::from_raw(path as *const u8);
+    match FindFirstFileA(path, &mut (*find_data).ffd) {
+        Ok(FindFileHandle(handler)) => (*find_data).h_find = HANDLE(handler),
+        Err(_) => (*find_data).h_find = INVALID_HANDLE_VALUE,
+    }
+
+    if (*find_data).h_find == INVALID_HANDLE_VALUE {
+        return false;
+    }
+
+    true
 }
