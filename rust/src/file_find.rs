@@ -5,9 +5,11 @@ use libc::DIR;
 use libc::{DIR, dirent};
 use libc::c_char;
 #[cfg(target_family = "windows")]
+use std::os::windows::raw::HANDLE;
+#[cfg(target_family = "windows")]
 use windows::core::PCSTR;
 #[cfg(target_family = "windows")]
-use windows::Win32::Foundation::{HANDLE, INVALID_HANDLE_VALUE};
+use windows::Win32::Foundation::{INVALID_HANDLE_VALUE};
 #[cfg(target_family = "windows")]
 use windows::Win32::Storage::FileSystem::{FindFileHandle, FindFirstFileA};
 #[cfg(target_family = "windows")]
@@ -53,11 +55,11 @@ pub struct DirectoryFileFindData {
 pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *mut DirectoryFileFindData) -> bool {
     let path = PCSTR::from_raw(path as *const u8);
     match FindFirstFileA(path, &mut (*find_data).ffd) {
-        Ok(FindFileHandle(handler)) => (*find_data).h_find = HANDLE(handler),
-        Err(_) => (*find_data).h_find = INVALID_HANDLE_VALUE,
+        Ok(FindFileHandle(handler)) => (*find_data).h_find = handler as HANDLE,
+        Err(_) => (*find_data).h_find = INVALID_HANDLE_VALUE.0 as HANDLE,
     }
 
-    if (*find_data).h_find == INVALID_HANDLE_VALUE {
+    if (*find_data).h_find == INVALID_HANDLE_VALUE.0 as HANDLE {
         return false;
     }
 
