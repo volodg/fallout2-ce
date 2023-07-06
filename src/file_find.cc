@@ -4,10 +4,7 @@
 
 extern "C" {
     bool rust_fpattern_match(const char *pat, const char *fname);
-#if defined(_WIN32)
     bool rust_file_find_first(const char* path, fallout::DirectoryFileFindData* findData);
-#endif
-    // rust_file_find_first
 }
 
 // TODO Migrate
@@ -20,10 +17,6 @@ bool fileFindFirst(const char* path, DirectoryFileFindData* findData)
 {
 #if defined(_WIN32)
     rust_file_find_first(path, findData);
-//    findData->hFind = FindFirstFileA(path, &(findData->ffd));
-//    if (findData->hFind == INVALID_HANDLE_VALUE) {
-//        return false;
-//    }
 #else
     strcpy(findData->path, path);
 

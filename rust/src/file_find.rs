@@ -3,9 +3,12 @@
 use libc::DIR;
 #[cfg(not(target_family = "windows"))]
 use libc::{DIR, dirent};
-use libc::c_char;
+#[cfg(not(target_family = "windows"))]
+use libc::{c_char, closedir, opendir, readdir, strcpy};
 #[cfg(target_family = "windows")]
 use std::os::windows::raw::HANDLE;
+#[cfg(not(target_family = "windows"))]
+use std::ptr::{null, null_mut};
 #[cfg(target_family = "windows")]
 use windows::core::PCSTR;
 #[cfg(target_family = "windows")]
@@ -15,7 +18,11 @@ use windows::Win32::Storage::FileSystem::{FindFileHandle, FindFirstFileA};
 #[cfg(target_family = "windows")]
 use windows::Win32::Storage::FileSystem::WIN32_FIND_DATAA;
 #[cfg(not(target_family = "windows"))]
+use crate::fpattern::rust_fpattern_match;
+#[cfg(not(target_family = "windows"))]
 use crate::platform_compat::COMPAT_MAX_PATH;
+#[cfg(not(target_family = "windows"))]
+use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, rust_compat_makepath, rust_compat_splitpath};
 
 // NOTE: This structure is significantly different from what was in the
 // original code. Watcom provides opendir/readdir/closedir implementations,
@@ -45,7 +52,7 @@ pub struct DirectoryFileFindData {
 
 #[cfg(not(target_family = "windows"))]
 pub struct DirectoryFileFindData {
-    dir: *const DIR,
+    dir: *mut DIR,
     entry: *const dirent,
     path: [c_char; COMPAT_MAX_PATH]
 }
@@ -64,4 +71,52 @@ pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *m
     }
 
     true
+}
+
+#[no_mangle]
+#[cfg(not(target_family = "windows"))]
+pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *mut DirectoryFileFindData) -> bool {
+    strcpy((*find_data).path.as_mut_ptr(), path);
+
+    let mut drive = [0 as c_char; COMPAT_MAX_DRIVE as usize];
+    let mut dir = [0 as c_char; COMPAT_MAX_DIR as usize];
+    rust_compat_splitpath(path, drive.as_mut_ptr(), dir.as_mut_ptr(), null_mut(), null_mut());
+
+    let mut base_path = [0 as c_char; COMPAT_MAX_PATH];
+    rust_compat_makepath(base_path.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), null_mut(), null());
+
+    (*find_data).dir = opendir(base_path.as_ptr());
+    if (*find_data).dir == null_mut() {
+        return false;
+    }
+
+    (*find_data).entry = readdir((*find_data).dir);
+    while (*find_data).entry != null() {
+        let mut entry_path = [0 as c_char; COMPAT_MAX_PATH];
+        rust_compat_makepath(entry_path.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), rust_file_find_get_name(find_data), null());
+        if rust_fpattern_match((*find_data).path.as_ptr(), entry_path.as_ptr()) {
+            break;
+        }
+        (*find_data).entry = readdir((*find_data).dir);
+    }
+
+    if (*find_data).entry == null() {
+        closedir((*find_data).dir);
+        (*find_data).dir = null_mut();
+        return false
+    }
+
+    true
+}
+
+#[no_mangle]
+#[cfg(target_family = "windows")]
+pub unsafe extern "C" fn rust_file_find_get_name(find_data: *mut DirectoryFileFindData) -> *const c_char {
+    (*find_data).ffd.cFileName
+}
+
+#[no_mangle]
+#[cfg(not(target_family = "windows"))]
+pub unsafe extern "C" fn rust_file_find_get_name(find_data: *mut DirectoryFileFindData) -> *const c_char {
+    (*(*find_data).entry).d_name.as_ptr()
 }

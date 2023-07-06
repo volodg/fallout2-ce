@@ -13,9 +13,9 @@ use std::ptr::null_mut;
 use std::time::Instant;
 
 #[cfg(not(target_family = "windows"))]
-const COMPAT_MAX_DRIVE: u8 = 3;
+pub const COMPAT_MAX_DRIVE: u8 = 3;
 #[cfg(not(target_family = "windows"))]
-const COMPAT_MAX_DIR: u16 = 256;
+pub const COMPAT_MAX_DIR: u16 = 256;
 #[cfg(not(target_family = "windows"))]
 const COMPAT_MAX_FNAME: u16 = 256;
 #[cfg(not(target_family = "windows"))]
