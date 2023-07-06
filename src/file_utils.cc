@@ -3,8 +3,6 @@
 
 #include "file_utils.h"
 
-// TODO Migrate
-
 extern "C" {
     int rust_file_copy_decompressed(const char* existingFilePath, const char* newFilePath);
     int rust_file_copy_compressed(const char* existingFilePath, const char* newFilePath);

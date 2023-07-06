@@ -272,11 +272,11 @@ pub unsafe extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {
 
 #[no_mangle]
 #[cfg(target_family = "windows")]
-pub extern "C" fn rust_compat_resolve_path(_path: *mut c_char) {}
+fn rust_compat_resolve_path(_path: *mut c_char) {}
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
-pub unsafe extern "C" fn rust_compat_resolve_path(path: *mut c_char) {
+unsafe fn rust_compat_resolve_path(path: *mut c_char) {
     let mut pch = path;
 
     let mut dir;

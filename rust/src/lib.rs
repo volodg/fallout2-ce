@@ -7,3 +7,4 @@ mod version;
 mod win32;
 mod fpattern;
 mod file_utils;
+mod file_find;

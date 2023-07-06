@@ -25,7 +25,6 @@ extern "C" {
     void rust_compat_makepath(char* path, const char* drive, const char* dir, const char* fname, const char* ext);
     long rust_compat_tell(int fd);
     void rust_compat_windows_path_to_native(char* path);
-    void rust_compat_resolve_path(char* path);
     int rust_compat_mkdir(const char* path);
     unsigned int rust_compat_time_get_time();
     FILE* rust_compat_fopen(const char* path, const char* mode);
