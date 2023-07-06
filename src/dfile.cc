@@ -7,7 +7,6 @@ extern "C" {
     fallout::DFile* rust_dfile_open_internal(fallout::DBase* dbase, const char* filePath, const char* mode, fallout::DFile* dfile);
     bool rust_dbase_close(fallout::DBase* dbase);
     fallout::DBase* rust_dbase_open_part(const char* filePath);
-    bool rust_fpattern_match(const char *pat, const char *fname);
     bool rust_dbase_find_first_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData, const char* pattern);
     bool rust_dbase_find_next_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData);
     int rust_dfile_read_char(fallout::DFile* stream);

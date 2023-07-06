@@ -57,6 +57,7 @@ static inline bool fileFindIsDirectory(DirectoryFileFindData* findData)
 #endif
 }
 
+// TODO Migrated
 static inline char* fileFindGetName(DirectoryFileFindData* findData)
 {
 #if defined(_WIN32)
