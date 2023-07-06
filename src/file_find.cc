@@ -1,11 +1,10 @@
 #include "file_find.h"
 
-#include <cstring>
-
 extern "C" {
     bool rust_file_find_first(const char* path, fallout::DirectoryFileFindData* findData);
     bool rust_file_find_next(fallout::DirectoryFileFindData* findData);
-    // rust_file_find_next
+    bool rust_file_find_close(fallout::DirectoryFileFindData* findData);
+    // rust_file_find_close
 }
 
 // TODO Migrate
@@ -28,17 +27,7 @@ bool fileFindNext(DirectoryFileFindData* findData)
 // 0x4E63CC
 bool findFindClose(DirectoryFileFindData* findData)
 {
-#if defined(_MSC_VER)
-    FindClose(findData->hFind);
-#else
-    if (findData->dir != nullptr) {
-        if (closedir(findData->dir) != 0) {
-            return false;
-        }
-    }
-#endif
-
-    return true;
+    return rust_file_find_close(findData);
 }
 
 } // namespace fallout

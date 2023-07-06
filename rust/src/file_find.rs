@@ -156,3 +156,21 @@ pub unsafe extern "C" fn rust_file_find_get_name(find_data: *mut DirectoryFileFi
 pub unsafe extern "C" fn rust_file_find_get_name(find_data: *mut DirectoryFileFindData) -> *const c_char {
     (*(*find_data).entry).d_name.as_ptr()
 }
+
+#[no_mangle]
+#[cfg(target_family = "windows")]
+pub unsafe extern "C" fn rust_file_find_close(find_data: *mut DirectoryFileFindData) -> bool {
+    FindClose((*find_data).h_find)
+}
+
+#[no_mangle]
+#[cfg(not(target_family = "windows"))]
+pub unsafe extern "C" fn rust_file_find_close(find_data: *mut DirectoryFileFindData) -> bool {
+    if (*find_data).dir != null_mut() {
+        if closedir((*find_data).dir) != 0 {
+            return false;
+        }
+    }
+
+    true
+}
