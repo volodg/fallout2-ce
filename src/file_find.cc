@@ -15,41 +15,7 @@ namespace fallout {
 // 0x4E6380
 bool fileFindFirst(const char* path, DirectoryFileFindData* findData)
 {
-#if defined(_WIN32)
-    rust_file_find_first(path, findData);
-#else
-    strcpy(findData->path, path);
-
-    char drive[COMPAT_MAX_DRIVE];
-    char dir[COMPAT_MAX_DIR];
-    compat_splitpath(path, drive, dir, nullptr, nullptr);
-
-    char basePath[COMPAT_MAX_PATH];
-    compat_makepath(basePath, drive, dir, nullptr, nullptr);
-
-    findData->dir = opendir(basePath);
-    if (findData->dir == nullptr) {
-        return false;
-    }
-
-    findData->entry = readdir(findData->dir);
-    while (findData->entry != nullptr) {
-        char entryPath[COMPAT_MAX_PATH];
-        compat_makepath(entryPath, drive, dir, fileFindGetName(findData), nullptr);
-        if (rust_fpattern_match(findData->path, entryPath)) {
-            break;
-        }
-        findData->entry = readdir(findData->dir);
-    }
-
-    if (findData->entry == nullptr) {
-        closedir(findData->dir);
-        findData->dir = nullptr;
-        return false;
-    }
-#endif
-
-    return true;
+    return rust_file_find_first(path, findData);
 }
 
 // 0x4E63A8
