@@ -3,8 +3,9 @@
 use libc::DIR;
 #[cfg(not(target_family = "windows"))]
 use libc::{DIR, dirent};
+use libc::c_char;
 #[cfg(not(target_family = "windows"))]
-use libc::{c_char, closedir, opendir, readdir, strcpy};
+use libc::{closedir, opendir, readdir, strcpy};
 #[cfg(target_family = "windows")]
 use std::os::windows::raw::HANDLE;
 #[cfg(not(target_family = "windows"))]
@@ -112,7 +113,7 @@ pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *m
 #[no_mangle]
 #[cfg(target_family = "windows")]
 pub unsafe extern "C" fn rust_file_find_get_name(find_data: *mut DirectoryFileFindData) -> *const c_char {
-    (*find_data).ffd.cFileName
+    (*find_data).ffd.cFileName.as_ptr() as *const c_char
 }
 
 #[no_mangle]
