@@ -13,9 +13,11 @@ use std::ptr::{null, null_mut};
 #[cfg(target_family = "windows")]
 use windows::core::PCSTR;
 #[cfg(target_family = "windows")]
+use windows::Win32::Foundation;
+#[cfg(target_family = "windows")]
 use windows::Win32::Foundation::{INVALID_HANDLE_VALUE};
 #[cfg(target_family = "windows")]
-use windows::Win32::Storage::FileSystem::{FindFileHandle, FindFirstFileA};
+use windows::Win32::Storage::FileSystem::{FindFileHandle, FindFirstFileA, FindNextFileA};
 #[cfg(target_family = "windows")]
 use windows::Win32::Storage::FileSystem::WIN32_FIND_DATAA;
 #[cfg(not(target_family = "windows"))]
@@ -113,47 +115,35 @@ pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *m
 #[no_mangle]
 #[cfg(target_family = "windows")]
 pub unsafe extern "C" fn rust_file_find_next(find_data: *mut DirectoryFileFindData) -> bool {
-    FindNextFileA((*find_data).hFind, (*find_data).ffd)
+    let handle = FindFileHandle((*find_data).h_find as isize);
+    FindNextFileA(handle, &mut (*find_data).ffd) == Foundation::BOOL::from(true)
 }
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
-pub unsafe extern "C" fn rust_file_find_next(_find_data: *mut DirectoryFileFindData) -> bool {
-    true
-}
+pub unsafe extern "C" fn rust_file_find_next(find_data: *mut DirectoryFileFindData) -> bool {
+    let mut drive =[0 as c_char; COMPAT_MAX_DRIVE as usize];
+    let mut dir =[0 as c_char; COMPAT_MAX_DIR as usize];
+    rust_compat_splitpath((*find_data).path.as_mut_ptr(), drive.as_mut_ptr(), dir.as_mut_ptr(), null_mut(), null_mut());
 
-/*
-bool fileFindNext(DirectoryFileFindData* findData)
-{
-#if defined(_WIN32)
-    if (!FindNextFileA(findData->hFind, &(findData->ffd))) {
-        return false;
-    }
-#else
-    char drive[COMPAT_MAX_DRIVE];
-    char dir[COMPAT_MAX_DIR];
-    compat_splitpath(findData->path, drive, dir, nullptr, nullptr);
-
-    findData->entry = readdir(findData->dir);
-    while (findData->entry != nullptr) {
-        char entryPath[COMPAT_MAX_PATH];
-        compat_makepath(entryPath, drive, dir, fileFindGetName(findData), nullptr);
-        if (rust_fpattern_match(findData->path, entryPath)) {
+    (*find_data).entry = readdir((*find_data).dir);
+    while (*find_data).entry != null() {
+        let mut entry_path = [0 as c_char; COMPAT_MAX_PATH];
+        rust_compat_makepath(entry_path.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), rust_file_find_get_name(find_data), null());
+        if rust_fpattern_match((*find_data).path.as_ptr(), entry_path.as_ptr()) {
             break;
         }
-        findData->entry = readdir(findData->dir);
+        (*find_data).entry = readdir((*find_data).dir)
     }
 
-    if (findData->entry == nullptr) {
-        closedir(findData->dir);
-        findData->dir = nullptr;
+    if (*find_data).entry == null() {
+        closedir((*find_data).dir);
+        (*find_data).dir = null_mut();
         return false;
     }
-#endif
 
-    return true;
+    true
 }
- */
 
 #[no_mangle]
 #[cfg(target_family = "windows")]

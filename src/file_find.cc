@@ -5,6 +5,8 @@
 extern "C" {
     bool rust_fpattern_match(const char *pat, const char *fname);
     bool rust_file_find_first(const char* path, fallout::DirectoryFileFindData* findData);
+    bool rust_file_find_next(fallout::DirectoryFileFindData* findData);
+    // rust_file_find_next
 }
 
 // TODO Migrate
@@ -26,25 +28,7 @@ bool fileFindNext(DirectoryFileFindData* findData)
         return false;
     }
 #else
-    char drive[COMPAT_MAX_DRIVE];
-    char dir[COMPAT_MAX_DIR];
-    compat_splitpath(findData->path, drive, dir, nullptr, nullptr);
-
-    findData->entry = readdir(findData->dir);
-    while (findData->entry != nullptr) {
-        char entryPath[COMPAT_MAX_PATH];
-        compat_makepath(entryPath, drive, dir, fileFindGetName(findData), nullptr);
-        if (rust_fpattern_match(findData->path, entryPath)) {
-            break;
-        }
-        findData->entry = readdir(findData->dir);
-    }
-
-    if (findData->entry == nullptr) {
-        closedir(findData->dir);
-        findData->dir = nullptr;
-        return false;
-    }
+    return rust_file_find_next(findData);
 #endif
 
     return true;
