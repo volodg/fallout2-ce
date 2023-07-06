@@ -45,12 +45,14 @@ use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, rust_compat_makep
 // original implementation for Watcom (not tested). I'm not sure it will work
 // in other compilers, so for now just stick with the error.
 
+#[repr(C)]
 #[cfg(target_family = "windows")]
 pub struct DirectoryFileFindData {
     h_find: HANDLE,
     ffd: WIN32_FIND_DATAA
 }
 
+#[repr(C)]
 #[cfg(not(target_family = "windows"))]
 pub struct DirectoryFileFindData {
     dir: *mut DIR,
