@@ -3,8 +3,6 @@
 #include <cassert>
 
 extern "C" {
-    int rust_dfile_close(fallout::DFile* stream);
-    fallout::DFile* rust_dfile_open_internal(fallout::DBase* dbase, const char* filePath, const char* mode, fallout::DFile* dfile);
     bool rust_dbase_close(fallout::DBase* dbase);
     fallout::DBase* rust_dbase_open_part(const char* filePath);
     bool rust_dbase_find_first_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData, const char* pattern);
@@ -77,22 +75,6 @@ bool dbaseFindClose(DBase* dbase, DFileFindData* findFileData)
 long dfileGetSize(DFile* stream)
 {
     return stream->entry->uncompressedSize;
-}
-
-// [fclose].
-//
-// 0x4E542C
-int dfileClose(DFile* stream)
-{
-    return rust_dfile_close(stream);
-}
-
-// [fopen].
-//
-// 0x4E5504
-DFile* dfileOpen(DBase* dbase, const char* filePath, const char* mode)
-{
-    return rust_dfile_open_internal(dbase, filePath, mode, 0);
 }
 
 // [vfprintf].

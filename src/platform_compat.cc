@@ -28,7 +28,6 @@ extern "C" {
     int rust_compat_mkdir(const char* path);
     unsigned int rust_compat_time_get_time();
     FILE* rust_compat_fopen(const char* path, const char* mode);
-    gzFile rust_compat_gzopen(const char* path, const char* mode);
     char* rust_compat_fgets(char* buffer, int maxCount, FILE* stream);
     char* rust_compat_gzgets(gzFile stream, char* buffer, int maxCount);
     int rust_compat_remove(const char* path);
@@ -93,11 +92,6 @@ unsigned int compat_timeGetTime()
 FILE* compat_fopen(const char* path, const char* mode)
 {
     return rust_compat_fopen(path, mode);
-}
-
-gzFile compat_gzopen(const char* path, const char* mode)
-{
-    return rust_compat_gzopen(path, mode);
 }
 
 char* compat_fgets(char* buffer, int maxCount, FILE* stream)

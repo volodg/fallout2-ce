@@ -185,7 +185,6 @@ int buttonSetRightMouseCallbacks(int btn, int rightMouseDownEventCode, int right
 int buttonSetCallbacks(int btn, ButtonCallback* pressSoundFunc, ButtonCallback* releaseSoundFunc);
 int buttonSetMask(int btn, unsigned char* mask);
 bool _win_button_down(int btn);
-int buttonGetWindowId(int btn);
 int _win_last_button_winID();
 int buttonDestroy(int btn);
 int buttonEnable(int btn);

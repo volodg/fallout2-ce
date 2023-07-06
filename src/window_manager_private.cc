@@ -677,22 +677,6 @@ int _win_msg(const char* string, int x, int y, int color)
     return 0;
 }
 
-// 0x4DBBC4
-int _win_pull_down(char** items, int itemsLength, int x, int y, int color)
-{
-    if (!gWindowSystemInitialized) {
-        return -1;
-    }
-
-    Rect rect;
-    int win = _create_pull_down(items, itemsLength, x, y, color, _colorTable[_GNW_wcolor[0]], &rect);
-    if (win == -1) {
-        return -1;
-    }
-
-    return process_pull_down(win, &rect, items, itemsLength, color, _colorTable[_GNW_wcolor[0]], NULL, -1);
-}
-
 // 0x4DBC34
 int _create_pull_down(char** stringList, int stringListLength, int x, int y, int foregroundColor, int backgroundColor, Rect* rect)
 {
@@ -837,140 +821,6 @@ void _win_debug_delete(int btn, int keyCode)
 {
     windowDestroy(_wd);
     _wd = -1;
-}
-
-// 0x4DC674
-int _win_register_menu_bar(int win, int x, int y, int width, int height, int foregroundColor, int backgroundColor)
-{
-    Window* window = windowGetWindow(win);
-
-    if (!gWindowSystemInitialized) {
-        return -1;
-    }
-
-    if (window == NULL) {
-        return -1;
-    }
-
-    if (window->menuBar != NULL) {
-        return -1;
-    }
-
-    int right = x + width;
-    if (right > window->width) {
-        return -1;
-    }
-
-    int bottom = y + height;
-    if (bottom > window->height) {
-        return -1;
-    }
-
-    MenuBar* menuBar = window->menuBar = (MenuBar*)internal_malloc(sizeof(MenuBar));
-    if (menuBar == NULL) {
-        return -1;
-    }
-
-    menuBar->win = win;
-    menuBar->rect.left = x;
-    menuBar->rect.top = y;
-    menuBar->rect.right = right - 1;
-    menuBar->rect.bottom = bottom - 1;
-    menuBar->pulldownsLength = 0;
-    menuBar->foregroundColor = foregroundColor;
-    menuBar->backgroundColor = backgroundColor;
-
-    windowFill(win, x, y, width, height, backgroundColor);
-    windowDrawRect(win, x, y, right - 1, bottom - 1, foregroundColor);
-
-    return 0;
-}
-
-// 0x4DC768
-int _win_register_menu_pulldown(int win, int x, char* title, int keyCode, int itemsLength, char** items, int foregroundColor, int backgroundColor)
-{
-    Window* window = windowGetWindow(win);
-
-    if (!gWindowSystemInitialized) {
-        return -1;
-    }
-
-    if (window == NULL) {
-        return -1;
-    }
-
-    MenuBar* menuBar = window->menuBar;
-    if (menuBar == NULL) {
-        return -1;
-    }
-
-    if (window->menuBar->pulldownsLength == 15) {
-        return -1;
-    }
-
-    int titleX = menuBar->rect.left + x;
-    int titleY = (menuBar->rect.top + menuBar->rect.bottom - fontGetLineHeight()) / 2;
-    int btn = buttonCreate(win,
-        titleX,
-        titleY,
-        fontGetStringWidth(title),
-        fontGetLineHeight(),
-        -1,
-        -1,
-        keyCode,
-        -1,
-        NULL,
-        NULL,
-        NULL,
-        0);
-    if (btn == -1) {
-        return -1;
-    }
-
-    windowDrawText(win, title, 0, titleX, titleY, window->menuBar->foregroundColor | 0x2000000);
-
-    MenuPulldown* pulldown = &(window->menuBar->pulldowns[window->menuBar->pulldownsLength]);
-    pulldown->rect.left = titleX;
-    pulldown->rect.top = titleY;
-    pulldown->rect.right = fontGetStringWidth(title) + titleX - 1;
-    pulldown->rect.bottom = fontGetLineHeight() + titleY - 1;
-    pulldown->keyCode = keyCode;
-    pulldown->itemsLength = itemsLength;
-    pulldown->items = items;
-    pulldown->foregroundColor = foregroundColor;
-    pulldown->backgroundColor = backgroundColor;
-
-    window->menuBar->pulldownsLength++;
-
-    return 0;
-}
-
-// 0x4DC8D0
-void _win_delete_menu_bar(int win)
-{
-    Window* window = windowGetWindow(win);
-
-    if (!gWindowSystemInitialized) {
-        return;
-    }
-
-    if (window == NULL) {
-        return;
-    }
-
-    if (window->menuBar == NULL) {
-        return;
-    }
-
-    windowFill(win,
-        window->menuBar->rect.left,
-        window->menuBar->rect.top,
-        rectGetWidth(&(window->menuBar->rect)),
-        rectGetHeight(&(window->menuBar->rect)),
-        window->color);
-
-    internal_free(window->menuBar);
-    window->menuBar = NULL;
 }
 
 // 0x4DC9F0
@@ -1167,27 +1017,6 @@ int _GNW_process_menu(MenuBar* menuBar, int pulldownIndex)
     return keyCode;
 }
 
-// Calculates max length of string needed to represent `value` or `value2`.
-//
-// 0x4DD03C
-size_t _calc_max_field_chars_wcursor(int value1, int value2)
-{
-    char* str = (char*)internal_malloc(17);
-    if (str == NULL) {
-        return -1;
-    }
-
-    snprintf(str, 17, "%d", value1);
-    size_t len1 = strlen(str);
-
-    snprintf(str, 17, "%d", value2);
-    size_t len2 = strlen(str);
-
-    internal_free(str);
-
-    return std::max(len1, len2) + 1;
-}
-
 // 0x4DD3EC
 void _GNW_intr_init()
 {
@@ -1268,87 +1097,6 @@ void _tm_kill_msg()
     }
 
     _tm_kill = v0;
-}
-
-// 0x4DD744
-void _tm_kill_out_of_order(int queueIndex)
-{
-    int v7;
-    int v6;
-
-    if (_tm_kill == -1) {
-        return;
-    }
-
-    if (!_tm_index_active(queueIndex)) {
-        return;
-    }
-
-    windowDestroy(_tm_queue[queueIndex].field_4);
-
-    _tm_location[_tm_queue[queueIndex].field_8].field_0 = 0;
-
-    if (queueIndex != _tm_kill) {
-        v6 = queueIndex;
-        do {
-            v7 = v6 - 1;
-            if (v7 < 0) {
-                v7 = 4;
-            }
-
-            memcpy(&(_tm_queue[v6]), &(_tm_queue[v7]), sizeof(STRUCT_6B2370));
-            v6 = v7;
-        } while (v7 != _tm_kill);
-    }
-
-    if (++_tm_kill == 5) {
-        _tm_kill = 0;
-    }
-
-    if (_tm_add == _tm_kill) {
-        _tm_add = 0;
-        _tm_kill = -1;
-        tickersRemove(_tm_watch_msgs);
-    }
-}
-
-// 0x4DD82C
-void _tm_click_response(int btn)
-{
-    int win;
-    int queueIndex;
-
-    if (_tm_kill == -1) {
-        return;
-    }
-
-    win = buttonGetWindowId(btn);
-    queueIndex = _tm_kill;
-    while (win != _tm_queue[queueIndex].field_4) {
-        queueIndex++;
-        if (queueIndex == 5) {
-            queueIndex = 0;
-        }
-
-        if (queueIndex == _tm_kill || !_tm_index_active(queueIndex))
-            return;
-    }
-
-    _tm_kill_out_of_order(queueIndex);
-}
-
-// 0x4DD870
-int _tm_index_active(int queueIndex)
-{
-    if (_tm_kill != _tm_add) {
-        if (_tm_kill >= _tm_add) {
-            if (queueIndex >= _tm_add && queueIndex < _tm_kill)
-                return 0;
-        } else if (queueIndex < _tm_kill || queueIndex >= _tm_add) {
-            return 0;
-        }
-    }
-    return 1;
 }
 
 } // namespace fallout

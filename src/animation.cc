@@ -987,28 +987,6 @@ int animationRegisterRotateCounterClockwise(Object* owner)
     return 0;
 }
 
-// NOTE: Unused.
-//
-// 0x414DA8
-int animationRegisterHideObject(Object* object)
-{
-    if (_check_registry(object) == -1) {
-        _anim_cleanup();
-        return -1;
-    }
-
-    AnimationSequence* animationSequence = &(gAnimationSequences[gAnimationSequenceCurrentIndex]);
-    AnimationDescription* animationDescription = &(animationSequence->animations[gAnimationDescriptionCurrentIndex]);
-    animationDescription->kind = ANIM_KIND_HIDE;
-    animationDescription->delay = -1;
-    animationDescription->artCacheKey = NULL;
-    animationDescription->extendedFlags = 0;
-    animationDescription->owner = object;
-    gAnimationDescriptionCurrentIndex++;
-
-    return 0;
-}
-
 // 0x414E20
 int animationRegisterHideObjectForced(Object* object)
 {
@@ -1094,33 +1072,6 @@ int animationRegisterCallbackForced(void* a1, void* a2, AnimationCallback* proc,
     animationDescription->param2 = a2;
     animationDescription->param1 = a1;
     animationDescription->callback = proc;
-    animationDescription->delay = delay;
-
-    gAnimationDescriptionCurrentIndex++;
-
-    return 0;
-}
-
-// NOTE: Unused.
-//
-// The [flag] parameter should be one of OBJECT_* flags. The way it's handled
-// down the road implies it should not be a group of flags (joined with bitwise
-// OR), but a one particular flag.
-//
-// 0x415034
-int animationRegisterSetFlag(Object* object, int flag, int delay)
-{
-    if (_check_registry(object) == -1) {
-        _anim_cleanup();
-        return -1;
-    }
-
-    AnimationSequence* animationSequence = &(gAnimationSequences[gAnimationSequenceCurrentIndex]);
-    AnimationDescription* animationDescription = &(animationSequence->animations[gAnimationDescriptionCurrentIndex]);
-    animationDescription->kind = ANIM_KIND_SET_FLAG;
-    animationDescription->artCacheKey = NULL;
-    animationDescription->owner = object;
-    animationDescription->objectFlag = flag;
     animationDescription->delay = delay;
 
     gAnimationDescriptionCurrentIndex++;
@@ -1227,29 +1178,6 @@ int animationRegisterSetLightDistance(Object* owner, int lightDistance, int dela
     animationDescription->artCacheKey = NULL;
     animationDescription->owner = owner;
     animationDescription->lightDistance = lightDistance;
-    animationDescription->delay = delay;
-
-    gAnimationDescriptionCurrentIndex++;
-
-    return 0;
-}
-
-// NOTE: Unused.
-//
-// 0x4153A8
-int animationRegisterToggleOutline(Object* object, bool outline, int delay)
-{
-    if (_check_registry(object) == -1) {
-        _anim_cleanup();
-        return -1;
-    }
-
-    AnimationSequence* animationSequence = &(gAnimationSequences[gAnimationSequenceCurrentIndex]);
-    AnimationDescription* animationDescription = &(animationSequence->animations[gAnimationDescriptionCurrentIndex]);
-    animationDescription->kind = ANIM_KIND_TOGGLE_OUTLINE;
-    animationDescription->artCacheKey = NULL;
-    animationDescription->owner = object;
-    animationDescription->outline = outline;
     animationDescription->delay = delay;
 
     gAnimationDescriptionCurrentIndex++;

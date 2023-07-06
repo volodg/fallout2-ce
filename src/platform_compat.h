@@ -33,7 +33,6 @@ long compat_tell(int fileHandle);
 int compat_mkdir(const char* path);
 unsigned int compat_timeGetTime();
 FILE* compat_fopen(const char* path, const char* mode);
-gzFile compat_gzopen(const char* path, const char* mode);
 char* compat_fgets(char* buffer, int maxCount, FILE* stream);
 char* compat_gzgets(gzFile stream, char* buffer, int maxCount);
 int compat_remove(const char* path);

@@ -17,7 +17,6 @@ void audioEngineResume();
 int audioEngineCreateSoundBuffer(unsigned int size, int bitsPerSample, int channels, int rate);
 bool audioEngineSoundBufferRelease(int soundBufferIndex);
 bool audioEngineSoundBufferSetVolume(int soundBufferIndex, int volume);
-bool audioEngineSoundBufferGetVolume(int soundBufferIndex, int* volumePtr);
 bool audioEngineSoundBufferSetPan(int soundBufferIndex, int pan);
 bool audioEngineSoundBufferPlay(int soundBufferIndex, unsigned int flags);
 bool audioEngineSoundBufferStop(int soundBufferIndex);

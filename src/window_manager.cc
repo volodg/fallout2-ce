@@ -2077,21 +2077,6 @@ bool _button_under_mouse(Button* button, Rect* rect)
     return button->mask[width * y + x] != 0;
 }
 
-// 0x4D927C
-int buttonGetWindowId(int btn)
-{
-    if (!gWindowSystemInitialized) {
-        return -1;
-    }
-
-    Window* window;
-    if (buttonGetButton(btn, &window) == NULL) {
-        return -1;
-    }
-
-    return window->id;
-}
-
 // 0x4D92B4
 int _win_last_button_winID()
 {

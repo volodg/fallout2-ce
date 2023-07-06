@@ -213,18 +213,6 @@ int windowSetFont(int a1)
     return 1;
 }
 
-// NOTE: Unused.
-//
-// 0x4B6138
-void windowResetTextAttributes()
-{
-    // NOTE: Uninline.
-    windowSetTextColor(1.0, 1.0, 1.0);
-
-    // NOTE: Uninline.
-    windowSetTextFlags(0x2000000 | 0x10000);
-}
-
 // 0x4B6160
 int windowGetTextFlags()
 {
@@ -242,12 +230,6 @@ int windowSetTextFlags(int a1)
 unsigned char windowGetTextColor()
 {
     return _colorTable[_currentTextColorB | (_currentTextColorG << 5) | (_currentTextColorR << 10)];
-}
-
-// 0x4B6198
-unsigned char windowGetHighlightColor()
-{
-    return _colorTable[_currentHighlightColorB | (_currentHighlightColorG << 5) | (_currentHighlightColorR << 10)];
 }
 
 // 0x4B61BC
@@ -489,35 +471,6 @@ bool _windowActivateRegion(const char* regionName, int a2)
     }
 
     return false;
-}
-
-// 0x4B6ED0
-int _getInput()
-{
-    int keyCode = inputGetInput();
-    if (keyCode == KEY_CTRL_Q || keyCode == KEY_CTRL_X || keyCode == KEY_F10) {
-        showQuitConfirmationDialog();
-    }
-
-    if (_game_user_wants_to_quit != 0) {
-        _said_quit = 1 - _said_quit;
-        if (_said_quit) {
-            return -1;
-        }
-
-        return KEY_ESCAPE;
-    }
-
-    for (int index = 0; index < gWindowInputHandlersLength; index++) {
-        WindowInputHandler* handler = gWindowInputHandlers[index];
-        if (handler != NULL) {
-            if (handler(keyCode) != 0) {
-                return -1;
-            }
-        }
-    }
-
-    return keyCode;
 }
 
 // 0x4B6F60
@@ -1162,18 +1115,6 @@ bool _windowFormatMessage(char* string, int x, int y, int width, int height, int
     return true;
 }
 
-// 0x4B8A60
-bool _windowPrint(char* string, int a2, int x, int y, int a5)
-{
-    ManagedWindow* managedWindow = &(gManagedWindows[gCurrentManagedWindowIndex]);
-    x = (int)(x * managedWindow->field_54);
-    y = (int)(y * managedWindow->field_58);
-
-    windowDrawText(managedWindow->window, string, a2, x, y, a5);
-
-    return true;
-}
-
 // 0x4B8B10
 void _displayInWindow(unsigned char* data, int width, int height, int pitch)
 {
@@ -1745,84 +1686,6 @@ bool _windowAddButtonProc(const char* buttonName, Program* program, int mouseEnt
             managedButton->procs[MANAGED_BUTTON_MOUSE_EVENT_BUTTON_DOWN] = mouseDownProc;
             managedButton->procs[MANAGED_BUTTON_MOUSE_EVENT_BUTTON_UP] = mouseUpProc;
             managedButton->program = program;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-// 0x4BA1B4
-bool _windowAddButtonRightProc(const char* buttonName, Program* program, int rightMouseDownProc, int rightMouseUpProc)
-{
-    if (gCurrentManagedWindowIndex != -1) {
-        return false;
-    }
-
-    ManagedWindow* managedWindow = &(gManagedWindows[gCurrentManagedWindowIndex]);
-    if (managedWindow->buttons == NULL) {
-        return false;
-    }
-
-    for (int index = 0; index < managedWindow->buttonsLength; index++) {
-        ManagedButton* managedButton = &(managedWindow->buttons[index]);
-        if (compat_stricmp(managedButton->name, buttonName) == 0) {
-            managedButton->rightProcs[MANAGED_BUTTON_RIGHT_MOUSE_EVENT_BUTTON_UP] = rightMouseUpProc;
-            managedButton->rightProcs[MANAGED_BUTTON_RIGHT_MOUSE_EVENT_BUTTON_DOWN] = rightMouseDownProc;
-            managedButton->program = program;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-// NOTE: Unused.
-//
-// 0x4BA238
-bool _windowAddButtonCfunc(const char* buttonName, ManagedButtonMouseEventCallback* callback, void* userData)
-{
-    if (gCurrentManagedWindowIndex != -1) {
-        return false;
-    }
-
-    ManagedWindow* managedWindow = &(gManagedWindows[gCurrentManagedWindowIndex]);
-    if (managedWindow->buttons == NULL) {
-        return false;
-    }
-
-    for (int index = 0; index < managedWindow->buttonsLength; index++) {
-        ManagedButton* managedButton = &(managedWindow->buttons[index]);
-        if (compat_stricmp(managedButton->name, buttonName) == 0) {
-            managedButton->mouseEventCallbackUserData = userData;
-            managedButton->mouseEventCallback = callback;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-// NOTE: Unused.
-//
-// 0x4BA2B4
-bool _windowAddButtonRightCfunc(const char* buttonName, ManagedButtonMouseEventCallback* callback, void* userData)
-{
-    if (gCurrentManagedWindowIndex != -1) {
-        return false;
-    }
-
-    ManagedWindow* managedWindow = &(gManagedWindows[gCurrentManagedWindowIndex]);
-    if (managedWindow->buttons == NULL) {
-        return false;
-    }
-
-    for (int index = 0; index < managedWindow->buttonsLength; index++) {
-        ManagedButton* managedButton = &(managedWindow->buttons[index]);
-        if (compat_stricmp(managedButton->name, buttonName) == 0) {
-            managedButton->rightMouseEventCallback = callback;
-            managedButton->rightMouseEventCallbackUserData = userData;
-            buttonSetRightMouseCallbacks(managedButton->btn, -1, -1, _doRightButtonPress, _doRightButtonRelease);
             return true;
         }
     }

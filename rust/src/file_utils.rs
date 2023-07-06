@@ -3,7 +3,7 @@ use std::mem;
 use std::ptr::null_mut;
 use libc::{c_char, c_int, c_uchar, fclose, fgetc, fputc, fread, fwrite, rewind, size_t};
 use libz_sys::{gzclose, gzgetc, gzputc};
-use crate::platform_compat::{rust_compat_fopen, rust_compat_gzopen};
+use crate::platform_compat::{rust_compat_fopen, compat_gzopen};
 
 unsafe fn file_copy(existing_file_path: *const c_char, new_file_path: *const c_char) {
     let rb = CString::new("rb").expect("valid string");
@@ -53,7 +53,7 @@ pub unsafe extern "C" fn rust_file_copy_decompressed(existing_file_path: *const 
     fclose(stream);
 
     if magic[0] == 0x1F && magic[1] == 0x8B {
-        let in_stream = rust_compat_gzopen(existing_file_path, rb.as_ptr());
+        let in_stream = compat_gzopen(existing_file_path, rb.as_ptr());
         let wb = CString::new("wb").expect("valid string");
         let out_stream = rust_compat_fopen(new_file_path, wb.as_ptr());
 
@@ -106,7 +106,7 @@ pub unsafe extern "C" fn rust_file_copy_compressed(existing_file_path: *const c_
         file_copy(existing_file_path, new_file_path);
     } else {
         let wb = CString::new("wb").expect("valid string");
-        let out_stream = rust_compat_gzopen(new_file_path, wb.as_ptr());
+        let out_stream = compat_gzopen(new_file_path, wb.as_ptr());
         if out_stream == null_mut() {
             fclose(in_stream);
             return -1;
@@ -142,7 +142,7 @@ pub unsafe extern "C" fn rust_gzdecompress_file(existing_file_path: *const c_cha
 
     // TODO: Is it broken?
     if magic[0] != 0x1F || magic[1] != 0x8B {
-        let gzstream = rust_compat_gzopen(existing_file_path, rb.as_ptr());
+        let gzstream = compat_gzopen(existing_file_path, rb.as_ptr());
         if gzstream == null_mut() {
             return -1;
         }

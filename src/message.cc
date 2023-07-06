@@ -735,44 +735,6 @@ void messageListRepositorySetProtoMessageList(int protoMessageList, MessageList*
     _messageListRepositoryState->protoMessageLists[protoMessageList] = messageList;
 }
 
-int messageListRepositoryAddExtra(int messageListId, const char* path)
-{
-    if (messageListId != 0) {
-        // CE: Probably there is a bug in Sfall, when |messageListId| is
-        // non-zero, it is enforced to be within persistent id range. That is
-        // the scripting engine is allowed to add persistent message lists.
-        // Everything added/changed by scripting engine should be temporary by
-        // design.
-        if (messageListId < kFirstPersistentMessageListId || messageListId > kLastPersistentMessageListId) {
-            return -1;
-        }
-
-        // CE: Sfall stores both persistent and temporary message lists in
-        // one map, however since we've passed check above, we should only
-        // check in persistent message lists.
-        if (_messageListRepositoryState->persistentMessageLists.find(messageListId) != _messageListRepositoryState->persistentMessageLists.end()) {
-            return 0;
-        }
-    } else {
-        if (_messageListRepositoryState->nextTemporaryMessageListId > kLastTemporaryMessageListId) {
-            return -3;
-        }
-    }
-
-    MessageList* messageList = messageListRepositoryLoad(path);
-    if (messageList == nullptr) {
-        return -2;
-    }
-
-    if (messageListId == 0) {
-        messageListId = _messageListRepositoryState->nextTemporaryMessageListId++;
-    }
-
-    _messageListRepositoryState->temporaryMessageLists[messageListId] = messageList;
-
-    return messageListId;
-}
-
 char* messageListRepositoryGetMsg(int messageListId, int messageId)
 {
     MessageList* messageList = nullptr;

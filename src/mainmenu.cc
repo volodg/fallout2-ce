@@ -294,12 +294,6 @@ void mainMenuWindowUnhide(bool animate)
     gMainMenuWindowHidden = false;
 }
 
-// 0x481AA8
-int _main_menu_is_enabled()
-{
-    return 1;
-}
-
 // 0x481AEC
 int mainMenuWindowHandleEvents()
 {

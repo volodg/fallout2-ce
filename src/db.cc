@@ -310,15 +310,6 @@ int fileReadInt16(File* stream, short* valuePtr)
     return 0;
 }
 
-// NOTE: Probably uncollapsed 0x4C60F4. There are only couple of places where
-// the game reads/writes 16-bit integers. I'm not sure there are unsigned
-// shorts used, but there are definitely signed (art offsets can be both
-// positive and negative). Provided just in case.
-int fileReadUInt16(File* stream, unsigned short* valuePtr)
-{
-    return fileReadInt16(stream, (short*)valuePtr);
-}
-
 // 0x4C614C
 int fileReadInt32(File* stream, int* valuePtr)
 {
@@ -387,12 +378,6 @@ int fileWriteInt16(File* stream, short value)
     }
 
     return 0;
-}
-
-// NOTE: Probably uncollapsed 0x4C61C8.
-int fileWriteUInt16(File* stream, unsigned short value)
-{
-    return fileWriteInt16(stream, (short)value);
 }
 
 // NOTE: Not sure about signness and int vs. long.
@@ -480,12 +465,6 @@ int fileReadInt16List(File* stream, short* arr, int count)
     return 0;
 }
 
-// NOTE: Probably uncollapsed 0x4C6330.
-int fileReadUInt16List(File* stream, unsigned short* arr, int count)
-{
-    return fileReadInt16List(stream, (short*)arr, count);
-}
-
 // NOTE: Not sure about signed/unsigned int/long.
 //
 // 0x4C63BC
@@ -511,12 +490,6 @@ int fileReadInt32List(File* stream, int* arr, int count)
 int _db_freadIntCount(File* stream, int* arr, int count)
 {
     return fileReadInt32List(stream, arr, count);
-}
-
-// NOTE: Probably uncollapsed 0x4C63BC.
-int fileReadUInt32List(File* stream, unsigned int* arr, int count)
-{
-    return fileReadInt32List(stream, (int*)arr, count);
 }
 
 // 0x4C6464
@@ -549,12 +522,6 @@ int fileWriteInt16List(File* stream, short* arr, int count)
     }
 
     return 0;
-}
-
-// NOTE: Probably uncollapsed 0x4C6490.
-int fileWriteUInt16List(File* stream, unsigned short* arr, int count)
-{
-    return fileWriteInt16List(stream, (short*)arr, count);
 }
 
 // NOTE: Can be either signed/unsigned + int/long variant.
@@ -592,12 +559,6 @@ int _db_fwriteLongCount(File* stream, int* arr, int count)
     }
 
     return 0;
-}
-
-// NOTE: Probably uncollapsed 0x4C64F8 or 0x4C6550.
-int fileWriteUInt32List(File* stream, unsigned int* arr, int count)
-{
-    return fileWriteInt32List(stream, (int*)arr, count);
 }
 
 // 0x4C6628

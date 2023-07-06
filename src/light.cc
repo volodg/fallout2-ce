@@ -88,20 +88,6 @@ int lightGetTrueTileIntensity(int elevation, int tile)
     return gTileIntensity[elevation][tile];
 }
 
-// 0x47A9EC
-void lightSetTileIntensity(int elevation, int tile, int intensity)
-{
-    if (!elevationIsValid(elevation)) {
-        return;
-    }
-
-    if (!hexGridTileIsValid(tile)) {
-        return;
-    }
-
-    gTileIntensity[elevation][tile] = intensity;
-}
-
 // 0x47AA10
 void lightIncreaseTileIntensity(int elevation, int tile, int intensity)
 {

@@ -8,7 +8,6 @@ extern "C" {
     int rust_audio_engine_create_sound_buffer(unsigned int size, int bitsPerSample, int channels, int rate);
     bool rust_audio_engine_sound_release(int soundBufferIndex);
     bool rust_audio_engine_sound_buffer_set_volume(int soundBufferIndex, int volume);
-    bool rust_audio_engine_sound_buffer_get_volume(int soundBufferIndex, int* volumePtr);
     bool rust_audio_engine_sound_buffer_set_pan(int soundBufferIndex, int volume);
     bool rust_audio_engine_sound_buffer_play(int soundBufferIndex, unsigned int flags);
     bool rust_audio_engine_sound_buffer_stop(int soundBufferIndex);
@@ -54,11 +53,6 @@ bool audioEngineSoundBufferRelease(int soundBufferIndex)
 bool audioEngineSoundBufferSetVolume(int soundBufferIndex, int volume)
 {
     return rust_audio_engine_sound_buffer_set_volume(soundBufferIndex, volume);
-}
-
-bool audioEngineSoundBufferGetVolume(int soundBufferIndex, int* volumePtr)
-{
-    return rust_audio_engine_sound_buffer_get_volume(soundBufferIndex, volumePtr);
 }
 
 bool audioEngineSoundBufferSetPan(int soundBufferIndex, int pan)

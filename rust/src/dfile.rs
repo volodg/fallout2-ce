@@ -153,7 +153,7 @@ unsafe extern "C" fn rust_dbase_find_entry_my_file_path(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_dfile_close(
+pub unsafe fn dfile_close(
     stream: *mut DFile
 ) -> c_int {
     assert_ne!(stream, null_mut()); // "stream", "dfile.c", 253
@@ -221,7 +221,7 @@ extern "C" {
 
 #[no_mangle]
 // 0x4E5D9C
-pub unsafe extern "C" fn rust_dfile_open_internal(
+pub unsafe fn dfile_open_internal(
     dbase: *mut DBase, file_path: *const c_char, mode: *const c_char, mut dfile: *mut DFile,
 ) -> *mut DFile {
     assert_ne!(dbase, null_mut()); // dfile.c, 295
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
 
     unsafe fn cleanup(dfile: *mut DFile) {
         if dfile != null_mut() {
-            rust_dfile_close(dfile);
+            dfile_close(dfile);
         }
     }
 
@@ -344,7 +344,7 @@ pub unsafe extern "C" fn rust_dfile_open_internal(
 pub unsafe extern "C" fn rust_dfile_open(
     dbase: *mut DBase, file_path: *const c_char, mode: *const c_char,
 ) -> *mut DFile {
-    rust_dfile_open_internal(dbase, file_path, mode, null_mut())
+    dfile_open_internal(dbase, file_path, mode, null_mut())
 }
 
 // 0x4E6078
@@ -475,7 +475,7 @@ pub unsafe extern "C" fn rust_dbase_close(dbase: *const DBase) -> bool {
     let mut curr = (*dbase).dfile_head;
     while curr != null_mut() {
         let next = (*curr).next;
-        rust_dfile_close(curr);
+        dfile_close(curr);
         curr = next;
     }
 

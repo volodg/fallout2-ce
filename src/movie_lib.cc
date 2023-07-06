@@ -560,16 +560,6 @@ void movieLibSetVolume(int volume)
     }
 }
 
-// 0x4F4920
-void movieLibSetPan(int pan)
-{
-    gMovieLibPan = pan;
-
-    if (gMveSoundBuffer != -1) {
-        audioEngineSoundBufferSetPan(gMveSoundBuffer, pan);
-    }
-}
-
 // 0x4F4940
 void _MVE_sfSVGA(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9)
 {

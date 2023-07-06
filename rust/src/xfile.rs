@@ -4,8 +4,8 @@ use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicPtr, Ordering};
 use libc::{c_char, fclose, fgetc, FILE, free, malloc, memset, rewind, snprintf};
 use libz_sys::{gzclose, gzFile};
-use crate::dfile::{DBase, DFile, rust_dfile_close, rust_dfile_open};
-use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, rust_compat_gzopen, rust_compat_splitpath};
+use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open};
+use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath};
 
 #[repr(C)]
 #[derive(PartialEq)]
@@ -68,7 +68,7 @@ pub unsafe extern "C" fn rust_xfile_close(stream: *mut XFile) -> c_int {
     assert_ne!(stream, null_mut()); // "stream", "xfile.c", 112
 
     let rc = match (*stream)._type {
-        XFileType::XfileTypeDfile => rust_dfile_close((*stream).file.dfile),
+        XFileType::XfileTypeDfile => dfile_close((*stream).file.dfile),
         XFileType::XfileTypeGzfile => gzclose((*stream).file.gzfile),
         XFileType::XfileTypeFile => fclose((*stream).file.file),
     };
@@ -162,7 +162,7 @@ pub unsafe extern "C" fn rust_xfile_open(file_path: *const c_char, mode: *const 
             fclose((*stream).file.file);
 
             (*stream)._type = XFileType::XfileTypeGzfile;
-            (*stream).file.gzfile = rust_compat_gzopen(path.as_ptr(), mode);
+            (*stream).file.gzfile = compat_gzopen(path.as_ptr(), mode);
         } else {
             // File is not gzipped.
             rewind((*stream).file.file);

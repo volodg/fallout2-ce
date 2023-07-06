@@ -60,7 +60,6 @@ int _obj_inven_free(Inventory* inventory);
 bool _obj_action_can_use(Object* obj);
 bool _obj_action_can_talk_to(Object* obj);
 bool _obj_portal_is_walk_thru(Object* obj);
-Object* objectFindById(int a1);
 Object* objectGetOwner(Object* obj);
 void _obj_remove_all();
 Object* objectFindFirst();

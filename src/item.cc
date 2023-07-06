@@ -733,17 +733,6 @@ int itemGetType(Object* item)
     return proto->item.type;
 }
 
-// NOTE: Unused.
-//
-// 0x477B4C
-int itemGetMaterial(Object* item)
-{
-    Proto* proto;
-    protoGetProto(item->pid, &proto);
-
-    return proto->item.material;
-}
-
 // 0x477B68
 int itemGetSize(Object* item)
 {
@@ -2204,21 +2193,6 @@ int miscItemSetCharges(Object* miscItem, int charges)
     return 0;
 }
 
-// NOTE: Unused.
-//
-// 0x479434
-int miscItemGetPowerType(Object* miscItem)
-{
-    if (miscItem == NULL) {
-        return 0;
-    }
-
-    Proto* proto;
-    protoGetProto(miscItem->pid, &proto);
-
-    return proto->item.data.misc.powerType;
-}
-
 // NOTE: Inlined.
 //
 // 0x479454
@@ -3416,26 +3390,6 @@ bool explosionEmitsLight()
     return gExplosionEmitsLight;
 }
 
-void weaponSetGrenadeExplosionRadius(int value)
-{
-    gGrenadeExplosionRadius = value;
-}
-
-void weaponSetRocketExplosionRadius(int value)
-{
-    gRocketExplosionRadius = value;
-}
-
-void explosiveAdd(int pid, int activePid, int minDamage, int maxDamage)
-{
-    ExplosiveDescription explosiveDescription;
-    explosiveDescription.pid = pid;
-    explosiveDescription.activePid = activePid;
-    explosiveDescription.minDamage = minDamage;
-    explosiveDescription.maxDamage = maxDamage;
-    gExplosives.push_back(std::move(explosiveDescription));
-}
-
 bool explosiveIsExplosive(int pid)
 {
     if (pid == PROTO_ID_DYNAMITE_I) return true;
@@ -3482,27 +3436,6 @@ bool explosiveActivate(int* pidPtr)
     return false;
 }
 
-bool explosiveSetDamage(int pid, int minDamage, int maxDamage)
-{
-    if (pid == PROTO_ID_DYNAMITE_I) {
-        gDynamiteMinDamage = minDamage;
-        gDynamiteMaxDamage = maxDamage;
-        return true;
-    }
-
-    if (pid == PROTO_ID_PLASTIC_EXPLOSIVES_I) {
-        gPlasticExplosiveMinDamage = minDamage;
-        gPlasticExplosiveMaxDamage = maxDamage;
-        return true;
-    }
-
-    // NOTE: For unknown reason this function do not update custom explosives
-    // damage. Since we're after compatibility (at least at this time), the
-    // only way to follow this behaviour.
-
-    return false;
-}
-
 bool explosiveGetDamage(int pid, int* minDamagePtr, int* maxDamagePtr)
 {
     if (pid == PROTO_ID_DYNAMITE_I) {
@@ -3544,25 +3477,9 @@ void explosionGetPattern(int* startRotationPtr, int* endRotationPtr)
     *endRotationPtr = gExplosionEndRotation;
 }
 
-void explosionSetPattern(int startRotation, int endRotation)
-{
-    gExplosionStartRotation = startRotation;
-    gExplosionEndRotation = endRotation;
-}
-
 int explosionGetFrm()
 {
     return gExplosionFrm;
-}
-
-void explosionSetFrm(int frm)
-{
-    gExplosionFrm = frm;
-}
-
-void explosionSetRadius(int radius)
-{
-    gExplosionRadius = radius;
 }
 
 int explosionGetDamageType()
@@ -3570,19 +3487,9 @@ int explosionGetDamageType()
     return gExplosionDamageType;
 }
 
-void explosionSetDamageType(int damageType)
-{
-    gExplosionDamageType = damageType;
-}
-
 int explosionGetMaxTargets()
 {
     return gExplosionMaxTargets;
-}
-
-void explosionSetMaxTargets(int maxTargets)
-{
-    gExplosionMaxTargets = maxTargets;
 }
 
 static void healingItemsInit()

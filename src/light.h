@@ -15,7 +15,6 @@ int lightGetAmbientIntensity();
 void lightSetAmbientIntensity(int intensity, bool shouldUpdateScreen);
 int lightGetTileIntensity(int elevation, int tile);
 int lightGetTrueTileIntensity(int elevation, int tile);
-void lightSetTileIntensity(int elevation, int tile, int intensity);
 void lightIncreaseTileIntensity(int elevation, int tile, int intensity);
 void lightDecreaseTileIntensity(int elevation, int tile, int intensity);
 void lightResetTileIntensity();

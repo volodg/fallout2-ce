@@ -381,7 +381,7 @@ pub extern "C" fn rust_audio_engine_sound_buffer_set_volume(
 }
 
 #[no_mangle]
-pub extern "C" fn rust_audio_engine_sound_buffer_get_volume(
+pub fn audio_engine_sound_buffer_get_volume(
     sound_buffer_index: c_int,
     volume_ptr: *mut c_int,
 ) -> bool {

@@ -18,11 +18,6 @@ static inline bool elevationIsValid(int elevation)
     return elevation >= 0 && elevation < ELEVATION_COUNT;
 }
 
-static inline bool squareGridTileIsValid(int tile)
-{
-    return tile >= 0 && tile < SQUARE_GRID_SIZE;
-}
-
 static inline bool hexGridTileIsValid(int tile)
 {
     return tile >= 0 && tile < HEX_GRID_SIZE;

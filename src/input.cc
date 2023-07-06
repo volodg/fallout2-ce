@@ -676,66 +676,10 @@ unsigned int _get_bk_time()
 
 // NOTE: Unused.
 //
-// 0x4C9418
-void inputSetKeyboardKeyRepeatRate(int value)
-{
-    gKeyboardKeyRepeatRate = value;
-}
-
-// NOTE: Unused.
-//
-// 0x4C9420
-int inputGetKeyboardKeyRepeatRate()
-{
-    return gKeyboardKeyRepeatRate;
-}
-
-// NOTE: Unused.
-//
-// 0x4C9428
-void inputSetKeyboardKeyRepeatDelay(int value)
-{
-    gKeyboardKeyRepeatDelay = value;
-}
-
-// NOTE: Unused.
-//
-// 0x4C9430
-int inputGetKeyboardKeyRepeatDelay()
-{
-    return gKeyboardKeyRepeatDelay;
-}
-
-// NOTE: Unused.
-//
-// 0x4C9438
-void inputSetFocusFunc(FocusFunc* func)
-{
-    _focus_func = func;
-}
-
-// NOTE: Unused.
-//
-// 0x4C9440
-FocusFunc* inputGetFocusFunc()
-{
-    return _focus_func;
-}
-
-// NOTE: Unused.
-//
 // 0x4C9448
 void inputSetIdleFunc(IdleFunc* func)
 {
     _idle_func = func;
-}
-
-// NOTE: Unused.
-//
-// 0x4C9450
-IdleFunc* inputGetIdleFunc()
-{
-    return _idle_func;
 }
 
 // 0x4C9490

@@ -2058,20 +2058,6 @@ bool _obj_portal_is_walk_thru(Object* obj)
     return (proto->scenery.data.generic.field_0 & 0x04) != 0;
 }
 
-// 0x48B2E8
-Object* objectFindById(int a1)
-{
-    Object* obj = objectFindFirst();
-    while (obj != NULL) {
-        if (obj->id == a1) {
-            return obj;
-        }
-        obj = objectFindNext();
-    }
-
-    return NULL;
-}
-
 // Returns root owner of given object.
 //
 // 0x48B304

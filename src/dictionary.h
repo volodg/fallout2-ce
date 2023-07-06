@@ -56,13 +56,6 @@ int dictionaryFree(Dictionary* dictionary);
 int dictionaryGetIndexByKey(Dictionary* dictionary, const char* key);
 int dictionaryAddValue(Dictionary* dictionary, const char* key, const void* value);
 int dictionaryRemoveValue(Dictionary* dictionary, const char* key);
-int dictionaryCopy(Dictionary* dest, Dictionary* src);
-int dictionaryReadInt(FILE* stream, int* valuePtr);
-int dictionaryReadHeader(FILE* stream, Dictionary* dictionary);
-int dictionaryLoad(FILE* stream, Dictionary* dictionary, int a3);
-int dictionaryWriteInt(FILE* stream, int value);
-int dictionaryWriteHeader(FILE* stream, Dictionary* dictionary);
-int dictionaryWrite(FILE* stream, Dictionary* dictionary, int a3);
 void dictionarySetMemoryProcs(MallocProc* mallocProc, ReallocProc* reallocProc, FreeProc* freeProc);
 
 } // namespace fallout

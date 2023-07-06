@@ -40,7 +40,7 @@ extern FontManagerGetStringWidthProc* fontGetStringWidth;
 extern FontManagerGetCharacterWidthProc* fontGetCharacterWidth;
 extern FontManagerGetMonospacedStringWidthProc* fontGetMonospacedStringWidth;
 extern FontManagerGetLetterSpacingProc* fontGetLetterSpacing;
-extern FontManagerGetBufferSizeProc* fontGetBufferSize;
+// extern FontManagerGetBufferSizeProc* fontGetBufferSize;
 extern FontManagerGetMonospacedCharacterWidth* fontGetMonospacedCharacterWidth;
 
 int textFontsInit();

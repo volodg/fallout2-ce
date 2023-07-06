@@ -42,7 +42,7 @@ typedef struct DBaseEntry {
 
 // A handle to open entry in .DAT file.
 typedef struct DFile {
-    DBase* dbase;
+    DBase* _dbase;
     DBaseEntry* entry;
     int flags;
 
@@ -56,29 +56,29 @@ typedef struct DFile {
     // The inflate stream used to decompress data.
     //
     // This value is NULL if entry is not compressed.
-    z_streamp decompressionStream;
+    z_streamp _decompressionStream;
 
     // The decompression buffer of size [DFILE_DECOMPRESSION_BUFFER_SIZE].
     //
     // This value is NULL if entry is not compressed.
-    unsigned char* decompressionBuffer;
+    unsigned char* _decompressionBuffer;
 
     // The last ungot character.
     //
     // See [DFILE_HAS_UNGETC] notes.
-    int ungotten;
+    int _ungotten;
 
     // The last ungot compressed character.
     //
     // This value is used when reading compressed text streams to detect
     // Windows end of line sequence \r\n.
-    int compressedUngotten;
+    int _compressedUngotten;
 
     // The number of bytes read so far from compressed stream.
     //
     // This value is only used when reading compressed streams. The range is
     // 0..entry->dataSize.
-    int compressedBytesRead;
+    int _compressedBytesRead;
 
     // The position in read stream.
     //
@@ -117,8 +117,6 @@ bool dbaseFindFirstEntry(DBase* dbase, DFileFindData* findFileData, const char* 
 bool dbaseFindNextEntry(DBase* dbase, DFileFindData* findFileData);
 bool dbaseFindClose(DBase* dbase, DFileFindData* findFileData);
 long dfileGetSize(DFile* stream);
-int dfileClose(DFile* stream);
-DFile* dfileOpen(DBase* dbase, const char* filename, const char* mode);
 int dfilePrintFormattedArgs(DFile* stream, const char* format, va_list args);
 int dfileReadChar(DFile* stream);
 char* dfileReadString(char* str, int size, DFile* stream);
