@@ -4,12 +4,8 @@ extern "C" {
     bool rust_file_find_first(const char* path, fallout::DirectoryFileFindData* findData);
     bool rust_file_find_next(fallout::DirectoryFileFindData* findData);
     bool rust_file_find_close(fallout::DirectoryFileFindData* findData);
-    // rust_file_find_close
 }
 
-// TODO Migrate
-
-// TODO migrate
 namespace fallout {
 
 // 0x4E6380
