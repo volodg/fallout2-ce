@@ -16,19 +16,10 @@
 // Migrated
 #include "file_find.h"
 
-namespace fallout {
-// 0x6B24D0
-static XBase* gXbaseHead_;
-}
-
 extern "C" {
     int rust_xfile_close(fallout::XFile* stream);
-    fallout::XBase* rust_get_g_xbase_head() {
-        return fallout::gXbaseHead_;
-    }
-    void rust_set_g_xbase_head(fallout::XBase* base) {
-        fallout::gXbaseHead_ = base;
-    }
+    fallout::XBase* rust_get_g_xbase_head();
+    void rust_set_g_xbase_head(fallout::XBase* base);
     // rust_get_g_xbase_head
 }
 

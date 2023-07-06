@@ -5,7 +5,7 @@ use libc::{c_char, c_int, c_uchar, fclose, fgetc, fputc, fread, fwrite, rewind, 
 use libz_sys::{gzclose, gzgetc, gzputc};
 use crate::platform_compat::{rust_compat_fopen, rust_compat_gzopen};
 
-unsafe fn rust_file_copy(existing_file_path: *const c_char, new_file_path: *const c_char) {
+unsafe fn file_copy(existing_file_path: *const c_char, new_file_path: *const c_char) {
     let rb = CString::new("rb").expect("valid string");
     let wb = CString::new("wb").expect("valid string");
     let in_ = rust_compat_fopen(existing_file_path, rb.as_ptr());
@@ -81,7 +81,7 @@ pub unsafe extern "C" fn rust_file_copy_decompressed(existing_file_path: *const 
             return -1;
         }
     } else {
-        rust_file_copy(existing_file_path, new_file_path);
+        file_copy(existing_file_path, new_file_path);
     }
 
     0
@@ -103,7 +103,7 @@ pub unsafe extern "C" fn rust_file_copy_compressed(existing_file_path: *const c_
         // Source file is already gzipped, there is no need to do anything
         // besides copying.
         fclose(in_stream);
-        rust_file_copy(existing_file_path, new_file_path);
+        file_copy(existing_file_path, new_file_path);
     } else {
         let wb = CString::new("wb").expect("valid string");
         let out_stream = rust_compat_gzopen(new_file_path, wb.as_ptr());
@@ -166,7 +166,7 @@ pub unsafe extern "C" fn rust_gzdecompress_file(existing_file_path: *const c_cha
         gzclose(gzstream);
         fclose(stream);
     } else {
-        rust_file_copy(existing_file_path, new_file_path);
+        file_copy(existing_file_path, new_file_path);
     }
 
     0

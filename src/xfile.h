@@ -52,7 +52,6 @@ typedef struct XList {
 
 int xfileClose(XFile* stream);
 XFile* xfileOpen(const char* filename, const char* mode);
-int xfilePrintFormatted(XFile* xfile, const char* format, ...);
 int xfilePrintFormattedArgs(XFile* stream, const char* format, va_list args);
 int xfileReadChar(XFile* stream);
 char* xfileReadString(char* string, int size, XFile* stream);

@@ -1,8 +1,7 @@
-use std::cell::RefCell;
 use std::ffi::{c_int, c_void};
 use std::mem;
 use std::ptr::{null, null_mut};
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicPtr, Ordering};
 use libc::{c_char, fclose, fgetc, FILE, free, malloc, memset, rewind, snprintf};
 use libz_sys::{gzclose, gzFile};
 use sdl2_sys::__pthread_cond_s;
@@ -52,20 +51,16 @@ pub struct XBase {
 }
 
 // 0x6B24D0
-const G_X_BASE_HEAD: Mutex<RefCell<*const XBase>> = Mutex::new(RefCell::new(null()));
+static G_X_BASE_HEAD: AtomicPtr<XBase> = AtomicPtr::new(null_mut());
 
 #[no_mangle]
-pub unsafe extern "C" fn _rust_get_g_xbase_head() -> *const XBase {
-    let binding = G_X_BASE_HEAD;
-    let lock = binding.lock().expect("locked");
-    *lock.as_ptr()
+pub unsafe extern "C" fn rust_get_g_xbase_head() -> *const XBase {
+    G_X_BASE_HEAD.load(Ordering::Relaxed)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn _rust_set_g_xbase_head(value: *const XBase) {
-    let binding = G_X_BASE_HEAD;
-    let mut lock = binding.lock().expect("locked");
-    *lock.get_mut() = value
+pub unsafe extern "C" fn rust_set_g_xbase_head(value: *mut XBase) {
+    G_X_BASE_HEAD.store(value, Ordering::Relaxed)
 }
 
 #[no_mangle]
