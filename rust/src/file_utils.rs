@@ -171,11 +171,3 @@ pub unsafe extern "C" fn rust_gzdecompress_file(existing_file_path: *const c_cha
 
     0
 }
-
-/*
-// TODO: Check, implementation looks odd.
-int _gzdecompress_file(const char* existingFilePath, const char* newFilePath)
-{
-
-}
- */

@@ -318,15 +318,9 @@ fn visit_audio_engine_sound_buffer_mutex<F>(index: c_int, visitor: F) -> bool
 where
     F: FnOnce(&ReentrantMutex<RefCell<AudioEngineSoundBuffer>>) -> bool,
 {
-    if !audio_engine_is_initialized() {
-        return false;
-    }
-
-    if !sound_buffer_is_valid(index) {
-        return false;
-    }
-
-    return visitor(&AUDIO_ENGINE_SOUND_BUFFER[index as usize]);
+    return audio_engine_is_initialized()
+        && sound_buffer_is_valid(index)
+        && visitor(&AUDIO_ENGINE_SOUND_BUFFER[index as usize]);
 }
 
 fn visit_audio_engine_sound_buffer<F>(index: c_int, visitor: F) -> bool
