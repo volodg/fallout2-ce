@@ -656,7 +656,7 @@ pub unsafe extern "C" fn rust_dbase_find_next_entry(dbase: *const DBase, find_fi
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_dfile_read_char(stream: *mut DFile) -> c_int {
+pub unsafe fn dfile_read_char(stream: *mut DFile) -> c_int {
     assert_ne!(stream, null_mut()); // "stream", "dfile.c", 384
 
     if ((*stream).flags & DFILE_EOF as c_int) != 0 || ((*stream).flags & DFILE_ERROR as c_int) != 0 {
@@ -677,7 +677,7 @@ pub unsafe extern "C" fn rust_dfile_read_char(stream: *mut DFile) -> c_int {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_dfile_read_string(string: *mut c_char, mut size: c_int, stream: *mut DFile) -> *const c_char {
+pub unsafe fn dfile_read_string(string: *mut c_char, mut size: c_int, stream: *mut DFile) -> *const c_char {
     assert_ne!(string, null_mut()); // "s", "dfile.c", 407
     assert_ne!(size, 0); // "n", "dfile.c", 408
     assert_ne!(stream, null_mut()); // "stream", "dfile.c", 409
@@ -877,9 +877,16 @@ pub unsafe extern "C" fn rust_dfile_rewind(stream: *mut DFile)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_dfile_print_formatted_args(stream: *const DFile, format: *const c_char, _args: *mut c_void) -> c_int {
+pub unsafe extern "C" fn dfile_print_formatted_args(stream: *const DFile, format: *const c_char, _args: *mut c_void) -> c_int {
     assert_ne!(stream, null()); // "stream", "dfile.c", 368
     assert_ne!(format, null()); // "format", "dfile.c", 369
+
+    -1
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_dfile_write_char(_ch: c_int, stream: *const DFile) -> c_int {
+    assert_ne!(stream, null()); // "stream", "dfile.c", 437
 
     -1
 }

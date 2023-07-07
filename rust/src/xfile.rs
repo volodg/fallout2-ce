@@ -2,10 +2,10 @@ use std::ffi::{c_int, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicPtr, Ordering};
-use libc::{c_char, c_uint, fclose, fgetc, FILE, free, fwrite, malloc, memset, rewind, size_t, snprintf};
-use libz_sys::{gzclose, gzFile, gzgetc, gzwrite, voidpc};
+use libc::{c_char, c_uint, fclose, fgetc, FILE, fputc, free, fwrite, malloc, memset, rewind, size_t, snprintf};
+use libz_sys::{gzclose, gzFile, gzgetc, gzputc, gzwrite, voidpc};
 use vsprintf::vsprintf;
-use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, rust_dfile_print_formatted_args, rust_dfile_read_char, rust_dfile_read_string};
+use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, rust_dfile_write_char};
 use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, rust_compat_gzgets, rust_compat_fgets};
 
 #[repr(C)]
@@ -179,7 +179,7 @@ pub unsafe extern "C" fn rust_xfile_print_formatted_args(stream: *const XFile, f
     assert_ne!(format, null()); // "format", "xfile.c", 333
 
     match (*stream)._type {
-        XFileType::XfileTypeDfile => rust_dfile_print_formatted_args((*stream).file.dfile, format, args),
+        XFileType::XfileTypeDfile => dfile_print_formatted_args((*stream).file.dfile, format, args),
         XFileType::XfileTypeGzfile => {
             let str = vsprintf(format, args).expect("valid");
             gzwrite((*stream).file.gzfile, str.as_ptr() as voidpc, str.len() as c_uint)
@@ -196,7 +196,7 @@ pub unsafe extern "C" fn rust_xfile_read_char(stream: *const XFile) -> c_int {
     assert_ne!(stream, null()); // "stream", "xfile.c", 354
 
     match (*stream)._type {
-        XFileType::XfileTypeDfile => rust_dfile_read_char((*stream).file.dfile),
+        XFileType::XfileTypeDfile => dfile_read_char((*stream).file.dfile),
         XFileType::XfileTypeGzfile => gzgetc((*stream).file.gzfile),
         XFileType::XfileTypeFile => fgetc((*stream).file.file)
     }
@@ -209,8 +209,19 @@ pub unsafe extern "C" fn rust_xfile_read_string(string: *mut c_char, size: c_int
     assert_ne!(stream, null()); // "stream", "xfile.c", 377
 
     match (*stream)._type {
-        XFileType::XfileTypeDfile => rust_dfile_read_string(string, size, (*stream).file.dfile),
+        XFileType::XfileTypeDfile => dfile_read_string(string, size, (*stream).file.dfile),
         XFileType::XfileTypeGzfile => rust_compat_gzgets((*stream).file.gzfile, string, size),
         XFileType::XfileTypeFile => rust_compat_fgets(string, size, (*stream).file.file)
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_xfile_write_char(ch: c_int, stream: *const XFile) -> c_int {
+    assert_ne!(stream, null()); // "stream", "xfile.c", 399
+
+    match (*stream)._type {
+        XFileType::XfileTypeDfile => rust_dfile_write_char(ch, (*stream).file.dfile),
+        XFileType::XfileTypeGzfile => gzputc((*stream).file.gzfile, ch),
+        XFileType::XfileTypeFile => fputc(ch, (*stream).file.file)
     }
 }

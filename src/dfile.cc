@@ -7,13 +7,11 @@ extern "C" {
     fallout::DBase* rust_dbase_open_part(const char* filePath);
     bool rust_dbase_find_first_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData, const char* pattern);
     bool rust_dbase_find_next_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData);
-    int rust_dfile_read_char(fallout::DFile* stream);
-    char* rust_dfile_read_string(char* string, int size, fallout::DFile* stream);
     size_t rust_dfile_read(void* ptr, size_t size, size_t count, fallout::DFile* stream);
     int rust_dfile_seek(fallout::DFile* stream, long offset, int origin);
     void rust_dfile_rewind(fallout::DFile* stream);
-    int rust_dfile_print_formatted_args(fallout::DFile* stream, const char* format, va_list args);
-    // rust_dfile_print_formatted_args
+    int rust_dfile_write_char(int ch, fallout::DFile* stream);
+    // rust_dfile_write_char
 }
 
 namespace fallout {
@@ -79,44 +77,12 @@ long dfileGetSize(DFile* stream)
     return stream->entry->uncompressedSize;
 }
 
-// [vfprintf].
-//
-// 0x4E56C0
-int dfilePrintFormattedArgs(DFile* stream, const char* format, va_list args)
-{
-    return rust_dfile_print_formatted_args(stream, format, args);
-}
-
-// [fgetc].
-//
-// This function reports \r\n sequence as one character \n, even though it
-// consumes two characters from the underlying stream.
-//
-// 0x4E5700
-int dfileReadChar(DFile* stream)
-{
-    return rust_dfile_read_char(stream);
-}
-
-// [fgets].
-//
-// Both Windows (\r\n) and Unix (\n) line endings are recognized. Windows
-// line ending is reported as \n.
-//
-// 0x4E5764
-char* dfileReadString(char* string, int size, DFile* stream)
-{
-    return rust_dfile_read_string(string, size, stream);
-}
-
 // [fputc].
 //
 // 0x4E5830
 int dfileWriteChar(int ch, DFile* stream)
 {
-    assert(stream); // "stream", "dfile.c", 437
-
-    return -1;
+    return rust_dfile_write_char(ch, stream);
 }
 
 // [fputs].

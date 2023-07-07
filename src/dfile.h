@@ -117,9 +117,6 @@ bool dbaseFindFirstEntry(DBase* dbase, DFileFindData* findFileData, const char* 
 bool dbaseFindNextEntry(DBase* dbase, DFileFindData* findFileData);
 bool dbaseFindClose(DBase* dbase, DFileFindData* findFileData);
 long dfileGetSize(DFile* stream);
-int dfilePrintFormattedArgs(DFile* stream, const char* format, va_list args);
-int dfileReadChar(DFile* stream);
-char* dfileReadString(char* str, int size, DFile* stream);
 int dfileWriteChar(int ch, DFile* stream);
 int dfileWriteString(const char* s, DFile* stream);
 size_t dfileRead(void* ptr, size_t size, size_t count, DFile* stream);
