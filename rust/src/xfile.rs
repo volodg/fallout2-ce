@@ -3,9 +3,9 @@ use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicPtr, Ordering};
 use libc::{c_char, c_uint, fclose, fgetc, FILE, free, fwrite, malloc, memset, rewind, size_t, snprintf};
-use libz_sys::{gzclose, gzFile, gzwrite, voidpc};
+use libz_sys::{gzclose, gzFile, gzgetc, gzwrite, voidpc};
 use vsprintf::vsprintf;
-use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, rust_dfile_print_formatted_args};
+use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, rust_dfile_print_formatted_args, rust_dfile_read_char};
 use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath};
 
 #[repr(C)]
@@ -188,5 +188,16 @@ pub unsafe extern "C" fn rust_xfile_print_formatted_args(stream: *const XFile, f
             let str = vsprintf(format, args).expect("valid");
             fwrite(str.as_ptr() as *const c_void, str.len() as size_t, 1, (*stream).file.file) as c_int
         },
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_xfile_read_char(stream: *const XFile) -> c_int {
+    assert_ne!(stream, null()); // "stream", "xfile.c", 354
+
+    match (*stream)._type {
+        XFileType::XfileTypeDfile => rust_dfile_read_char((*stream).file.dfile),
+        XFileType::XfileTypeGzfile => gzgetc((*stream).file.gzfile),
+        XFileType::XfileTypeFile => fgetc((*stream).file.file)
     }
 }

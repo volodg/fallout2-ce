@@ -22,7 +22,8 @@ extern "C" {
     void rust_set_g_xbase_head(fallout::XBase* base);
     fallout::XFile* rust_xfile_open(const char* filePath, const char* mode);
     int rust_xfile_print_formatted_args(fallout::XFile* stream, const char* format, va_list args);
-    // rust_xfile_open
+    int rust_xfile_read_char(fallout::XFile* stream);
+    // rust_xfile_read_char
 }
 
 namespace fallout {
@@ -73,23 +74,7 @@ int xfilePrintFormattedArgs(XFile* stream, const char* format, va_list args)
 // 0x4DF22C
 int xfileReadChar(XFile* stream)
 {
-    assert(stream); // "stream", "xfile.c", 354
-
-    int ch;
-
-    switch (stream->type) {
-    case XFILE_TYPE_DFILE:
-        ch = dfileReadChar(stream->dfile);
-        break;
-    case XFILE_TYPE_GZFILE:
-        ch = gzgetc(stream->gzfile);
-        break;
-    default:
-        ch = fgetc(stream->file);
-        break;
-    }
-
-    return ch;
+    return rust_xfile_read_char(stream);
 }
 
 // 0x4DF280
