@@ -2,10 +2,10 @@ use std::ffi::{c_int, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicPtr, Ordering};
-use libc::{c_char, c_uint, fclose, fgetc, FILE, fputc, free, fwrite, malloc, memset, rewind, size_t, snprintf};
-use libz_sys::{gzclose, gzFile, gzgetc, gzputc, gzwrite, voidpc};
+use libc::{c_char, c_uint, fclose, fgetc, FILE, fputc, fputs, free, fwrite, malloc, memset, rewind, size_t, snprintf};
+use libz_sys::{gzclose, gzFile, gzgetc, gzputc, gzputs, gzwrite, voidpc};
 use vsprintf::vsprintf;
-use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, rust_dfile_write_char};
+use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, rust_dfile_write_char, rust_dfile_write_string};
 use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, rust_compat_gzgets, rust_compat_fgets};
 
 #[repr(C)]
@@ -225,3 +225,21 @@ pub unsafe extern "C" fn rust_xfile_write_char(ch: c_int, stream: *const XFile) 
         XFileType::XfileTypeFile => fputc(ch, (*stream).file.file)
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_xfile_write_string(string: *const c_char, stream: *const XFile) -> c_int {
+    assert_ne!(string, null()); // "s", "xfile.c", 421
+    assert_ne!(stream, null()); // "stream", "xfile.c", 422
+
+    match (*stream)._type {
+        XFileType::XfileTypeDfile => rust_dfile_write_string(string, (*stream).file.dfile),
+        XFileType::XfileTypeGzfile => gzputs((*stream).file.gzfile, string),
+        XFileType::XfileTypeFile => fputs(string, (*stream).file.file),
+    }
+}
+/*
+int xfileWriteString(const char* string, XFile* stream)
+{
+
+}
+ */

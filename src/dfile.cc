@@ -11,7 +11,8 @@ extern "C" {
     int rust_dfile_seek(fallout::DFile* stream, long offset, int origin);
     void rust_dfile_rewind(fallout::DFile* stream);
     int rust_dfile_write_char(int ch, fallout::DFile* stream);
-    // rust_dfile_write_char
+    int rust_dfile_write_string(const char* string, fallout::DFile* stream);
+    // rust_dfile_write_string
 }
 
 namespace fallout {
@@ -90,10 +91,7 @@ int dfileWriteChar(int ch, DFile* stream)
 // 0x4E5854
 int dfileWriteString(const char* string, DFile* stream)
 {
-    assert(string); // "s", "dfile.c", 448
-    assert(stream); // "stream", "dfile.c", 449
-
-    return -1;
+    return rust_dfile_write_string(string, stream);
 }
 
 // [fread].

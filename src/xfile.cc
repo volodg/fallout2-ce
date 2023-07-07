@@ -25,7 +25,8 @@ extern "C" {
     int rust_xfile_read_char(fallout::XFile* stream);
     char* rust_xfile_read_string(char* string, int size, fallout::XFile* stream);
     int rust_xfile_write_char(int ch, fallout::XFile* stream);
-    // rust_xfile_write_char
+    int rust_xfile_write_string(const char* string, fallout::XFile* stream);
+    // rust_xfile_write_string
 }
 
 namespace fallout {
@@ -94,24 +95,7 @@ int xfileWriteChar(int ch, XFile* stream)
 // 0x4DF380
 int xfileWriteString(const char* string, XFile* stream)
 {
-    assert(string); // "s", "xfile.c", 421
-    assert(stream); // "stream", "xfile.c", 422
-
-    int rc;
-
-    switch (stream->type) {
-    case XFILE_TYPE_DFILE:
-        rc = dfileWriteString(string, stream->dfile);
-        break;
-    case XFILE_TYPE_GZFILE:
-        rc = gzputs(stream->gzfile, string);
-        break;
-    default:
-        rc = fputs(string, stream->file);
-        break;
-    }
-
-    return rc;
+    return rust_xfile_write_string(string, stream);
 }
 
 // 0x4DF44C

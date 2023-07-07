@@ -890,3 +890,11 @@ pub unsafe extern "C" fn rust_dfile_write_char(_ch: c_int, stream: *const DFile)
 
     -1
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_dfile_write_string(string: *const c_char, stream: *const DFile) -> c_int {
+    assert_ne!(string, null()); // "s", "dfile.c", 448
+    assert_ne!(stream, null()); // "stream", "dfile.c", 449
+
+    -1
+}
