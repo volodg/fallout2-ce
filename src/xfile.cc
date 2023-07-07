@@ -27,7 +27,8 @@ extern "C" {
     int rust_xfile_write_char(int ch, fallout::XFile* stream);
     int rust_xfile_write_string(const char* string, fallout::XFile* stream);
     size_t rust_xfile_read(void* ptr, size_t size, size_t count, fallout::XFile* stream);
-    // rust_xfile_read
+    size_t rust_xfile_write(const void* ptr, size_t size, size_t count, fallout::XFile* stream);
+    // rust_xfile_write
 }
 
 namespace fallout {
@@ -108,29 +109,7 @@ size_t xfileRead(void* ptr, size_t size, size_t count, XFile* stream)
 // 0x4DF4E8
 size_t xfileWrite(const void* ptr, size_t size, size_t count, XFile* stream)
 {
-    assert(ptr); // "ptr", "xfile.c", 504
-    assert(stream); // "stream", "xfile.c", 505
-
-    size_t elementsWritten;
-
-    switch (stream->type) {
-    case XFILE_TYPE_DFILE:
-        elementsWritten = dfileWrite(ptr, size, count, stream->dfile);
-        break;
-    case XFILE_TYPE_GZFILE:
-        // FIXME: There is a bug in the return value. [fwrite] returns number
-        // of elements written (while [dfileWrite] does not support writing at
-        // all), but [gzwrite] have no such concept, it works with bytes, and
-        // returns number of bytes written. Depending on the [size] and [count]
-        // parameters this function can return wrong result.
-        elementsWritten = gzwrite(stream->gzfile, ptr, size * count);
-        break;
-    default:
-        elementsWritten = fwrite(ptr, size, count, stream->file);
-        break;
-    }
-
-    return elementsWritten;
+    return rust_xfile_write(ptr, size, count, stream);
 }
 
 // 0x4DF5D8

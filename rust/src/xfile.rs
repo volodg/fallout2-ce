@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicPtr, Ordering};
 use libc::{c_char, c_uint, fclose, fgetc, FILE, fputc, fputs, fread, free, fwrite, malloc, memset, rewind, size_t, snprintf};
 use libz_sys::{gzclose, gzFile, gzgetc, gzputc, gzputs, gzread, gzwrite, voidp, voidpc};
 use vsprintf::vsprintf;
-use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, rust_dfile_write_char, rust_dfile_write_string, rust_dfile_read};
+use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, rust_dfile_write};
 use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, rust_compat_gzgets, rust_compat_fgets};
 
 #[repr(C)]
@@ -220,7 +220,7 @@ pub unsafe extern "C" fn rust_xfile_write_char(ch: c_int, stream: *const XFile) 
     assert_ne!(stream, null()); // "stream", "xfile.c", 399
 
     match (*stream)._type {
-        XFileType::XfileTypeDfile => rust_dfile_write_char(ch, (*stream).file.dfile),
+        XFileType::XfileTypeDfile => dfile_write_char(ch, (*stream).file.dfile),
         XFileType::XfileTypeGzfile => gzputc((*stream).file.gzfile, ch),
         XFileType::XfileTypeFile => fputc(ch, (*stream).file.file)
     }
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn rust_xfile_write_string(string: *const c_char, stream: 
     assert_ne!(stream, null()); // "stream", "xfile.c", 422
 
     match (*stream)._type {
-        XFileType::XfileTypeDfile => rust_dfile_write_string(string, (*stream).file.dfile),
+        XFileType::XfileTypeDfile => dfile_write_string(string, (*stream).file.dfile),
         XFileType::XfileTypeGzfile => gzputs((*stream).file.gzfile, string),
         XFileType::XfileTypeFile => fputs(string, (*stream).file.file),
     }
@@ -244,14 +244,27 @@ pub unsafe extern "C" fn rust_xfile_read(ptr: *mut c_void, size: size_t, count: 
     assert_ne!(stream, null()); // "stream", "xfile.c", 422
 
     match (*stream)._type {
-        XFileType::XfileTypeDfile => rust_dfile_read(ptr, size, count, (*stream).file.dfile),
+        XFileType::XfileTypeDfile => dfile_read(ptr, size, count, (*stream).file.dfile),
         XFileType::XfileTypeGzfile => gzread((*stream).file.gzfile, ptr as voidp, (size * count) as c_uint) as size_t,
         XFileType::XfileTypeFile => fread(ptr, size, count, (*stream).file.file)
     }
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_xfile_write(ptr: *const c_void, size: size_t, count: size_t, stream: *const XFile) -> size_t {
+    assert_ne!(ptr, null()); // "ptr", "xfile.c", 504
+    assert_ne!(stream, null()); // "stream", "xfile.c", 505
+
+    match (*stream)._type {
+        XFileType::XfileTypeDfile => rust_dfile_write(ptr, size, count, (*stream).file.dfile),
+        XFileType::XfileTypeGzfile => gzwrite((*stream).file.gzfile, ptr, (size * count) as c_uint) as size_t,
+        XFileType::XfileTypeFile => fwrite(ptr, size, count, (*stream).file.file)
+    }
+}
+
 /*
-size_t xfileRead(void* ptr, size_t size, size_t count, XFile* stream)
+size_t xfileWrite(const void* ptr, size_t size, size_t count, XFile* stream)
 {
+
 }
  */
