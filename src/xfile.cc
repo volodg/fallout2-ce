@@ -28,7 +28,8 @@ extern "C" {
     int rust_xfile_write_string(const char* string, fallout::XFile* stream);
     size_t rust_xfile_read(void* ptr, size_t size, size_t count, fallout::XFile* stream);
     size_t rust_xfile_write(const void* ptr, size_t size, size_t count, fallout::XFile* stream);
-    // rust_xfile_write
+    int rust_xfile_seek(fallout::XFile* stream, long offset, int origin);
+    // rust_xfile_seek
 }
 
 namespace fallout {
@@ -115,23 +116,7 @@ size_t xfileWrite(const void* ptr, size_t size, size_t count, XFile* stream)
 // 0x4DF5D8
 int xfileSeek(XFile* stream, long offset, int origin)
 {
-    assert(stream); // "stream", "xfile.c", 547
-
-    int result;
-
-    switch (stream->type) {
-    case XFILE_TYPE_DFILE:
-        result = dfileSeek(stream->dfile, offset, origin);
-        break;
-    case XFILE_TYPE_GZFILE:
-        result = gzseek(stream->gzfile, offset, origin);
-        break;
-    default:
-        result = fseek(stream->file, offset, origin);
-        break;
-    }
-
-    return result;
+    return rust_xfile_seek(stream, offset, origin);
 }
 
 // 0x4DF690
