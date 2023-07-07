@@ -771,7 +771,7 @@ pub unsafe extern "C" fn dfile_read(mut ptr: *const c_void, size: size_t, count:
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_dfile_write(ptr: *const c_void, _size: size_t, count: size_t, stream: *const DFile) -> size_t {
+pub unsafe fn dfile_write(ptr: *const c_void, _size: size_t, count: size_t, stream: *const DFile) -> size_t {
     assert_ne!(ptr, null()); // "ptr", "dfile.c", 538
     assert_ne!(stream, null()); // "stream", "dfile.c", 539
 
@@ -779,7 +779,7 @@ pub unsafe extern "C" fn rust_dfile_write(ptr: *const c_void, _size: size_t, cou
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_dfile_seek(stream: *mut DFile, offset: c_long, origin: c_int) -> c_int {
+pub unsafe fn dfile_seek(stream: *mut DFile, offset: c_long, origin: c_int) -> c_int {
     assert_ne!(stream, null_mut()); // "stream", "dfile.c", 569
 
     if ((*stream).flags & DFILE_ERROR as c_int) != 0 {
@@ -879,13 +879,13 @@ pub unsafe extern "C" fn rust_dfile_rewind(stream: *mut DFile)
 {
     assert_ne!(stream, null_mut()); // "stream", "dfile.c", 664
 
-    rust_dfile_seek(stream, 0, SEEK_SET);
+    dfile_seek(stream, 0, SEEK_SET);
 
     (*stream).flags &= !DFILE_ERROR as c_int;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn dfile_print_formatted_args(stream: *const DFile, format: *const c_char, _args: *mut c_void) -> c_int {
+pub unsafe fn dfile_print_formatted_args(stream: *const DFile, format: *const c_char, _args: *mut c_void) -> c_int {
     assert_ne!(stream, null()); // "stream", "dfile.c", 368
     assert_ne!(format, null()); // "format", "dfile.c", 369
 
@@ -905,4 +905,11 @@ pub unsafe fn dfile_write_string(string: *const c_char, stream: *const DFile) ->
     assert_ne!(stream, null()); // "stream", "dfile.c", 449
 
     -1
+}
+
+#[no_mangle]
+pub unsafe fn dfile_tell(stream: *const DFile) -> c_long {
+    assert_ne!(stream, null()); // "stream", "dfile.c", 654
+
+    (*stream).position
 }
