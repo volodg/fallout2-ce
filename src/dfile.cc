@@ -7,7 +7,7 @@ extern "C" {
     fallout::DBase* rust_dbase_open_part(const char* filePath);
     bool rust_dbase_find_first_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData, const char* pattern);
     bool rust_dbase_find_next_entry(fallout::DBase* dbase, fallout::DFileFindData* findFileData);
-    // rust_dfile_tell
+    // rust_dfile_eof
 }
 
 namespace fallout {
@@ -56,16 +56,6 @@ bool dbaseFindClose(DBase* dbase, DFileFindData* findFileData)
 long dfileGetSize(DFile* stream)
 {
     return stream->entry->uncompressedSize;
-}
-
-// [feof].
-//
-// 0x4E5D10
-int dfileEof(DFile* stream)
-{
-    assert(stream); // "stream", "dfile.c", 685
-
-    return stream->flags & DFILE_EOF;
 }
 
 } // namespace fallout

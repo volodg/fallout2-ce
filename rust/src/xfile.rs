@@ -2,10 +2,10 @@ use std::ffi::{c_int, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicPtr, Ordering};
-use libc::{c_char, c_long, c_uint, fclose, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, malloc, memset, rewind, size_t, snprintf};
-use libz_sys::{gzclose, gzFile, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
+use libc::{c_char, c_long, c_uint, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, malloc, memset, rewind, size_t, snprintf};
+use libz_sys::{gzclose, gzeof, gzFile, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
 use vsprintf::vsprintf;
-use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind};
+use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof};
 use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, rust_compat_gzgets, rust_compat_fgets};
 
 #[repr(C)]
@@ -294,5 +294,16 @@ pub unsafe extern "C" fn rust_xfile_rewind(stream: *const XFile) {
             gzrewind((*stream).file.gzfile);
         },
         XFileType::XfileTypeFile => rewind((*stream).file.file)
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_xfile_eof(stream: *const XFile) -> c_int {
+    assert_ne!(stream, null()); // "stream", "xfile.c", 648
+
+    match (*stream)._type {
+        XFileType::XfileTypeDfile => dfile_eof((*stream).file.dfile),
+        XFileType::XfileTypeGzfile => gzeof((*stream).file.gzfile),
+        XFileType::XfileTypeFile => feof((*stream).file.file)
     }
 }

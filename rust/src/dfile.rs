@@ -722,7 +722,7 @@ pub unsafe fn dfile_read_string(string: *mut c_char, mut size: c_int, stream: *m
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn dfile_read(mut ptr: *const c_void, size: size_t, count: size_t, stream: *mut DFile) -> size_t {
+pub unsafe fn dfile_read(mut ptr: *const c_void, size: size_t, count: size_t, stream: *mut DFile) -> size_t {
     assert_ne!(ptr, null_mut()); // "ptr", "dfile.c", 499
     assert_ne!(stream, null_mut()); // "stream", dfile.c, 500
 
@@ -912,4 +912,11 @@ pub unsafe fn dfile_tell(stream: *const DFile) -> c_long {
     assert_ne!(stream, null()); // "stream", "dfile.c", 654
 
     (*stream).position
+}
+
+#[no_mangle]
+pub unsafe fn dfile_eof(stream: *const DFile) -> c_int {
+    assert_ne!(stream, null()); // "stream", "dfile.c", 685
+
+    (*stream).flags & DFILE_EOF as c_int
 }

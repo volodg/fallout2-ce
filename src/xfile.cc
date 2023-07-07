@@ -31,7 +31,8 @@ extern "C" {
     int rust_xfile_seek(fallout::XFile* stream, long offset, int origin);
     long rust_xfile_tell(fallout::XFile* stream);
     void rust_xfile_rewind(fallout::XFile* stream);
-    // rust_xfile_rewind
+    int rust_xfile_eof(fallout::XFile* stream);
+    // rust_xfile_eof
 }
 
 namespace fallout {
@@ -136,23 +137,7 @@ void xfileRewind(XFile* stream)
 // 0x4DF780
 int xfileEof(XFile* stream)
 {
-    assert(stream); // "stream", "xfile.c", 648
-
-    int rc;
-
-    switch (stream->type) {
-    case XFILE_TYPE_DFILE:
-        rc = dfileEof(stream->dfile);
-        break;
-    case XFILE_TYPE_GZFILE:
-        rc = gzeof(stream->gzfile);
-        break;
-    default:
-        rc = feof(stream->file);
-        break;
-    }
-
-    return rc;
+    return rust_xfile_eof(stream);
 }
 
 // 0x4DF828
