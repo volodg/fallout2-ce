@@ -818,7 +818,7 @@ pub unsafe fn dfile_seek(stream: *mut DFile, offset: c_long, origin: c_int) -> c
             if offset_from_beginning < pos {
                 // We cannot go backwards in compressed stream, so the only way
                 // is to start from the beginning.
-                rust_dfile_rewind(stream);
+                dfile_rewind(stream);
             }
 
             // Consume characters one by one until we reach specified offset.
@@ -875,7 +875,7 @@ pub unsafe fn dfile_seek(stream: *mut DFile, offset: c_long, origin: c_int) -> c
 
 #[no_mangle]
 // 0x4E5D9C
-pub unsafe extern "C" fn rust_dfile_rewind(stream: *mut DFile)
+pub unsafe fn dfile_rewind(stream: *mut DFile)
 {
     assert_ne!(stream, null_mut()); // "stream", "dfile.c", 664
 

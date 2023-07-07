@@ -3,9 +3,9 @@ use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicPtr, Ordering};
 use libc::{c_char, c_long, c_uint, fclose, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, malloc, memset, rewind, size_t, snprintf};
-use libz_sys::{gzclose, gzFile, gzgetc, gzputc, gzputs, gzread, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
+use libz_sys::{gzclose, gzFile, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
 use vsprintf::vsprintf;
-use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell};
+use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind};
 use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, rust_compat_gzgets, rust_compat_fgets};
 
 #[repr(C)]
@@ -281,5 +281,18 @@ pub unsafe extern "C" fn rust_xfile_tell(stream: *const XFile) -> c_long {
         XFileType::XfileTypeDfile => dfile_tell((*stream).file.dfile),
         XFileType::XfileTypeGzfile => gztell((*stream).file.gzfile) as c_long,
         XFileType::XfileTypeFile => ftell((*stream).file.file)
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_xfile_rewind(stream: *const XFile) {
+    assert_ne!(stream, null()); // "stream", "xfile.c", 608
+
+    match (*stream)._type {
+        XFileType::XfileTypeDfile => dfile_rewind((*stream).file.dfile),
+        XFileType::XfileTypeGzfile => {
+            gzrewind((*stream).file.gzfile);
+        },
+        XFileType::XfileTypeFile => rewind((*stream).file.file)
     }
 }
