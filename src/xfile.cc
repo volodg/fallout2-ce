@@ -23,7 +23,8 @@ extern "C" {
     fallout::XFile* rust_xfile_open(const char* filePath, const char* mode);
     int rust_xfile_print_formatted_args(fallout::XFile* stream, const char* format, va_list args);
     int rust_xfile_read_char(fallout::XFile* stream);
-    // rust_xfile_read_char
+    char* rust_xfile_read_string(char* string, int size, fallout::XFile* stream);
+    // rust_xfile_read_string
 }
 
 namespace fallout {
@@ -80,25 +81,7 @@ int xfileReadChar(XFile* stream)
 // 0x4DF280
 char* xfileReadString(char* string, int size, XFile* stream)
 {
-    assert(string); // "s", "xfile.c", 375
-    assert(size); // "n", "xfile.c", 376
-    assert(stream); // "stream", "xfile.c", 377
-
-    char* result;
-
-    switch (stream->type) {
-    case XFILE_TYPE_DFILE:
-        result = dfileReadString(string, size, stream->dfile);
-        break;
-    case XFILE_TYPE_GZFILE:
-        result = compat_gzgets(stream->gzfile, string, size);
-        break;
-    default:
-        result = compat_fgets(string, size, stream->file);
-        break;
-    }
-
-    return result;
+    return rust_xfile_read_string(string, size, stream);
 }
 
 // 0x4DF320

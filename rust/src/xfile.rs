@@ -5,8 +5,8 @@ use std::sync::atomic::{AtomicPtr, Ordering};
 use libc::{c_char, c_uint, fclose, fgetc, FILE, free, fwrite, malloc, memset, rewind, size_t, snprintf};
 use libz_sys::{gzclose, gzFile, gzgetc, gzwrite, voidpc};
 use vsprintf::vsprintf;
-use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, rust_dfile_print_formatted_args, rust_dfile_read_char};
-use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath};
+use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, rust_dfile_print_formatted_args, rust_dfile_read_char, rust_dfile_read_string};
+use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, rust_compat_gzgets, rust_compat_fgets};
 
 #[repr(C)]
 #[derive(PartialEq)]
@@ -199,5 +199,18 @@ pub unsafe extern "C" fn rust_xfile_read_char(stream: *const XFile) -> c_int {
         XFileType::XfileTypeDfile => rust_dfile_read_char((*stream).file.dfile),
         XFileType::XfileTypeGzfile => gzgetc((*stream).file.gzfile),
         XFileType::XfileTypeFile => fgetc((*stream).file.file)
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_xfile_read_string(string: *mut c_char, size: c_int, stream: *const XFile) -> *const c_char {
+    assert_ne!(string, null_mut()); // "s", "xfile.c", 375
+    assert_ne!(size, 0); // "n", "xfile.c", 376
+    assert_ne!(stream, null()); // "stream", "xfile.c", 377
+
+    match (*stream)._type {
+        XFileType::XfileTypeDfile => rust_dfile_read_string(string, size, (*stream).file.dfile),
+        XFileType::XfileTypeGzfile => rust_compat_gzgets((*stream).file.gzfile, string, size),
+        XFileType::XfileTypeFile => rust_compat_fgets(string, size, (*stream).file.file)
     }
 }
