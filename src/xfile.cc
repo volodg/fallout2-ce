@@ -26,7 +26,8 @@ extern "C" {
     char* rust_xfile_read_string(char* string, int size, fallout::XFile* stream);
     int rust_xfile_write_char(int ch, fallout::XFile* stream);
     int rust_xfile_write_string(const char* string, fallout::XFile* stream);
-    // rust_xfile_write_string
+    size_t rust_xfile_read(void* ptr, size_t size, size_t count, fallout::XFile* stream);
+    // rust_xfile_read
 }
 
 namespace fallout {
@@ -101,29 +102,7 @@ int xfileWriteString(const char* string, XFile* stream)
 // 0x4DF44C
 size_t xfileRead(void* ptr, size_t size, size_t count, XFile* stream)
 {
-    assert(ptr); // "ptr", "xfile.c", 421
-    assert(stream); // "stream", "xfile.c", 422
-
-    size_t elementsRead;
-
-    switch (stream->type) {
-    case XFILE_TYPE_DFILE:
-        elementsRead = dfileRead(ptr, size, count, stream->dfile);
-        break;
-    case XFILE_TYPE_GZFILE:
-        // FIXME: There is a bug in the return value. Both [dfileRead] and
-        // [fread] returns number of elements read, but [gzwrite] have no such
-        // concept, it works with bytes, and returns number of bytes read.
-        // Depending on the [size] and [count] parameters this function can
-        // return wrong result.
-        elementsRead = gzread(stream->gzfile, ptr, size * count);
-        break;
-    default:
-        elementsRead = fread(ptr, size, count, stream->file);
-        break;
-    }
-
-    return elementsRead;
+    return rust_xfile_read(ptr, size, count, stream);
 }
 
 // 0x4DF4E8

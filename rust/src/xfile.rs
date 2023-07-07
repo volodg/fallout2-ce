@@ -2,10 +2,10 @@ use std::ffi::{c_int, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicPtr, Ordering};
-use libc::{c_char, c_uint, fclose, fgetc, FILE, fputc, fputs, free, fwrite, malloc, memset, rewind, size_t, snprintf};
-use libz_sys::{gzclose, gzFile, gzgetc, gzputc, gzputs, gzwrite, voidpc};
+use libc::{c_char, c_uint, fclose, fgetc, FILE, fputc, fputs, fread, free, fwrite, malloc, memset, rewind, size_t, snprintf};
+use libz_sys::{gzclose, gzFile, gzgetc, gzputc, gzputs, gzread, gzwrite, voidp, voidpc};
 use vsprintf::vsprintf;
-use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, rust_dfile_write_char, rust_dfile_write_string};
+use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, rust_dfile_write_char, rust_dfile_write_string, rust_dfile_read};
 use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, rust_compat_gzgets, rust_compat_fgets};
 
 #[repr(C)]
@@ -237,9 +237,21 @@ pub unsafe extern "C" fn rust_xfile_write_string(string: *const c_char, stream: 
         XFileType::XfileTypeFile => fputs(string, (*stream).file.file),
     }
 }
-/*
-int xfileWriteString(const char* string, XFile* stream)
-{
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_xfile_read(ptr: *mut c_void, size: size_t, count: size_t, stream: *const XFile) -> size_t {
+    assert_ne!(ptr, null_mut()); // "ptr", "xfile.c", 421
+    assert_ne!(stream, null()); // "stream", "xfile.c", 422
+
+    match (*stream)._type {
+        XFileType::XfileTypeDfile => rust_dfile_read(ptr, size, count, (*stream).file.dfile),
+        XFileType::XfileTypeGzfile => gzread((*stream).file.gzfile, ptr as voidp, (size * count) as c_uint) as size_t,
+        XFileType::XfileTypeFile => fread(ptr, size, count, (*stream).file.file)
+    }
+}
+
+/*
+size_t xfileRead(void* ptr, size_t size, size_t count, XFile* stream)
+{
 }
  */
