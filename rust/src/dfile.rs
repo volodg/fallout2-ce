@@ -876,3 +876,10 @@ pub unsafe extern "C" fn rust_dfile_rewind(stream: *mut DFile)
     (*stream).flags &= !DFILE_ERROR as c_int;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_dfile_print_formatted_args(stream: *const DFile, format: *const c_char, _args: *mut c_void) -> c_int {
+    assert_ne!(stream, null()); // "stream", "dfile.c", 368
+    assert_ne!(format, null()); // "format", "dfile.c", 369
+
+    -1
+}

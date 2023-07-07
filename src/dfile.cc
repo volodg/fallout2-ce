@@ -12,6 +12,8 @@ extern "C" {
     size_t rust_dfile_read(void* ptr, size_t size, size_t count, fallout::DFile* stream);
     int rust_dfile_seek(fallout::DFile* stream, long offset, int origin);
     void rust_dfile_rewind(fallout::DFile* stream);
+    int rust_dfile_print_formatted_args(fallout::DFile* stream, const char* format, va_list args);
+    // rust_dfile_print_formatted_args
 }
 
 namespace fallout {
@@ -82,10 +84,7 @@ long dfileGetSize(DFile* stream)
 // 0x4E56C0
 int dfilePrintFormattedArgs(DFile* stream, const char* format, va_list args)
 {
-    assert(stream); // "stream", "dfile.c", 368
-    assert(format); // "format", "dfile.c", 369
-
-    return -1;
+    return rust_dfile_print_formatted_args(stream, format, args);
 }
 
 // [fgetc].
