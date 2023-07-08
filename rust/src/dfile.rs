@@ -32,12 +32,18 @@ const DFILE_ERROR: u32 = 0x04;
 // Specifies that [DFile] was opened in text mode.
 const DFILE_TEXT: u32 = 0x08;
 
-pub struct DBaseEntry {
-    path: *mut c_char,
+struct DBaseEntry {
+    path: Option<CString>,
     compressed: [c_char; 1],
     uncompressed_size: [c_int; 1],
     data_size: [c_int; 1],
     data_offset: [c_int; 1],
+}
+
+impl DBaseEntry {
+    fn get_path_cstr(&self) -> *const c_char {
+        self.path.as_ref().map(|x| x.as_ptr()).unwrap_or(null())
+    }
 }
 
 // A representation of .DAT file.
@@ -156,7 +162,7 @@ unsafe extern "C" fn rust_dbase_find_entry_my_file_path(
     let file_path = a1 as *const c_char;
     let entry = a2 as *const DBaseEntry;
 
-    rust_compat_stricmp(file_path, (*entry).path)
+    rust_compat_stricmp(file_path, (*entry).get_path_cstr())
 }
 
 pub unsafe fn dfile_close(
@@ -485,9 +491,8 @@ pub unsafe fn dbase_close(dbase: *const DBase) -> bool {
     if (*dbase).entries != null_mut() {
         for index in 0..((*dbase).entries_length[0]) {
             let entry = (*dbase).entries.offset(index as isize);
-            let entry_name = (*entry).path;
-            if entry_name != null_mut() {
-                free(entry_name as *mut c_void);
+            if (*entry).path != None {
+                (*entry).path = None;
             }
         }
         free((*dbase).entries as *mut c_void);
@@ -583,16 +588,17 @@ pub unsafe fn dbase_open(file_path: *const c_char) -> *mut DBase {
             break;
         }
 
-        (*entry).path = malloc(path_length[0] as size_t + 1) as *mut c_char;
-        if (*entry).path == null_mut() {
+        let path = malloc(path_length[0] as size_t + 1) as *mut c_char;
+        if path == null_mut() {
             break;
         }
 
-        if fread((*entry).path as *mut c_void, path_length[0] as size_t, 1, stream) != 1 {
+        if fread(path as *mut c_void, path_length[0] as size_t, 1, stream) != 1 {
             break;
         }
 
-        *(*entry).path.offset(path_length[0] as isize) = '\0' as c_char;
+        *path.offset(path_length[0] as isize) = '\0' as c_char;
+        (*entry).path = Some(CString::from_raw(path));
 
         if fread((*entry).compressed.as_mut_ptr() as *mut c_void, mem::size_of_val(&(*entry).compressed), 1, stream) != 1 {
             break;
@@ -631,8 +637,8 @@ pub unsafe fn dbase_open(file_path: *const c_char) -> *mut DBase {
 pub unsafe fn dbase_find_first_entry(dbase: *const DBase, find_file_data: *mut DFileFindData, pattern: *const c_char) -> bool {
     for index in 0..(*dbase).entries_length[0] {
         let entry = (*dbase).entries.offset(index as isize);
-        if fpattern_match(pattern, (*entry).path) {
-            strcpy((*find_file_data).file_name.as_mut_ptr() as *mut c_char, (*entry).path);
+        if fpattern_match(pattern, (*entry).get_path_cstr()) {
+            strcpy((*find_file_data).file_name.as_mut_ptr() as *mut c_char, (*entry).get_path_cstr());
             strcpy((*find_file_data).pattern.as_mut_ptr() as *mut c_char, pattern);
             (*find_file_data).index = index as c_int;
             return true;
@@ -645,8 +651,8 @@ pub unsafe fn dbase_find_first_entry(dbase: *const DBase, find_file_data: *mut D
 pub unsafe fn dbase_find_next_entry(dbase: *const DBase, find_file_data: *mut DFileFindData) -> bool {
     for index in ((*find_file_data).index + 1)..(*dbase).entries_length[0] {
         let entry = (*dbase).entries.offset(index as isize);
-        if fpattern_match((*find_file_data).pattern.as_mut_ptr() as *mut c_char, (*entry).path) {
-            strcpy((*find_file_data).file_name.as_mut_ptr() as *mut c_char, (*entry).path);
+        if fpattern_match((*find_file_data).pattern.as_mut_ptr() as *mut c_char, (*entry).get_path_cstr()) {
+            strcpy((*find_file_data).file_name.as_mut_ptr() as *mut c_char, (*entry).get_path_cstr());
             (*find_file_data).index = index;
             return true;
         }

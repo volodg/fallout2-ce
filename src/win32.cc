@@ -1,10 +1,9 @@
-#include "win32.h"
-
 #include <SDL.h>
 
 #ifndef _WIN32
 #include <unistd.h>
 #else
+#include "win32.h"
 #include "svga.h"
 #include "window_manager.h"
 #endif
