@@ -1,9 +1,5 @@
 use crate::fpattern::fpattern_match;
-use crate::platform_compat::{
-    rust_compat_fopen, rust_compat_strdup, rust_compat_stricmp, rust_get_file_size, COMPAT_MAX_PATH,
-};
-#[cfg(not(target_family = "windows"))]
-use libc::bsearch;
+use crate::platform_compat::{rust_compat_fopen, rust_compat_strdup, rust_get_file_size, COMPAT_MAX_PATH, compat_stricmp};
 use libc::{
     c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, fread, free, fseek, malloc, memset,
     size_t, strcpy, ungetc, FILE, SEEK_CUR, SEEK_END, SEEK_SET,
@@ -13,7 +9,7 @@ use libz_sys::{
     Z_NO_FLUSH, Z_OK,
 };
 use std::ffi::{c_void, CString};
-use std::mem;
+use std::{mem, slice};
 use std::ptr::{null, null_mut};
 
 // The size of decompression buffer for reading compressed [DFile]s.
@@ -164,21 +160,6 @@ impl Default for DFileFindData {
     }
 }
 
-// The [bsearch] comparison callback, which is used to find [DBaseEntry] for
-// specified [filePath].
-//
-// 0x4E5D70
-#[no_mangle]
-unsafe extern "C" fn rust_dbase_find_entry_my_file_path(
-    a1: *const c_void,
-    a2: *const c_void,
-) -> c_int {
-    let file_path = a1 as *const c_char;
-    let entry = a2 as *const DBaseEntry;
-
-    rust_compat_stricmp(file_path, (*entry).get_path_cstr())
-}
-
 pub unsafe fn dfile_close(stream: *mut DFile) -> c_int {
     assert_ne!(stream, null_mut()); // "stream", "dfile.c", 253
 
@@ -232,17 +213,6 @@ pub unsafe fn dfile_close(stream: *mut DFile) -> c_int {
     rc
 }
 
-#[cfg(target_family = "windows")]
-extern "C" {
-    fn bsearch(
-        key: *const c_void,
-        base: *const c_void,
-        num: size_t,
-        size: size_t,
-        compar: Option<unsafe extern "C" fn(*const c_void, *const c_void) -> c_int>,
-    ) -> *mut c_void;
-}
-
 pub unsafe fn dfile_open_internal(
     dbase: *mut DBase,
     file_path: *const c_char,
@@ -253,13 +223,11 @@ pub unsafe fn dfile_open_internal(
     assert_ne!(file_path, null()); // dfile.c, 296
     assert_ne!(mode, null()); // dfile.c, 297
 
-    let entry = bsearch(
-        file_path as *const c_void,
-        (*dbase).entries as *const c_void,
-        (*dbase).entries_length[0] as size_t,
-        mem::size_of::<DBaseEntry>(),
-        Some(rust_dbase_find_entry_my_file_path),
-    ) as *mut DBaseEntry;
+    let entries = slice::from_raw_parts_mut((*dbase).entries, (*dbase).entries_length[0] as usize);
+
+    let optional_entry = entries.binary_search_by(|a| {
+        compat_stricmp(a.get_path_cstr(), file_path)
+    }).map(|i| &mut entries[i]);
 
     unsafe fn cleanup(dfile: *mut DFile) {
         if dfile != null_mut() {
@@ -267,7 +235,7 @@ pub unsafe fn dfile_open_internal(
         }
     }
 
-    if entry == null_mut() {
+    if optional_entry.is_err() {
         cleanup(dfile);
         return null_mut();
     }
@@ -303,6 +271,7 @@ pub unsafe fn dfile_open_internal(
         (*dfile).flags = 0;
     }
 
+    let entry = optional_entry.expect("valid entry") as *mut DBaseEntry;
     (*dfile).entry = entry;
 
     // Open stream to .DAT file.

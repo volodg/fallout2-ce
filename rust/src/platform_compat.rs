@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use libc::{
     access, c_char, c_int, c_long, c_uint, c_ulong, fgets, fopen, fseek, ftell, lseek, remove,
     rename, strcpy, strlen, FILE, SEEK_CUR, SEEK_END, SEEK_SET,
@@ -25,6 +26,17 @@ static NOW: spin::Once<Instant> = spin::Once::new();
 #[no_mangle]
 pub extern "C" fn rust_compat_stricmp(string1: *const c_char, string2: *const c_char) -> c_int {
     unsafe { SDL_strcasecmp(string1, string2) }
+}
+
+pub fn compat_stricmp(string1: *const c_char, string2: *const c_char) -> Ordering {
+    let result = rust_compat_stricmp(string1, string2);
+    if result < 0 {
+        Ordering::Less
+    } else if result > 0 {
+        Ordering::Greater
+    } else {
+        Ordering::Equal
+    }
 }
 
 #[no_mangle]
