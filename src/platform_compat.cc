@@ -29,7 +29,6 @@ extern "C" {
     unsigned int rust_compat_time_get_time();
     FILE* rust_compat_fopen(const char* path, const char* mode);
     char* rust_compat_fgets(char* buffer, int maxCount, FILE* stream);
-    char* rust_compat_gzgets(gzFile stream, char* buffer, int maxCount);
     int rust_compat_remove(const char* path);
     int rust_compat_rename(const char* oldFileName, const char* newFileName);
     int rust_compat_access(const char* path, int mode);
@@ -97,11 +96,6 @@ FILE* compat_fopen(const char* path, const char* mode)
 char* compat_fgets(char* buffer, int maxCount, FILE* stream)
 {
     return rust_compat_fgets(buffer, maxCount, stream);
-}
-
-char* compat_gzgets(gzFile stream, char* buffer, int maxCount)
-{
-    return rust_compat_gzgets(stream, buffer, maxCount);
 }
 
 int compat_remove(const char* path)

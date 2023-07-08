@@ -116,7 +116,6 @@ bool dbaseClose(DBase* dbase);
 bool dbaseFindFirstEntry(DBase* dbase, DFileFindData* findFileData, const char* pattern);
 bool dbaseFindNextEntry(DBase* dbase, DFileFindData* findFileData);
 bool dbaseFindClose(DBase* dbase, DFileFindData* findFileData);
-long dfileGetSize(DFile* stream);
 
 } // namespace fallout
 

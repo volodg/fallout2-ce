@@ -5,8 +5,8 @@ use std::sync::atomic::{AtomicPtr, Ordering};
 use libc::{c_char, c_long, c_uint, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, malloc, memset, rewind, size_t, snprintf};
 use libz_sys::{gzclose, gzeof, gzFile, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
 use vsprintf::vsprintf;
-use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof};
-use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, rust_compat_gzgets, rust_compat_fgets};
+use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof, dfile_get_size};
+use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, compat_gzgets, rust_compat_fgets, rust_get_file_size};
 
 #[repr(C)]
 #[derive(PartialEq)]
@@ -210,7 +210,7 @@ pub unsafe extern "C" fn rust_xfile_read_string(string: *mut c_char, size: c_int
 
     match (*stream)._type {
         XFileType::XfileTypeDfile => dfile_read_string(string, size, (*stream).file.dfile),
-        XFileType::XfileTypeGzfile => rust_compat_gzgets((*stream).file.gzfile, string, size),
+        XFileType::XfileTypeGzfile => compat_gzgets((*stream).file.gzfile, string, size),
         XFileType::XfileTypeFile => rust_compat_fgets(string, size, (*stream).file.file)
     }
 }
@@ -305,5 +305,16 @@ pub unsafe extern "C" fn rust_xfile_eof(stream: *const XFile) -> c_int {
         XFileType::XfileTypeDfile => dfile_eof((*stream).file.dfile),
         XFileType::XfileTypeGzfile => gzeof((*stream).file.gzfile),
         XFileType::XfileTypeFile => feof((*stream).file.file)
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_xfile_get_size(stream: *const XFile) -> c_long {
+    assert_ne!(stream, null()); // "stream", "xfile.c", 690
+
+    match (*stream)._type {
+        XFileType::XfileTypeDfile => dfile_get_size((*stream).file.dfile),
+        XFileType::XfileTypeGzfile => 0,
+        XFileType::XfileTypeFile => rust_get_file_size((*stream).file.file)
     }
 }

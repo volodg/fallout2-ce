@@ -415,8 +415,7 @@ pub unsafe extern "C" fn rust_compat_fgets(
     buffer
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_compat_gzgets(
+pub unsafe fn compat_gzgets(
     stream: gzFile,
     mut buffer: *mut c_char,
     mac_count: c_int,

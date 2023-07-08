@@ -32,7 +32,8 @@ extern "C" {
     long rust_xfile_tell(fallout::XFile* stream);
     void rust_xfile_rewind(fallout::XFile* stream);
     int rust_xfile_eof(fallout::XFile* stream);
-    // rust_xfile_eof
+    long rust_xfile_get_size(fallout::XFile* stream);
+    // rust_xfile_get_size
 }
 
 namespace fallout {
@@ -143,23 +144,7 @@ int xfileEof(XFile* stream)
 // 0x4DF828
 long xfileGetSize(XFile* stream)
 {
-    assert(stream); // "stream", "xfile.c", 690
-
-    long fileSize;
-
-    switch (stream->type) {
-    case XFILE_TYPE_DFILE:
-        fileSize = dfileGetSize(stream->dfile);
-        break;
-    case XFILE_TYPE_GZFILE:
-        fileSize = 0;
-        break;
-    default:
-        fileSize = getFileSize(stream->file);
-        break;
-    }
-
-    return fileSize;
+    return rust_xfile_get_size(stream);
 }
 
 // Closes all open xbases and opens a set of xbases specified by [paths].

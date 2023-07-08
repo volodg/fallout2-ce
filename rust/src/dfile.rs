@@ -142,6 +142,7 @@ pub struct DFileFindData {
 // specified [filePath].
 //
 // 0x4E5D70
+#[no_mangle]
 unsafe extern "C" fn rust_dbase_find_entry_my_file_path(
     a1: *const c_void,
     a2: *const c_void,
@@ -152,7 +153,6 @@ unsafe extern "C" fn rust_dbase_find_entry_my_file_path(
     rust_compat_stricmp(file_path, (*entry).path)
 }
 
-#[no_mangle]
 pub unsafe fn dfile_close(
     stream: *mut DFile
 ) -> c_int {
@@ -219,8 +219,6 @@ extern "C" {
     ) -> *mut c_void;
 }
 
-#[no_mangle]
-// 0x4E5D9C
 pub unsafe fn dfile_open_internal(
     dbase: *mut DBase, file_path: *const c_char, mode: *const c_char, mut dfile: *mut DFile,
 ) -> *mut DFile {
@@ -341,6 +339,7 @@ pub unsafe fn dfile_open_internal(
     dfile
 }
 
+#[no_mangle]
 pub unsafe extern "C" fn rust_dfile_open(
     dbase: *mut DBase, file_path: *const c_char, mode: *const c_char,
 ) -> *mut DFile {
@@ -406,7 +405,6 @@ unsafe fn dfile_read_compressed(stream: *mut DFile, mut ptr: *const c_void, mut 
 // NOTE: Inlined.
 //
 // 0x4E613C
-#[no_mangle]
 unsafe fn dfile_unget_compressed(stream: *mut DFile, ch: c_int) {
     (*stream).compressed_ungotten = ch;
     (*stream).flags |= DFILE_HAS_COMPRESSED_UNGETC;
@@ -655,7 +653,6 @@ pub unsafe extern "C" fn rust_dbase_find_next_entry(dbase: *const DBase, find_fi
     false
 }
 
-#[no_mangle]
 pub unsafe fn dfile_read_char(stream: *mut DFile) -> c_int {
     assert_ne!(stream, null_mut()); // "stream", "dfile.c", 384
 
@@ -676,7 +673,6 @@ pub unsafe fn dfile_read_char(stream: *mut DFile) -> c_int {
     ch
 }
 
-#[no_mangle]
 pub unsafe fn dfile_read_string(string: *mut c_char, mut size: c_int, stream: *mut DFile) -> *const c_char {
     assert_ne!(string, null_mut()); // "s", "dfile.c", 407
     assert_ne!(size, 0); // "n", "dfile.c", 408
@@ -721,7 +717,6 @@ pub unsafe fn dfile_read_string(string: *mut c_char, mut size: c_int, stream: *m
     string
 }
 
-#[no_mangle]
 pub unsafe fn dfile_read(mut ptr: *const c_void, size: size_t, count: size_t, stream: *mut DFile) -> size_t {
     assert_ne!(ptr, null_mut()); // "ptr", "dfile.c", 499
     assert_ne!(stream, null_mut()); // "stream", dfile.c, 500
@@ -770,7 +765,6 @@ pub unsafe fn dfile_read(mut ptr: *const c_void, size: size_t, count: size_t, st
     bytes_read / size
 }
 
-#[no_mangle]
 pub unsafe fn dfile_write(ptr: *const c_void, _size: size_t, count: size_t, stream: *const DFile) -> size_t {
     assert_ne!(ptr, null()); // "ptr", "dfile.c", 538
     assert_ne!(stream, null()); // "stream", "dfile.c", 539
@@ -778,7 +772,6 @@ pub unsafe fn dfile_write(ptr: *const c_void, _size: size_t, count: size_t, stre
     count - 1
 }
 
-#[no_mangle]
 pub unsafe fn dfile_seek(stream: *mut DFile, offset: c_long, origin: c_int) -> c_int {
     assert_ne!(stream, null_mut()); // "stream", "dfile.c", 569
 
@@ -873,8 +866,6 @@ pub unsafe fn dfile_seek(stream: *mut DFile, offset: c_long, origin: c_int) -> c
     0
 }
 
-#[no_mangle]
-// 0x4E5D9C
 pub unsafe fn dfile_rewind(stream: *mut DFile)
 {
     assert_ne!(stream, null_mut()); // "stream", "dfile.c", 664
@@ -884,7 +875,6 @@ pub unsafe fn dfile_rewind(stream: *mut DFile)
     (*stream).flags &= !DFILE_ERROR as c_int;
 }
 
-#[no_mangle]
 pub unsafe fn dfile_print_formatted_args(stream: *const DFile, format: *const c_char, _args: *mut c_void) -> c_int {
     assert_ne!(stream, null()); // "stream", "dfile.c", 368
     assert_ne!(format, null()); // "format", "dfile.c", 369
@@ -892,14 +882,12 @@ pub unsafe fn dfile_print_formatted_args(stream: *const DFile, format: *const c_
     -1
 }
 
-#[no_mangle]
 pub unsafe fn dfile_write_char(_ch: c_int, stream: *const DFile) -> c_int {
     assert_ne!(stream, null()); // "stream", "dfile.c", 437
 
     -1
 }
 
-#[no_mangle]
 pub unsafe fn dfile_write_string(string: *const c_char, stream: *const DFile) -> c_int {
     assert_ne!(string, null()); // "s", "dfile.c", 448
     assert_ne!(stream, null()); // "stream", "dfile.c", 449
@@ -907,16 +895,18 @@ pub unsafe fn dfile_write_string(string: *const c_char, stream: *const DFile) ->
     -1
 }
 
-#[no_mangle]
 pub unsafe fn dfile_tell(stream: *const DFile) -> c_long {
     assert_ne!(stream, null()); // "stream", "dfile.c", 654
 
     (*stream).position
 }
 
-#[no_mangle]
 pub unsafe fn dfile_eof(stream: *const DFile) -> c_int {
     assert_ne!(stream, null()); // "stream", "dfile.c", 685
 
     (*stream).flags & DFILE_EOF as c_int
+}
+
+pub unsafe fn dfile_get_size(stream: *const DFile) -> c_long {
+    (*(*stream).entry).uncompressed_size[0] as c_long
 }
