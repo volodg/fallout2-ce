@@ -34,10 +34,10 @@ const DFILE_TEXT: u32 = 0x08;
 
 struct DBaseEntry {
     path: Option<CString>,
-    compressed: [c_char; 1],
-    uncompressed_size: [c_int; 1],
-    data_size: [c_int; 1],
-    data_offset: [c_int; 1],
+    compressed: [i8; 1],
+    uncompressed_size: [i32; 1],
+    data_size: [i32; 1],
+    data_offset: [i32; 1],
 }
 
 impl DBaseEntry {
