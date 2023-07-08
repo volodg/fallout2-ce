@@ -1,7 +1,7 @@
 use std::ffi::{c_int, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
-use std::sync::atomic::{AtomicPtr, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use libc::{c_char, c_long, c_uint, chdir, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, getcwd, malloc, memset, rewind, size_t, snprintf, strcpy};
 use libz_sys::{gzclose, gzeof, gzFile, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
 use vsprintf::vsprintf;
@@ -53,6 +53,7 @@ pub struct XBase {
 
 // 0x6B24D0
 static G_X_BASE_HEAD: AtomicPtr<XBase> = AtomicPtr::new(null_mut());
+static G_X_BASE_EXIT_HANDLER_REGISTERED: AtomicBool = AtomicBool::new(false);
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_get_g_xbase_head() -> *const XBase {
@@ -62,6 +63,16 @@ pub unsafe extern "C" fn rust_get_g_xbase_head() -> *const XBase {
 #[no_mangle]
 pub unsafe extern "C" fn rust_set_g_xbase_head(value: *mut XBase) {
     G_X_BASE_HEAD.store(value, Ordering::Relaxed)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_get_g_xbase_exit_handler_registered() -> bool {
+    G_X_BASE_EXIT_HANDLER_REGISTERED.load(Ordering::Relaxed)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_set_g_xbase_exit_handler_registered(value: bool) {
+    G_X_BASE_EXIT_HANDLER_REGISTERED.store(value, Ordering::Relaxed)
 }
 
 #[no_mangle]

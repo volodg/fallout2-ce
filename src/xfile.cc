@@ -35,7 +35,10 @@ extern "C" {
     long rust_xfile_get_size(fallout::XFile* stream);
     void rust_xbase_close_all();
     int rust_xbase_make_directory(const char* filePath);
-    // rust_xbase_make_directory()
+    bool rust_get_g_xbase_exit_handler_registered();
+    void rust_set_g_xbase_exit_handler_registered(bool);
+    // rust_get_g_xbase_exit_handler_registered()
+    // rust_set_g_xbase_exit_handler_registered()
 }
 
 namespace fallout {
@@ -57,9 +60,6 @@ typedef bool(XListEnumerationHandler)(XListEnumerationContext* context);
 static bool xlistEnumerate(const char* pattern, XListEnumerationHandler* handler, XList* xlist);
 static void xbaseExitHandler(void);
 static bool xlistEnumerateHandler(XListEnumerationContext* context);
-
-// 0x6B24D4
-static bool gXbaseExitHandlerRegistered;
 
 // 0x4DED6C
 int xfileClose(XFile* stream)
@@ -172,15 +172,16 @@ bool xbaseReopenAll(char* paths)
 }
 
 // 0x4DF938
+// ???
 bool xbaseOpen(const char* path)
 {
     assert(path); // "path", "xfile.c", 747
 
     // Register atexit handler so that underlying dbase (if any) can be
     // gracefully closed.
-    if (!gXbaseExitHandlerRegistered) {
+    if (!rust_get_g_xbase_exit_handler_registered()) {
         atexit(xbaseExitHandler);
-        gXbaseExitHandlerRegistered = true;
+        rust_set_g_xbase_exit_handler_registered(true);
     }
 
     XBase* curr = rust_get_g_xbase_head();
