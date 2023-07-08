@@ -1,15 +1,34 @@
+use crate::dfile::{
+    dbase_close, dbase_find_close, dbase_find_first_entry, dbase_find_next_entry, dbase_open,
+    dfile_close, dfile_eof, dfile_get_size, dfile_print_formatted_args, dfile_read,
+    dfile_read_char, dfile_read_string, dfile_rewind, dfile_seek, dfile_tell, dfile_write,
+    dfile_write_char, dfile_write_string, rust_dfile_open, DBase, DFile, DFileFindData,
+};
+use crate::file_find::{
+    file_find_close, file_find_first, file_find_get_name, file_find_is_directory, file_find_next,
+    DirectoryFileFindData,
+};
+use crate::platform_compat::{
+    compat_gzgets, compat_gzopen, rust_compat_fgets, rust_compat_fopen, rust_compat_makepath,
+    rust_compat_mkdir, rust_compat_splitpath, rust_compat_strdup, rust_compat_stricmp,
+    rust_compat_windows_path_to_native, rust_get_file_size, COMPAT_MAX_DIR, COMPAT_MAX_DRIVE,
+    COMPAT_MAX_EXT, COMPAT_MAX_FNAME, COMPAT_MAX_PATH,
+};
+#[cfg(not(target_family = "windows"))]
+use libc::snprintf;
+use libc::{
+    atexit, c_char, c_long, c_uint, chdir, fclose, feof, fgetc, fputc, fputs, fread, free, fseek,
+    ftell, fwrite, getcwd, malloc, memset, realloc, rewind, size_t, strcmp, strcpy, strtok, FILE,
+};
+use libz_sys::{
+    gzFile, gzclose, gzeof, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite,
+    voidp, voidpc, z_off_t,
+};
 use std::ffi::{c_int, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
-#[cfg(not(target_family = "windows"))]
-use libc::snprintf;
-use libc::{atexit, c_char, c_long, c_uint, chdir, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, getcwd, malloc, memset, realloc, rewind, size_t, strcmp, strcpy, strtok};
-use libz_sys::{gzclose, gzeof, gzFile, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
 use vsprintf::vsprintf;
-use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof, dfile_get_size, dbase_close, dbase_open, DFileFindData, dbase_find_first_entry, dbase_find_close, dbase_find_next_entry};
-use crate::file_find::{DirectoryFileFindData, file_find_close, file_find_first, file_find_get_name, file_find_next, file_find_is_directory};
-use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, compat_gzgets, rust_compat_fgets, rust_get_file_size, rust_compat_mkdir, rust_compat_stricmp, rust_compat_strdup, rust_compat_windows_path_to_native, COMPAT_MAX_FNAME, COMPAT_MAX_EXT, rust_compat_makepath};
 
 #[derive(PartialEq)]
 enum XFileType {
@@ -50,7 +69,7 @@ pub struct XBase {
 #[repr(C)]
 pub struct XList {
     file_names_length: c_int,
-    file_names: *mut *mut c_char
+    file_names: *mut *mut c_char,
 }
 
 #[derive(PartialEq)]
@@ -63,7 +82,7 @@ enum XFileEnumerationEntryType {
 struct XListEnumerationContext {
     name: [c_char; COMPAT_MAX_PATH],
     _type: XFileEnumerationEntryType,
-    xlist: *mut XList
+    xlist: *mut XList,
 }
 
 impl Default for XListEnumerationContext {
@@ -71,7 +90,7 @@ impl Default for XListEnumerationContext {
         Self {
             name: [0 as c_char; COMPAT_MAX_PATH],
             _type: XFileEnumerationEntryType::XfileEnumerationEntryTypeFile,
-            xlist: null_mut()
+            xlist: null_mut(),
         }
     }
 }
@@ -119,7 +138,10 @@ pub unsafe extern "C" fn rust_xfile_close(stream: *mut XFile) -> c_int {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_xfile_open(file_path: *const c_char, mode: *const c_char) -> *const XFile {
+pub unsafe extern "C" fn rust_xfile_open(
+    file_path: *const c_char,
+    mode: *const c_char,
+) -> *const XFile {
     assert_ne!(file_path, null_mut()); // "filename", "xfile.c", 162
     assert_ne!(mode, null_mut()); // "mode", "xfile.c", 163
 
@@ -133,11 +155,21 @@ pub unsafe extern "C" fn rust_xfile_open(file_path: *const c_char, mode: *const 
     // NOTE: Compiled code uses different lengths.
     let mut drive = [0 as c_char; COMPAT_MAX_DRIVE as usize];
     let mut dir = [0 as c_char; COMPAT_MAX_DIR as usize];
-    rust_compat_splitpath(file_path, drive.as_mut_ptr(), dir.as_mut_ptr(), null_mut(), null_mut());
+    rust_compat_splitpath(
+        file_path,
+        drive.as_mut_ptr(),
+        dir.as_mut_ptr(),
+        null_mut(),
+        null_mut(),
+    );
 
     let mut path = [0 as c_char; COMPAT_MAX_PATH];
     let sformat = CString::new("%s").expect("valid string");
-    if drive[0] != '\0' as c_char || dir[0] == '\\' as c_char || dir[0] == '/' as c_char || dir[0] == '.' as c_char {
+    if drive[0] != '\0' as c_char
+        || dir[0] == '\\' as c_char
+        || dir[0] == '/' as c_char
+        || dir[0] == '.' as c_char
+    {
         // [filePath] is an absolute path. Attempt to open as plain stream.
         (*stream).file.file = rust_compat_fopen(file_path, mode);
         if (*stream).file.file == null_mut() {
@@ -146,7 +178,12 @@ pub unsafe extern "C" fn rust_xfile_open(file_path: *const c_char, mode: *const 
         }
 
         (*stream)._type = XFileType::XfileTypeFile;
-        snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat.as_ptr(), file_path);
+        snprintf(
+            path.as_mut_ptr(),
+            mem::size_of_val(&path),
+            sformat.as_ptr(),
+            file_path,
+        );
     } else {
         // [filePath] is a relative path. Loop thru open xbases and attempt to
         // open [filePath] from appropriate xbase.
@@ -158,12 +195,23 @@ pub unsafe extern "C" fn rust_xfile_open(file_path: *const c_char, mode: *const 
                 (*stream).file.dfile = rust_dfile_open((*curr).dbase, file_path, mode);
                 if (*stream).file.dfile != null_mut() {
                     (*stream)._type = XFileType::XfileTypeDfile;
-                    snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat.as_ptr(), file_path);
+                    snprintf(
+                        path.as_mut_ptr(),
+                        mem::size_of_val(&path),
+                        sformat.as_ptr(),
+                        file_path,
+                    );
                     break;
                 }
             } else {
                 // Build path relative to directory-based xbase.
-                snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat_sformat.as_ptr(), (*curr).path, file_path);
+                snprintf(
+                    path.as_mut_ptr(),
+                    mem::size_of_val(&path),
+                    sformat_sformat.as_ptr(),
+                    (*curr).path,
+                    file_path,
+                );
 
                 // Attempt to open plain stream.
                 (*stream).file.file = rust_compat_fopen(path.as_ptr(), mode);
@@ -185,7 +233,12 @@ pub unsafe extern "C" fn rust_xfile_open(file_path: *const c_char, mode: *const 
             }
 
             (*stream)._type = XFileType::XfileTypeFile;
-            snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat.as_ptr(), file_path);
+            snprintf(
+                path.as_mut_ptr(),
+                mem::size_of_val(&path),
+                sformat.as_ptr(),
+                file_path,
+            );
         }
     }
 
@@ -211,7 +264,11 @@ pub unsafe extern "C" fn rust_xfile_open(file_path: *const c_char, mode: *const 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_xfile_print_formatted_args(stream: *const XFile, format: *const c_char, args: *mut c_void) -> c_int {
+pub unsafe extern "C" fn rust_xfile_print_formatted_args(
+    stream: *const XFile,
+    format: *const c_char,
+    args: *mut c_void,
+) -> c_int {
     assert_ne!(stream, null()); // "stream", "xfile.c", 332
     assert_ne!(format, null()); // "format", "xfile.c", 333
 
@@ -219,12 +276,21 @@ pub unsafe extern "C" fn rust_xfile_print_formatted_args(stream: *const XFile, f
         XFileType::XfileTypeDfile => dfile_print_formatted_args((*stream).file.dfile, format, args),
         XFileType::XfileTypeGzfile => {
             let str = vsprintf(format, args).expect("valid");
-            gzwrite((*stream).file.gzfile, str.as_ptr() as voidpc, str.len() as c_uint)
-        },
+            gzwrite(
+                (*stream).file.gzfile,
+                str.as_ptr() as voidpc,
+                str.len() as c_uint,
+            )
+        }
         XFileType::XfileTypeFile => {
             let str = vsprintf(format, args).expect("valid");
-            fwrite(str.as_ptr() as *const c_void, str.len() as size_t, 1, (*stream).file.file) as c_int
-        },
+            fwrite(
+                str.as_ptr() as *const c_void,
+                str.len() as size_t,
+                1,
+                (*stream).file.file,
+            ) as c_int
+        }
     }
 }
 
@@ -235,12 +301,16 @@ pub unsafe extern "C" fn rust_xfile_read_char(stream: *const XFile) -> c_int {
     match (*stream)._type {
         XFileType::XfileTypeDfile => dfile_read_char((*stream).file.dfile),
         XFileType::XfileTypeGzfile => gzgetc((*stream).file.gzfile),
-        XFileType::XfileTypeFile => fgetc((*stream).file.file)
+        XFileType::XfileTypeFile => fgetc((*stream).file.file),
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_xfile_read_string(string: *mut c_char, size: c_int, stream: *const XFile) -> *const c_char {
+pub unsafe extern "C" fn rust_xfile_read_string(
+    string: *mut c_char,
+    size: c_int,
+    stream: *const XFile,
+) -> *const c_char {
     assert_ne!(string, null_mut()); // "s", "xfile.c", 375
     assert_ne!(size, 0); // "n", "xfile.c", 376
     assert_ne!(stream, null()); // "stream", "xfile.c", 377
@@ -248,7 +318,7 @@ pub unsafe extern "C" fn rust_xfile_read_string(string: *mut c_char, size: c_int
     match (*stream)._type {
         XFileType::XfileTypeDfile => dfile_read_string(string, size, (*stream).file.dfile),
         XFileType::XfileTypeGzfile => compat_gzgets((*stream).file.gzfile, string, size),
-        XFileType::XfileTypeFile => rust_compat_fgets(string, size, (*stream).file.file)
+        XFileType::XfileTypeFile => rust_compat_fgets(string, size, (*stream).file.file),
     }
 }
 
@@ -259,12 +329,15 @@ pub unsafe extern "C" fn rust_xfile_write_char(ch: c_int, stream: *const XFile) 
     match (*stream)._type {
         XFileType::XfileTypeDfile => dfile_write_char(ch, (*stream).file.dfile),
         XFileType::XfileTypeGzfile => gzputc((*stream).file.gzfile, ch),
-        XFileType::XfileTypeFile => fputc(ch, (*stream).file.file)
+        XFileType::XfileTypeFile => fputc(ch, (*stream).file.file),
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_xfile_write_string(string: *const c_char, stream: *const XFile) -> c_int {
+pub unsafe extern "C" fn rust_xfile_write_string(
+    string: *const c_char,
+    stream: *const XFile,
+) -> c_int {
     assert_ne!(string, null()); // "s", "xfile.c", 421
     assert_ne!(stream, null()); // "stream", "xfile.c", 422
 
@@ -276,37 +349,59 @@ pub unsafe extern "C" fn rust_xfile_write_string(string: *const c_char, stream: 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_xfile_read(ptr: *mut c_void, size: size_t, count: size_t, stream: *const XFile) -> size_t {
+pub unsafe extern "C" fn rust_xfile_read(
+    ptr: *mut c_void,
+    size: size_t,
+    count: size_t,
+    stream: *const XFile,
+) -> size_t {
     assert_ne!(ptr, null_mut()); // "ptr", "xfile.c", 421
     assert_ne!(stream, null()); // "stream", "xfile.c", 422
 
     match (*stream)._type {
         XFileType::XfileTypeDfile => dfile_read(ptr, size, count, (*stream).file.dfile),
-        XFileType::XfileTypeGzfile => gzread((*stream).file.gzfile, ptr as voidp, (size * count) as c_uint) as size_t,
-        XFileType::XfileTypeFile => fread(ptr, size, count, (*stream).file.file)
+        XFileType::XfileTypeGzfile => gzread(
+            (*stream).file.gzfile,
+            ptr as voidp,
+            (size * count) as c_uint,
+        ) as size_t,
+        XFileType::XfileTypeFile => fread(ptr, size, count, (*stream).file.file),
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_xfile_write(ptr: *const c_void, size: size_t, count: size_t, stream: *const XFile) -> size_t {
+pub unsafe extern "C" fn rust_xfile_write(
+    ptr: *const c_void,
+    size: size_t,
+    count: size_t,
+    stream: *const XFile,
+) -> size_t {
     assert_ne!(ptr, null()); // "ptr", "xfile.c", 504
     assert_ne!(stream, null()); // "stream", "xfile.c", 505
 
     match (*stream)._type {
         XFileType::XfileTypeDfile => dfile_write(ptr, size, count, (*stream).file.dfile),
-        XFileType::XfileTypeGzfile => gzwrite((*stream).file.gzfile, ptr, (size * count) as c_uint) as size_t,
-        XFileType::XfileTypeFile => fwrite(ptr, size, count, (*stream).file.file)
+        XFileType::XfileTypeGzfile => {
+            gzwrite((*stream).file.gzfile, ptr, (size * count) as c_uint) as size_t
+        }
+        XFileType::XfileTypeFile => fwrite(ptr, size, count, (*stream).file.file),
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_xfile_seek(stream: *const XFile, offset: c_long, origin: c_int) -> c_int {
+pub unsafe extern "C" fn rust_xfile_seek(
+    stream: *const XFile,
+    offset: c_long,
+    origin: c_int,
+) -> c_int {
     assert_ne!(stream, null()); // "stream", "xfile.c", 547
 
     match (*stream)._type {
         XFileType::XfileTypeDfile => dfile_seek((*stream).file.dfile, offset, origin),
-        XFileType::XfileTypeGzfile => gzseek((*stream).file.gzfile, offset as z_off_t, origin) as c_int,
-        XFileType::XfileTypeFile => fseek((*stream).file.file, offset, origin)
+        XFileType::XfileTypeGzfile => {
+            gzseek((*stream).file.gzfile, offset as z_off_t, origin) as c_int
+        }
+        XFileType::XfileTypeFile => fseek((*stream).file.file, offset, origin),
     }
 }
 
@@ -317,7 +412,7 @@ pub unsafe extern "C" fn rust_xfile_tell(stream: *const XFile) -> c_long {
     match (*stream)._type {
         XFileType::XfileTypeDfile => dfile_tell((*stream).file.dfile),
         XFileType::XfileTypeGzfile => gztell((*stream).file.gzfile) as c_long,
-        XFileType::XfileTypeFile => ftell((*stream).file.file)
+        XFileType::XfileTypeFile => ftell((*stream).file.file),
     }
 }
 
@@ -329,8 +424,8 @@ pub unsafe extern "C" fn rust_xfile_rewind(stream: *const XFile) {
         XFileType::XfileTypeDfile => dfile_rewind((*stream).file.dfile),
         XFileType::XfileTypeGzfile => {
             gzrewind((*stream).file.gzfile);
-        },
-        XFileType::XfileTypeFile => rewind((*stream).file.file)
+        }
+        XFileType::XfileTypeFile => rewind((*stream).file.file),
     }
 }
 
@@ -341,7 +436,7 @@ pub unsafe extern "C" fn rust_xfile_eof(stream: *const XFile) -> c_int {
     match (*stream)._type {
         XFileType::XfileTypeDfile => dfile_eof((*stream).file.dfile),
         XFileType::XfileTypeGzfile => gzeof((*stream).file.gzfile),
-        XFileType::XfileTypeFile => feof((*stream).file.file)
+        XFileType::XfileTypeFile => feof((*stream).file.file),
     }
 }
 
@@ -352,7 +447,7 @@ pub unsafe extern "C" fn rust_xfile_get_size(stream: *const XFile) -> c_long {
     match (*stream)._type {
         XFileType::XfileTypeDfile => dfile_get_size((*stream).file.dfile),
         XFileType::XfileTypeGzfile => 0,
-        XFileType::XfileTypeFile => rust_get_file_size((*stream).file.file)
+        XFileType::XfileTypeFile => rust_get_file_size((*stream).file.file),
     }
 }
 
@@ -386,18 +481,32 @@ type GetcwdSize = size_t;
 // Recursively creates specified file path.
 pub unsafe fn xbase_make_directory(file_path: *mut c_char) -> c_int {
     let mut working_directory = [0 as c_char; COMPAT_MAX_PATH];
-    if getcwd(working_directory.as_mut_ptr(), COMPAT_MAX_PATH as GetcwdSize) == null_mut() {
+    if getcwd(
+        working_directory.as_mut_ptr(),
+        COMPAT_MAX_PATH as GetcwdSize,
+    ) == null_mut()
+    {
         return -1;
     }
 
     let mut drive = [0 as c_char; COMPAT_MAX_DRIVE as usize];
     let mut dir = [0 as c_char; COMPAT_MAX_DIR as usize];
-    rust_compat_splitpath(file_path, drive.as_mut_ptr(), dir.as_mut_ptr(), null_mut(), null_mut());
+    rust_compat_splitpath(
+        file_path,
+        drive.as_mut_ptr(),
+        dir.as_mut_ptr(),
+        null_mut(),
+        null_mut(),
+    );
 
     let mut path = [0 as c_char; COMPAT_MAX_PATH];
     let sformat_sformat = CString::new("%s\\%s").expect("valid string");
 
-    if drive[0] != '\0' as c_char || dir[0] == '\\' as c_char || dir[0] == '/' as c_char || dir[0] == '.' as c_char {
+    if drive[0] != '\0' as c_char
+        || dir[0] == '\\' as c_char
+        || dir[0] == '/' as c_char
+        || dir[0] == '.' as c_char
+    {
         // [filePath] is an absolute path.
         strcpy(path.as_mut_ptr(), file_path);
     } else {
@@ -405,7 +514,13 @@ pub unsafe fn xbase_make_directory(file_path: *mut c_char) -> c_int {
         let mut curr = get_g_xbase_head();
         while curr != null_mut() {
             if !(*curr).is_dbase {
-                snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat_sformat.as_ptr(), (*curr).path, file_path);
+                snprintf(
+                    path.as_mut_ptr(),
+                    mem::size_of_val(&path),
+                    sformat_sformat.as_ptr(),
+                    (*curr).path,
+                    file_path,
+                );
                 break;
             }
             curr = (*curr).next;
@@ -414,7 +529,13 @@ pub unsafe fn xbase_make_directory(file_path: *mut c_char) -> c_int {
         if curr == null_mut() {
             // Either there are no directory-based xbase, or there are no open
             // xbases at all - resolve path against current working directory.
-            snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat_sformat.as_ptr(), working_directory, file_path);
+            snprintf(
+                path.as_mut_ptr(),
+                mem::size_of_val(&path),
+                sformat_sformat.as_ptr(),
+                working_directory,
+                file_path,
+            );
         }
     }
 
@@ -506,7 +627,11 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
     }
 
     let mut working_directory = [0 as c_char; COMPAT_MAX_PATH];
-    if getcwd(working_directory.as_mut_ptr(), COMPAT_MAX_PATH as GetcwdSize) == null_mut() {
+    if getcwd(
+        working_directory.as_mut_ptr(),
+        COMPAT_MAX_PATH as GetcwdSize,
+    ) == null_mut()
+    {
         // FIXME: Leaking xbase and path.
         return false;
     }
@@ -559,10 +684,15 @@ pub unsafe extern "C" fn rust_xbase_reopen_all(paths: *mut c_char) -> bool {
 unsafe fn xlist_enumerate(
     pattern: *const c_char,
     handler: unsafe extern "C" fn(*const XListEnumerationContext) -> bool,
-    xlist: *mut XList) -> bool {
-
+    xlist: *mut XList,
+) -> bool {
     assert_ne!(pattern, null()); // "filespec", "xfile.c", 845
-    assert_ne!(handler, mem::transmute::<*const c_void, extern "C" fn(*const XListEnumerationContext) -> bool>(null())); // "enumfunc", "xfile.c", 846
+    assert_ne!(
+        handler,
+        mem::transmute::<*const c_void, extern "C" fn(*const XListEnumerationContext) -> bool>(
+            null()
+        )
+    ); // "enumfunc", "xfile.c", 846
 
     let mut directory_file_find_data = DirectoryFileFindData::default();
     let mut context = XListEnumerationContext::default();
@@ -577,8 +707,18 @@ unsafe fn xlist_enumerate(
     let mut dir = [0 as c_char; COMPAT_MAX_DIR as usize];
     let mut file_name = [0 as c_char; COMPAT_MAX_FNAME as usize];
     let mut extension = [0 as c_char; COMPAT_MAX_EXT as usize];
-    rust_compat_splitpath(native_pattern.as_mut_ptr(), drive.as_mut_ptr(), dir.as_mut_ptr(), file_name.as_mut_ptr(), extension.as_mut_ptr());
-    if drive[0] != '\0' as c_char || dir[0] == '\\' as c_char || dir[0] == '/' as c_char || dir[0] == '.' as c_char {
+    rust_compat_splitpath(
+        native_pattern.as_mut_ptr(),
+        drive.as_mut_ptr(),
+        dir.as_mut_ptr(),
+        file_name.as_mut_ptr(),
+        extension.as_mut_ptr(),
+    );
+    if drive[0] != '\0' as c_char
+        || dir[0] == '\\' as c_char
+        || dir[0] == '/' as c_char
+        || dir[0] == '.' as c_char
+    {
         if file_find_first(native_pattern.as_ptr(), &mut directory_file_find_data) {
             loop {
                 let is_directory = file_find_is_directory(&directory_file_find_data);
@@ -587,7 +727,9 @@ unsafe fn xlist_enumerate(
                 if is_directory {
                     let dot_dot = CString::new("..").expect("valid string");
                     let dot = CString::new(".").expect("valid string");
-                    if strcmp(entry_name, dot_dot.as_ptr()) == 0 || strcmp(entry_name, dot.as_ptr()) == 0 {
+                    if strcmp(entry_name, dot_dot.as_ptr()) == 0
+                        || strcmp(entry_name, dot.as_ptr()) == 0
+                    {
                         continue;
                     }
 
@@ -596,7 +738,13 @@ unsafe fn xlist_enumerate(
                     context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeFile;
                 }
 
-                rust_compat_makepath(context.name.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), entry_name, null());
+                rust_compat_makepath(
+                    context.name.as_mut_ptr(),
+                    drive.as_ptr(),
+                    dir.as_ptr(),
+                    entry_name,
+                    null(),
+                );
 
                 if !handler(&context) {
                     break;
@@ -618,12 +766,15 @@ unsafe fn xlist_enumerate(
                 context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeDfile;
 
                 loop {
-                    strcpy(context.name.as_mut_ptr(), dbase_find_data.file_name.as_ptr());
+                    strcpy(
+                        context.name.as_mut_ptr(),
+                        dbase_find_data.file_name.as_ptr(),
+                    );
                     if !handler(&context) {
                         return dbase_find_close((*xbase).dbase, &dbase_find_data);
                     }
                     if !dbase_find_next_entry((*xbase).dbase, &mut dbase_find_data) {
-                        break
+                        break;
                     }
                 }
 
@@ -632,7 +783,13 @@ unsafe fn xlist_enumerate(
         } else {
             let mut path = [0 as c_char; COMPAT_MAX_PATH];
             let sformat_sformat = CString::new("%s\\%s").expect("valid string");
-            snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat_sformat.as_ptr(), (*xbase).path, pattern);
+            snprintf(
+                path.as_mut_ptr(),
+                mem::size_of_val(&path),
+                sformat_sformat.as_ptr(),
+                (*xbase).path,
+                pattern,
+            );
             rust_compat_windows_path_to_native(path.as_mut_ptr());
 
             if file_find_first(path.as_mut_ptr(), &mut directory_file_find_data) {
@@ -643,23 +800,32 @@ unsafe fn xlist_enumerate(
                     if is_directory {
                         let dot_dot = CString::new("..").expect("valid string");
                         let dot = CString::new(".").expect("valid string");
-                        if strcmp(entry_name, dot_dot.as_ptr()) == 0 || strcmp(entry_name, dot.as_ptr()) == 0 {
+                        if strcmp(entry_name, dot_dot.as_ptr()) == 0
+                            || strcmp(entry_name, dot.as_ptr()) == 0
+                        {
                             continue;
                         }
 
-                        context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeDirectory;
+                        context._type =
+                            XFileEnumerationEntryType::XfileEnumerationEntryTypeDirectory;
                     } else {
                         context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeFile;
                     }
 
-                    rust_compat_makepath(context.name.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), entry_name, null());
+                    rust_compat_makepath(
+                        context.name.as_mut_ptr(),
+                        drive.as_ptr(),
+                        dir.as_ptr(),
+                        entry_name,
+                        null(),
+                    );
 
                     if !handler(&context) {
                         break;
                     }
 
                     if !file_find_next(&mut directory_file_find_data) {
-                        break
+                        break;
                     }
                 }
             }
@@ -668,7 +834,13 @@ unsafe fn xlist_enumerate(
         xbase = (*xbase).next;
     }
 
-    rust_compat_splitpath(native_pattern.as_ptr(), drive.as_mut_ptr(), dir.as_mut_ptr(), file_name.as_mut_ptr(), extension.as_mut_ptr());
+    rust_compat_splitpath(
+        native_pattern.as_ptr(),
+        drive.as_mut_ptr(),
+        dir.as_mut_ptr(),
+        file_name.as_mut_ptr(),
+        extension.as_mut_ptr(),
+    );
     if file_find_first(native_pattern.as_ptr(), &mut directory_file_find_data) {
         loop {
             let is_directory = file_find_is_directory(&directory_file_find_data);
@@ -677,7 +849,9 @@ unsafe fn xlist_enumerate(
             if is_directory {
                 let dot_dot = CString::new("..").expect("valid string");
                 let dot = CString::new(".").expect("valid string");
-                if strcmp(entry_name, dot_dot.as_ptr()) == 0 || strcmp(entry_name, dot.as_ptr()) == 0 {
+                if strcmp(entry_name, dot_dot.as_ptr()) == 0
+                    || strcmp(entry_name, dot.as_ptr()) == 0
+                {
                     continue;
                 }
 
@@ -686,14 +860,20 @@ unsafe fn xlist_enumerate(
                 context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeFile;
             }
 
-            rust_compat_makepath(context.name.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), entry_name, null());
+            rust_compat_makepath(
+                context.name.as_mut_ptr(),
+                drive.as_ptr(),
+                dir.as_ptr(),
+                entry_name,
+                null(),
+            );
 
             if !handler(&context) {
                 break;
             }
 
             if !file_find_next(&mut directory_file_find_data) {
-                break
+                break;
             }
         }
     }
@@ -725,7 +905,10 @@ unsafe extern "C" fn enumerate_handler(context: *const XListEnumerationContext) 
 
     let xlist = (*context).xlist;
 
-    let file_names = realloc((*xlist).file_names as *mut c_void, mem::size_of_val(&*(*xlist).file_names) * ((*xlist).file_names_length + 1) as usize) as *mut *mut c_char;
+    let file_names = realloc(
+        (*xlist).file_names as *mut c_void,
+        mem::size_of_val(&*(*xlist).file_names) * ((*xlist).file_names_length + 1) as usize,
+    ) as *mut *mut c_char;
     if file_names == null_mut() {
         rust_xlist_free(xlist);
         (*xlist).file_names_length = -1;
@@ -734,7 +917,8 @@ unsafe extern "C" fn enumerate_handler(context: *const XListEnumerationContext) 
 
     (*xlist).file_names = file_names;
 
-    *file_names.offset((*xlist).file_names_length as isize) = rust_compat_strdup((*context).name.as_ptr());
+    *file_names.offset((*xlist).file_names_length as isize) =
+        rust_compat_strdup((*context).name.as_ptr());
     if *file_names.offset((*xlist).file_names_length as isize) == null_mut() {
         rust_xlist_free(xlist);
         (*xlist).file_names_length = -1;

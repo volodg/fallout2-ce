@@ -1,6 +1,6 @@
-use std::ffi::CStr;
 use libc::c_char;
 use nu_glob::Pattern;
+use std::ffi::CStr;
 
 pub unsafe fn fpattern_match(pat: *const c_char, fname: *const c_char) -> bool {
     let pat = CStr::from_ptr(pat).to_str().expect("valid input string");

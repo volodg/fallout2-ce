@@ -1,9 +1,9 @@
+use crate::platform_compat::{compat_gzopen, rust_compat_fopen};
+use libc::{c_char, c_int, c_uchar, fclose, fgetc, fputc, fread, fwrite, rewind, size_t};
+use libz_sys::{gzclose, gzgetc, gzputc};
 use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::null_mut;
-use libc::{c_char, c_int, c_uchar, fclose, fgetc, fputc, fread, fwrite, rewind, size_t};
-use libz_sys::{gzclose, gzgetc, gzputc};
-use crate::platform_compat::{rust_compat_fopen, compat_gzopen};
 
 unsafe fn file_copy(existing_file_path: *const c_char, new_file_path: *const c_char) {
     let rb = CString::new("rb").expect("valid string");
@@ -13,21 +13,41 @@ unsafe fn file_copy(existing_file_path: *const c_char, new_file_path: *const c_c
     if in_ != null_mut() && out != null_mut() {
         let mut buffer = [0 as c_uchar; 0xFFFF];
 
-        let mut bytes_read = fread(buffer.as_mut_ptr() as *mut c_void, mem::size_of_val(&buffer[0]), buffer.len(), in_) as isize;
+        let mut bytes_read = fread(
+            buffer.as_mut_ptr() as *mut c_void,
+            mem::size_of_val(&buffer[0]),
+            buffer.len(),
+            in_,
+        ) as isize;
         while bytes_read > 0 {
             let mut offset = 0;
-            let mut bytes_written = fwrite(buffer.as_mut_ptr().offset(offset) as *mut c_void, mem::size_of_val(&buffer[0]), bytes_read as size_t, out) as isize;
+            let mut bytes_written = fwrite(
+                buffer.as_mut_ptr().offset(offset) as *mut c_void,
+                mem::size_of_val(&buffer[0]),
+                bytes_read as size_t,
+                out,
+            ) as isize;
             while bytes_written > 0 {
                 bytes_read -= bytes_written;
                 offset += bytes_written;
-                bytes_written = fwrite(buffer.as_mut_ptr().offset(offset) as *mut c_void, mem::size_of_val(&buffer[0]), bytes_read as size_t, out) as isize;
+                bytes_written = fwrite(
+                    buffer.as_mut_ptr().offset(offset) as *mut c_void,
+                    mem::size_of_val(&buffer[0]),
+                    bytes_read as size_t,
+                    out,
+                ) as isize;
             }
 
             if bytes_written < 0 {
                 break;
             }
 
-            bytes_read = fread(buffer.as_mut_ptr() as *mut c_void, mem::size_of_val(&buffer), buffer.len(), in_) as isize;
+            bytes_read = fread(
+                buffer.as_mut_ptr() as *mut c_void,
+                mem::size_of_val(&buffer),
+                buffer.len(),
+                in_,
+            ) as isize;
         }
     }
 
@@ -41,7 +61,10 @@ unsafe fn file_copy(existing_file_path: *const c_char, new_file_path: *const c_c
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_file_copy_decompressed(existing_file_path: *const c_char, new_file_path: *const c_char) -> c_int {
+pub unsafe extern "C" fn rust_file_copy_decompressed(
+    existing_file_path: *const c_char,
+    new_file_path: *const c_char,
+) -> c_int {
     let rb = CString::new("rb").expect("valid string");
 
     let stream = rust_compat_fopen(existing_file_path, rb.as_ptr());
@@ -88,7 +111,10 @@ pub unsafe extern "C" fn rust_file_copy_decompressed(existing_file_path: *const 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_file_copy_compressed(existing_file_path: *const c_char, new_file_path: *const c_char) -> c_int {
+pub unsafe extern "C" fn rust_file_copy_compressed(
+    existing_file_path: *const c_char,
+    new_file_path: *const c_char,
+) -> c_int {
     let rb = CString::new("rb").expect("valid string");
 
     let in_stream = rust_compat_fopen(existing_file_path, rb.as_ptr());
@@ -130,7 +156,10 @@ pub unsafe extern "C" fn rust_file_copy_compressed(existing_file_path: *const c_
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_gzdecompress_file(existing_file_path: *const c_char, new_file_path: *const c_char) -> c_int {
+pub unsafe extern "C" fn rust_gzdecompress_file(
+    existing_file_path: *const c_char,
+    new_file_path: *const c_char,
+) -> c_int {
     let rb = CString::new("rb").expect("valid string");
     let mut stream = rust_compat_fopen(existing_file_path, rb.as_ptr());
     if stream == null_mut() {

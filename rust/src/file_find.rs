@@ -1,32 +1,36 @@
-#[cfg(target_family = "windows")]
-#[cfg(not(target_family = "windows"))]
-use libc::DIR;
-#[cfg(not(target_family = "windows"))]
-use libc::{DIR, dirent};
-#[cfg(not(target_family = "windows"))]
-use libc::DT_DIR;
-use libc::c_char;
-#[cfg(not(target_family = "windows"))]
-use libc::{closedir, opendir, readdir, strcpy};
-#[cfg(target_family = "windows")]
-use std::os::windows::raw::HANDLE;
-use std::ptr::null_mut;
-#[cfg(not(target_family = "windows"))]
-use std::ptr::null;
-#[cfg(target_family = "windows")]
-use windows::core::PCSTR;
-#[cfg(target_family = "windows")]
-use windows::Win32::Foundation::{INVALID_HANDLE_VALUE};
-#[cfg(target_family = "windows")]
-use windows::Win32::Storage::FileSystem::{FILE_ATTRIBUTE_DIRECTORY, FindClose, FindFileHandle, FindFirstFileA, FindNextFileA};
-#[cfg(target_family = "windows")]
-use windows::Win32::Storage::FileSystem::WIN32_FIND_DATAA;
 #[cfg(not(target_family = "windows"))]
 use crate::fpattern::fpattern_match;
 #[cfg(not(target_family = "windows"))]
 use crate::platform_compat::COMPAT_MAX_PATH;
 #[cfg(not(target_family = "windows"))]
-use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, rust_compat_makepath, rust_compat_splitpath};
+use crate::platform_compat::{
+    rust_compat_makepath, rust_compat_splitpath, COMPAT_MAX_DIR, COMPAT_MAX_DRIVE,
+};
+use libc::c_char;
+#[cfg(target_family = "windows")]
+#[cfg(not(target_family = "windows"))]
+use libc::DIR;
+#[cfg(not(target_family = "windows"))]
+use libc::DT_DIR;
+#[cfg(not(target_family = "windows"))]
+use libc::{closedir, opendir, readdir, strcpy};
+#[cfg(not(target_family = "windows"))]
+use libc::{dirent, DIR};
+#[cfg(target_family = "windows")]
+use std::os::windows::raw::HANDLE;
+#[cfg(not(target_family = "windows"))]
+use std::ptr::null;
+use std::ptr::null_mut;
+#[cfg(target_family = "windows")]
+use windows::core::PCSTR;
+#[cfg(target_family = "windows")]
+use windows::Win32::Foundation::INVALID_HANDLE_VALUE;
+#[cfg(target_family = "windows")]
+use windows::Win32::Storage::FileSystem::WIN32_FIND_DATAA;
+#[cfg(target_family = "windows")]
+use windows::Win32::Storage::FileSystem::{
+    FindClose, FindFileHandle, FindFirstFileA, FindNextFileA, FILE_ATTRIBUTE_DIRECTORY,
+};
 
 // NOTE: This structure is significantly different from what was in the
 // original code. Watcom provides opendir/readdir/closedir implementations,
@@ -51,7 +55,7 @@ use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, rust_compat_makep
 #[cfg(target_family = "windows")]
 pub struct DirectoryFileFindData {
     h_find: HANDLE,
-    ffd: WIN32_FIND_DATAA
+    ffd: WIN32_FIND_DATAA,
 }
 
 #[cfg(target_family = "windows")]
@@ -68,7 +72,7 @@ impl Default for DirectoryFileFindData {
 pub struct DirectoryFileFindData {
     dir: *mut DIR,
     entry: *const dirent,
-    path: [c_char; COMPAT_MAX_PATH]
+    path: [c_char; COMPAT_MAX_PATH],
 }
 
 #[cfg(not(target_family = "windows"))]
@@ -77,7 +81,7 @@ impl Default for DirectoryFileFindData {
         DirectoryFileFindData {
             dir: null_mut(),
             entry: null(),
-            path: [0 as c_char; COMPAT_MAX_PATH]
+            path: [0 as c_char; COMPAT_MAX_PATH],
         }
     }
 }
@@ -103,10 +107,22 @@ pub unsafe fn file_find_first(path: *const c_char, find_data: *mut DirectoryFile
 
     let mut drive = [0 as c_char; COMPAT_MAX_DRIVE as usize];
     let mut dir = [0 as c_char; COMPAT_MAX_DIR as usize];
-    rust_compat_splitpath(path, drive.as_mut_ptr(), dir.as_mut_ptr(), null_mut(), null_mut());
+    rust_compat_splitpath(
+        path,
+        drive.as_mut_ptr(),
+        dir.as_mut_ptr(),
+        null_mut(),
+        null_mut(),
+    );
 
     let mut base_path = [0 as c_char; COMPAT_MAX_PATH];
-    rust_compat_makepath(base_path.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), null_mut(), null());
+    rust_compat_makepath(
+        base_path.as_mut_ptr(),
+        drive.as_ptr(),
+        dir.as_ptr(),
+        null_mut(),
+        null(),
+    );
 
     (*find_data).dir = opendir(base_path.as_ptr());
     if (*find_data).dir == null_mut() {
@@ -116,7 +132,13 @@ pub unsafe fn file_find_first(path: *const c_char, find_data: *mut DirectoryFile
     (*find_data).entry = readdir((*find_data).dir);
     while (*find_data).entry != null() {
         let mut entry_path = [0 as c_char; COMPAT_MAX_PATH];
-        rust_compat_makepath(entry_path.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), file_find_get_name(find_data), null());
+        rust_compat_makepath(
+            entry_path.as_mut_ptr(),
+            drive.as_ptr(),
+            dir.as_ptr(),
+            file_find_get_name(find_data),
+            null(),
+        );
         if fpattern_match((*find_data).path.as_ptr(), entry_path.as_ptr()) {
             break;
         }
@@ -126,7 +148,7 @@ pub unsafe fn file_find_first(path: *const c_char, find_data: *mut DirectoryFile
     if (*find_data).entry == null() {
         closedir((*find_data).dir);
         (*find_data).dir = null_mut();
-        return false
+        return false;
     }
 
     true
@@ -141,14 +163,26 @@ pub unsafe fn file_find_next(find_data: *mut DirectoryFileFindData) -> bool {
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
 pub unsafe fn file_find_next(find_data: *mut DirectoryFileFindData) -> bool {
-    let mut drive =[0 as c_char; COMPAT_MAX_DRIVE as usize];
-    let mut dir =[0 as c_char; COMPAT_MAX_DIR as usize];
-    rust_compat_splitpath((*find_data).path.as_mut_ptr(), drive.as_mut_ptr(), dir.as_mut_ptr(), null_mut(), null_mut());
+    let mut drive = [0 as c_char; COMPAT_MAX_DRIVE as usize];
+    let mut dir = [0 as c_char; COMPAT_MAX_DIR as usize];
+    rust_compat_splitpath(
+        (*find_data).path.as_mut_ptr(),
+        drive.as_mut_ptr(),
+        dir.as_mut_ptr(),
+        null_mut(),
+        null_mut(),
+    );
 
     (*find_data).entry = readdir((*find_data).dir);
     while (*find_data).entry != null() {
         let mut entry_path = [0 as c_char; COMPAT_MAX_PATH];
-        rust_compat_makepath(entry_path.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), file_find_get_name(find_data), null());
+        rust_compat_makepath(
+            entry_path.as_mut_ptr(),
+            drive.as_ptr(),
+            dir.as_ptr(),
+            file_find_get_name(find_data),
+            null(),
+        );
         if fpattern_match((*find_data).path.as_ptr(), entry_path.as_ptr()) {
             break;
         }

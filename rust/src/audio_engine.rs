@@ -119,7 +119,11 @@ fn sound_buffer_is_valid(sound_buffer_index: c_int) -> bool {
     sound_buffer_index >= 0 && (sound_buffer_index as usize) < AUDIO_ENGINE_SOUND_BUFFERS
 }
 
-unsafe extern "C" fn c_audio_engine_mixin(_user_data: *mut c_void, stream: *mut Uint8, length: c_int) {
+unsafe extern "C" fn c_audio_engine_mixin(
+    _user_data: *mut c_void,
+    stream: *mut Uint8,
+    length: c_int,
+) {
     memset(
         stream as *mut c_void,
         AUDIO_ENGINE_SPEC.lock().expect("lock").obj.silence as c_int,
@@ -310,8 +314,8 @@ pub extern "C" fn rust_audio_engine_create_sound_buffer(
 }
 
 fn visit_audio_engine_sound_buffer_mutex<F>(index: c_int, visitor: F) -> bool
-    where
-        F: FnOnce(&ReentrantMutex<RefCell<AudioEngineSoundBuffer>>) -> bool,
+where
+    F: FnOnce(&ReentrantMutex<RefCell<AudioEngineSoundBuffer>>) -> bool,
 {
     return audio_engine_is_initialized()
         && sound_buffer_is_valid(index)
@@ -319,8 +323,8 @@ fn visit_audio_engine_sound_buffer_mutex<F>(index: c_int, visitor: F) -> bool
 }
 
 fn visit_audio_engine_sound_buffer<F>(index: c_int, visitor: F) -> bool
-    where
-        F: FnOnce(&AudioEngineSoundBuffer) -> bool,
+where
+    F: FnOnce(&AudioEngineSoundBuffer) -> bool,
 {
     visit_audio_engine_sound_buffer_mutex(index, |sound_buffer_ref| {
         let sound_buffer_lock = sound_buffer_ref.lock();
@@ -335,8 +339,8 @@ fn visit_audio_engine_sound_buffer<F>(index: c_int, visitor: F) -> bool
 }
 
 fn visit_audio_engine_sound_buffer_mut<F>(index: c_int, visitor: F) -> bool
-    where
-        F: FnOnce(&mut AudioEngineSoundBuffer) -> bool,
+where
+    F: FnOnce(&mut AudioEngineSoundBuffer) -> bool,
 {
     visit_audio_engine_sound_buffer_mutex(index, |sound_buffer_ref| {
         let sound_buffer_lock = sound_buffer_ref.lock();
