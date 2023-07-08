@@ -7,43 +7,11 @@
 // TODO Migrate
 
 // Migrated
-#include "dfile.h"
 #include "platform_compat.h"
 
 namespace fallout {
 
-typedef enum XFileType {
-    XFILE_TYPE_FILE,
-    XFILE_TYPE_DFILE,
-    XFILE_TYPE_GZFILE,
-} XFileType;
-
-// A universal database of files.
-typedef struct XBase {
-    // The path to directory or .DAT file that this xbase represents.
-    char* path;
-
-    // The [DBase] instance that this xbase represents.
-    DBase* dbase;
-
-    // A flag used to denote that this xbase represents .DAT file (true), or
-    // a directory (false).
-    //
-    // NOTE: Original type is 1 byte, likely unsigned char.
-    bool isDbase;
-
-    // Next [XBase] in linked list.
-    struct XBase* next;
-} XBase;
-
-typedef struct XFile {
-    XFileType type;
-    union {
-        FILE* file;
-        DFile* dfile;
-        gzFile gzfile;
-    };
-} XFile;
+struct XFile;
 
 typedef struct XList {
     int fileNamesLength;

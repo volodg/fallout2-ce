@@ -1,7 +1,6 @@
 #include "xfile.h"
 
 #include <cassert>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
@@ -11,12 +10,13 @@
 
 // TODO Migrate
 
-// Migrated
-#include "file_find.h"
+namespace fallout {
+    struct XListEnumerationContext;
+    typedef bool(XListEnumerationHandler)(XListEnumerationContext* context);
+}
 
 extern "C" {
     int rust_xfile_close(fallout::XFile* stream);
-    fallout::XBase* rust_get_g_xbase_head();
     fallout::XFile* rust_xfile_open(const char* filePath, const char* mode);
     int rust_xfile_print_formatted_args(fallout::XFile* stream, const char* format, va_list args);
     int rust_xfile_read_char(fallout::XFile* stream);
@@ -32,7 +32,8 @@ extern "C" {
     long rust_xfile_get_size(fallout::XFile* stream);
     bool rust_xbase_open(const char* path);
     bool rust_xbase_reopen_all(char* paths);
-    // rust_xbase_reopen_all()
+    bool rust_xlist_enumerate(const char* pattern, fallout::XListEnumerationHandler* handler, fallout::XList* xlist);
+    // rust_xlist_enumerate()
 }
 
 namespace fallout {
@@ -48,8 +49,6 @@ typedef struct XListEnumerationContext {
     unsigned char type;
     XList* xlist;
 } XListEnumerationContext;
-
-typedef bool(XListEnumerationHandler)(XListEnumerationContext* context);
 
 static bool xlistEnumerate(const char* pattern, XListEnumerationHandler* handler, XList* xlist);
 static bool xlistEnumerateHandler(XListEnumerationContext* context);
@@ -160,121 +159,7 @@ bool xbaseOpen(const char* path)
 // 0x4DFB3C
 static bool xlistEnumerate(const char* pattern, XListEnumerationHandler* handler, XList* xlist)
 {
-    assert(pattern); // "filespec", "xfile.c", 845
-    assert(handler); // "enumfunc", "xfile.c", 846
-
-    DirectoryFileFindData directoryFileFindData;
-    XListEnumerationContext context;
-
-    context.xlist = xlist;
-
-    char nativePattern[COMPAT_MAX_PATH];
-    strcpy(nativePattern, pattern);
-    compat_windows_path_to_native(nativePattern);
-
-    char drive[COMPAT_MAX_DRIVE];
-    char dir[COMPAT_MAX_DIR];
-    char fileName[COMPAT_MAX_FNAME];
-    char extension[COMPAT_MAX_EXT];
-    compat_splitpath(nativePattern, drive, dir, fileName, extension);
-    if (drive[0] != '\0' || dir[0] == '\\' || dir[0] == '/' || dir[0] == '.') {
-        if (fileFindFirst(nativePattern, &directoryFileFindData)) {
-            do {
-                bool isDirectory = fileFindIsDirectory(&directoryFileFindData);
-                char* entryName = fileFindGetName(&directoryFileFindData);
-
-                if (isDirectory) {
-                    if (strcmp(entryName, "..") == 0 || strcmp(entryName, ".") == 0) {
-                        continue;
-                    }
-
-                    context.type = XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY;
-                } else {
-                    context.type = XFILE_ENUMERATION_ENTRY_TYPE_FILE;
-                }
-
-                compat_makepath(context.name, drive, dir, entryName, NULL);
-
-                if (!handler(&context)) {
-                    break;
-                }
-            } while (fileFindNext(&directoryFileFindData));
-        }
-        return findFindClose(&directoryFileFindData);
-    }
-
-    XBase* xbase = rust_get_g_xbase_head();
-    while (xbase != nullptr) {
-        if (xbase->isDbase) {
-            DFileFindData dbaseFindData;
-            if (dbaseFindFirstEntry(xbase->dbase, &dbaseFindData, pattern)) {
-                context.type = XFILE_ENUMERATION_ENTRY_TYPE_DFILE;
-
-                do {
-                    strcpy(context.name, dbaseFindData.fileName);
-                    if (!handler(&context)) {
-                        return dbaseFindClose(xbase->dbase, &dbaseFindData);
-                    }
-                } while (dbaseFindNextEntry(xbase->dbase, &dbaseFindData));
-
-                dbaseFindClose(xbase->dbase, &dbaseFindData);
-            }
-        } else {
-            char path[COMPAT_MAX_PATH];
-            snprintf(path, sizeof(path), "%s\\%s", xbase->path, pattern);
-            compat_windows_path_to_native(path);
-
-            if (fileFindFirst(path, &directoryFileFindData)) {
-                do {
-                    bool isDirectory = fileFindIsDirectory(&directoryFileFindData);
-                    char* entryName = fileFindGetName(&directoryFileFindData);
-
-                    if (isDirectory) {
-                        if (strcmp(entryName, "..") == 0 || strcmp(entryName, ".") == 0) {
-                            continue;
-                        }
-
-                        context.type = XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY;
-                    } else {
-                        context.type = XFILE_ENUMERATION_ENTRY_TYPE_FILE;
-                    }
-
-                    compat_makepath(context.name, drive, dir, entryName, nullptr);
-
-                    if (!handler(&context)) {
-                        break;
-                    }
-                } while (fileFindNext(&directoryFileFindData));
-            }
-            findFindClose(&directoryFileFindData);
-        }
-        xbase = xbase->next;
-    }
-
-    compat_splitpath(nativePattern, drive, dir, fileName, extension);
-    if (fileFindFirst(nativePattern, &directoryFileFindData)) {
-        do {
-            bool isDirectory = fileFindIsDirectory(&directoryFileFindData);
-            char* entryName = fileFindGetName(&directoryFileFindData);
-
-            if (isDirectory) {
-                if (strcmp(entryName, "..") == 0 || strcmp(entryName, ".") == 0) {
-                    continue;
-                }
-
-                context.type = XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY;
-            } else {
-                context.type = XFILE_ENUMERATION_ENTRY_TYPE_FILE;
-            }
-
-            compat_makepath(context.name, drive, dir, entryName, nullptr);
-
-            if (!handler(&context)) {
-                break;
-            }
-        } while (fileFindNext(&directoryFileFindData));
-    }
-    return findFindClose(&directoryFileFindData);
+    return rust_xlist_enumerate(pattern, handler, xlist);
 }
 
 // 0x4DFF28

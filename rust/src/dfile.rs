@@ -32,7 +32,6 @@ const DFILE_ERROR: u32 = 0x04;
 // Specifies that [DFile] was opened in text mode.
 const DFILE_TEXT: u32 = 0x08;
 
-#[repr(C)]
 pub struct DBaseEntry {
     path: *mut c_char,
     compressed: [c_char; 1],
@@ -42,7 +41,6 @@ pub struct DBaseEntry {
 }
 
 // A representation of .DAT file.
-#[repr(C)]
 pub struct DBase {
     // The path of .DAT file that this structure represents.
     path: *mut c_char,
@@ -61,7 +59,6 @@ pub struct DBase {
 }
 
 // A handle to open entry in .DAT file.
-#[repr(C)]
 pub struct DFile {
     dbase: *mut DBase,
     entry: *mut DBaseEntry,
@@ -119,10 +116,9 @@ pub struct DFile {
     next: *mut DFile,
 }
 
-#[repr(C)]
 pub struct DFileFindData {
     // The name of file that was found during previous search.
-    file_name: [c_char; COMPAT_MAX_PATH],
+    pub file_name: [c_char; COMPAT_MAX_PATH],
 
     // The pattern to search.
     //
@@ -136,6 +132,16 @@ pub struct DFileFindData {
     // [dbaseFindNextEntry] succeed so that subsequent calls to [dbaseFindNextEntry]
     // knows where to start search from.
     index: c_int,
+}
+
+impl Default for DFileFindData {
+    fn default() -> Self {
+        Self {
+            file_name: [0 as c_char; COMPAT_MAX_PATH],
+            pattern: [0 as c_char; COMPAT_MAX_PATH],
+            index: 0,
+        }
+    }
 }
 
 // The [bsearch] comparison callback, which is used to find [DBaseEntry] for
@@ -498,8 +504,7 @@ pub unsafe fn dbase_close(dbase: *const DBase) -> bool {
     true
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_dbase_open(file_path: *const c_char) -> *mut DBase {
+pub unsafe fn dbase_open(file_path: *const c_char) -> *mut DBase {
     assert_ne!(file_path, null()); // "filename", "dfile.c", 74
 
     let rb = CString::new("rb").expect("valid string");
@@ -623,8 +628,7 @@ pub unsafe extern "C" fn rust_dbase_open(file_path: *const c_char) -> *mut DBase
     dbase
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_dbase_find_first_entry(dbase: *const DBase, find_file_data: *mut DFileFindData, pattern: *const c_char) -> bool {
+pub unsafe fn dbase_find_first_entry(dbase: *const DBase, find_file_data: *mut DFileFindData, pattern: *const c_char) -> bool {
     for index in 0..(*dbase).entries_length[0] {
         let entry = (*dbase).entries.offset(index as isize);
         if fpattern_match(pattern, (*entry).path) {
@@ -638,8 +642,7 @@ pub unsafe extern "C" fn rust_dbase_find_first_entry(dbase: *const DBase, find_f
     false
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_dbase_find_next_entry(dbase: *const DBase, find_file_data: *mut DFileFindData) -> bool {
+pub unsafe fn dbase_find_next_entry(dbase: *const DBase, find_file_data: *mut DFileFindData) -> bool {
     for index in ((*find_file_data).index + 1)..(*dbase).entries_length[0] {
         let entry = (*dbase).entries.offset(index as isize);
         if fpattern_match((*find_file_data).pattern.as_mut_ptr() as *mut c_char, (*entry).path) {
@@ -908,4 +911,8 @@ pub unsafe fn dfile_eof(stream: *const DFile) -> c_int {
 
 pub unsafe fn dfile_get_size(stream: *const DFile) -> c_long {
     (*(*stream).entry).uncompressed_size[0] as c_long
+}
+
+pub unsafe fn dbase_find_close(_dbase: *const DBase, _find_file_data: *const DFileFindData) -> bool {
+    true
 }

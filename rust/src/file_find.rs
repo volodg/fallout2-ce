@@ -48,7 +48,6 @@ use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, rust_compat_makep
 // original implementation for Watcom (not tested). I'm not sure it will work
 // in other compilers, so for now just stick with the error.
 
-#[repr(C)]
 #[cfg(target_family = "windows")]
 pub struct DirectoryFileFindData {
     h_find: HANDLE,
@@ -65,7 +64,6 @@ impl Default for DirectoryFileFindData {
     }
 }
 
-#[repr(C)]
 #[cfg(not(target_family = "windows"))]
 pub struct DirectoryFileFindData {
     dir: *mut DIR,
@@ -84,9 +82,8 @@ impl Default for DirectoryFileFindData {
     }
 }
 
-#[no_mangle]
 #[cfg(target_family = "windows")]
-pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *mut DirectoryFileFindData) -> bool {
+pub unsafe extern "C" fn file_find_first(path: *const c_char, find_data: *mut DirectoryFileFindData) -> bool {
     let path = PCSTR::from_raw(path as *const u8);
     match FindFirstFileA(path, &mut (*find_data).ffd) {
         Ok(FindFileHandle(handler)) => (*find_data).h_find = handler as HANDLE,
@@ -100,9 +97,8 @@ pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *m
     true
 }
 
-#[no_mangle]
 #[cfg(not(target_family = "windows"))]
-pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *mut DirectoryFileFindData) -> bool {
+pub unsafe fn file_find_first(path: *const c_char, find_data: *mut DirectoryFileFindData) -> bool {
     strcpy((*find_data).path.as_mut_ptr(), path);
 
     let mut drive = [0 as c_char; COMPAT_MAX_DRIVE as usize];
@@ -120,7 +116,7 @@ pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *m
     (*find_data).entry = readdir((*find_data).dir);
     while (*find_data).entry != null() {
         let mut entry_path = [0 as c_char; COMPAT_MAX_PATH];
-        rust_compat_makepath(entry_path.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), rust_file_find_get_name(find_data), null());
+        rust_compat_makepath(entry_path.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), file_find_get_name(find_data), null());
         if fpattern_match((*find_data).path.as_ptr(), entry_path.as_ptr()) {
             break;
         }
@@ -136,16 +132,15 @@ pub unsafe extern "C" fn rust_file_find_first(path: *const c_char, find_data: *m
     true
 }
 
-#[no_mangle]
 #[cfg(target_family = "windows")]
-pub unsafe extern "C" fn rust_file_find_next(find_data: *mut DirectoryFileFindData) -> bool {
+pub unsafe fn file_find_next(find_data: *mut DirectoryFileFindData) -> bool {
     let handle = FindFileHandle((*find_data).h_find as isize);
     FindNextFileA(handle, &mut (*find_data).ffd).into()
 }
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
-pub unsafe extern "C" fn rust_file_find_next(find_data: *mut DirectoryFileFindData) -> bool {
+pub unsafe fn file_find_next(find_data: *mut DirectoryFileFindData) -> bool {
     let mut drive =[0 as c_char; COMPAT_MAX_DRIVE as usize];
     let mut dir =[0 as c_char; COMPAT_MAX_DIR as usize];
     rust_compat_splitpath((*find_data).path.as_mut_ptr(), drive.as_mut_ptr(), dir.as_mut_ptr(), null_mut(), null_mut());
@@ -153,7 +148,7 @@ pub unsafe extern "C" fn rust_file_find_next(find_data: *mut DirectoryFileFindDa
     (*find_data).entry = readdir((*find_data).dir);
     while (*find_data).entry != null() {
         let mut entry_path = [0 as c_char; COMPAT_MAX_PATH];
-        rust_compat_makepath(entry_path.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), rust_file_find_get_name(find_data), null());
+        rust_compat_makepath(entry_path.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), file_find_get_name(find_data), null());
         if fpattern_match((*find_data).path.as_ptr(), entry_path.as_ptr()) {
             break;
         }
@@ -171,26 +166,24 @@ pub unsafe extern "C" fn rust_file_find_next(find_data: *mut DirectoryFileFindDa
 
 #[no_mangle]
 #[cfg(target_family = "windows")]
-pub unsafe extern "C" fn rust_file_find_get_name(find_data: *mut DirectoryFileFindData) -> *const c_char {
+pub unsafe fn file_find_get_name(find_data: *const DirectoryFileFindData) -> *const c_char {
     (*find_data).ffd.cFileName.as_ptr() as *const c_char
 }
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
-pub unsafe extern "C" fn rust_file_find_get_name(find_data: *mut DirectoryFileFindData) -> *const c_char {
+pub unsafe fn file_find_get_name(find_data: *const DirectoryFileFindData) -> *const c_char {
     (*(*find_data).entry).d_name.as_ptr()
 }
 
-#[no_mangle]
 #[cfg(target_family = "windows")]
-pub unsafe extern "C" fn rust_file_find_close(find_data: *mut DirectoryFileFindData) -> bool {
+pub unsafe fn file_find_close(find_data: *const DirectoryFileFindData) -> bool {
     let handle = FindFileHandle((*find_data).h_find as isize);
     FindClose(handle).into()
 }
 
-#[no_mangle]
 #[cfg(not(target_family = "windows"))]
-pub unsafe extern "C" fn rust_file_find_close(find_data: *mut DirectoryFileFindData) -> bool {
+pub unsafe fn file_find_close(find_data: *const DirectoryFileFindData) -> bool {
     if (*find_data).dir != null_mut() {
         if closedir((*find_data).dir) != 0 {
             return false;
@@ -200,25 +193,12 @@ pub unsafe extern "C" fn rust_file_find_close(find_data: *mut DirectoryFileFindD
     true
 }
 
-#[no_mangle]
 #[cfg(target_family = "windows")]
-pub unsafe extern "C" fn rust_find_is_directory(find_data: *mut DirectoryFileFindData) -> bool {
+pub unsafe fn file_find_is_directory(find_data: *const DirectoryFileFindData) -> bool {
     ((*find_data).ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY.0) != 0
 }
 
-#[no_mangle]
 #[cfg(not(target_family = "windows"))]
-pub unsafe extern "C" fn rust_find_is_directory(find_data: *mut DirectoryFileFindData) -> bool {
+pub unsafe fn file_find_is_directory(find_data: *const DirectoryFileFindData) -> bool {
     (*(*find_data).entry).d_type == DT_DIR
 }
-
-/*
-static inline bool fileFindIsDirectory(DirectoryFileFindData* findData)
-{
-#if defined(_WIN32)
-    return (findData->ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
-#else
-    return findData->entry->d_type == DT_DIR;
-#endif
-}
- */

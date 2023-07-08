@@ -4,21 +4,17 @@ use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 #[cfg(not(target_family = "windows"))]
 use libc::snprintf;
-use libc::{atexit, c_char, c_long, c_uint, chdir, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, getcwd, malloc, memset, rewind, size_t, strcpy, strtok};
+use libc::{atexit, c_char, c_long, c_uint, chdir, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, getcwd, malloc, memset, rewind, size_t, strcmp, strcpy, strtok};
 use libz_sys::{gzclose, gzeof, gzFile, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
 use vsprintf::vsprintf;
-use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof, dfile_get_size, dbase_close, rust_dbase_open};
-use crate::file_find::DirectoryFileFindData;
-use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, compat_gzgets, rust_compat_fgets, rust_get_file_size, rust_compat_mkdir, rust_compat_stricmp, rust_compat_strdup, rust_compat_windows_path_to_native};
+use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof, dfile_get_size, dbase_close, dbase_open, DFileFindData, dbase_find_first_entry, dbase_find_close, dbase_find_next_entry};
+use crate::file_find::{DirectoryFileFindData, file_find_close, file_find_first, file_find_get_name, file_find_next, file_find_is_directory};
+use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, compat_gzgets, rust_compat_fgets, rust_get_file_size, rust_compat_mkdir, rust_compat_stricmp, rust_compat_strdup, rust_compat_windows_path_to_native, COMPAT_MAX_FNAME, COMPAT_MAX_EXT, rust_compat_makepath};
 
-#[repr(C)]
 #[derive(PartialEq)]
 enum XFileType {
-    #[allow(dead_code)]
     XfileTypeFile = 0,
-    #[allow(dead_code)]
     XfileTypeDfile = 1,
-    #[allow(dead_code)]
     XfileTypeGzfile = 2,
 }
 
@@ -29,14 +25,12 @@ union XFileTypeUnion {
     gzfile: gzFile,
 }
 
-#[repr(C)]
 pub struct XFile {
     _type: XFileType,
     file: XFileTypeUnion,
 }
 
 // A universal database of files.
-#[repr(C)]
 pub struct XBase {
     // The path to directory or .DAT file that this xbase represents.
     path: *mut c_char,
@@ -94,7 +88,7 @@ extern "C" {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_get_g_xbase_head() -> *mut XBase {
+pub unsafe fn get_g_xbase_head() -> *mut XBase {
     G_X_BASE_HEAD.load(Ordering::Relaxed)
 }
 
@@ -370,7 +364,7 @@ pub unsafe extern "C" fn rust_xfile_get_size(stream: *const XFile) -> c_long {
 // Closes all xbases.
 extern "C" fn xbase_close_all() {
     unsafe {
-        let mut curr = rust_get_g_xbase_head();
+        let mut curr = get_g_xbase_head();
         set_g_xbase_head(null_mut());
 
         while curr != null_mut() {
@@ -389,15 +383,15 @@ extern "C" fn xbase_close_all() {
 }
 
 #[cfg(target_family = "windows")]
-type GETCWD_SIZE = c_int;
+type GetcwdSize = c_int;
 
 #[cfg(not(target_family = "windows"))]
-type GETCWD_SIZE = size_t;
+type GetcwdSize = size_t;
 
 // Recursively creates specified file path.
 pub unsafe fn xbase_make_directory(file_path: *mut c_char) -> c_int {
     let mut working_directory = [0 as c_char; COMPAT_MAX_PATH];
-    if getcwd(working_directory.as_mut_ptr(), COMPAT_MAX_PATH as GETCWD_SIZE) == null_mut() {
+    if getcwd(working_directory.as_mut_ptr(), COMPAT_MAX_PATH as GetcwdSize) == null_mut() {
         return -1;
     }
 
@@ -413,7 +407,7 @@ pub unsafe fn xbase_make_directory(file_path: *mut c_char) -> c_int {
         strcpy(path.as_mut_ptr(), file_path);
     } else {
         // Find first directory-based xbase.
-        let mut curr = rust_get_g_xbase_head();
+        let mut curr = get_g_xbase_head();
         while curr != null_mut() {
             if !(*curr).is_dbase {
                 snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat_sformat.as_ptr(), (*curr).path, file_path);
@@ -473,7 +467,7 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
         set_g_xbase_exit_handler_registered(true);
     }
 
-    let mut curr = rust_get_g_xbase_head();
+    let mut curr = get_g_xbase_head();
     let mut prev = null_mut();
     while curr != null_mut() {
         if rust_compat_stricmp(path, (*curr).path) == 0 {
@@ -488,7 +482,7 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
         if prev != null_mut() {
             // Move found xbase to the top.
             (*prev).next = (*curr).next;
-            (*curr).next = rust_get_g_xbase_head();
+            (*curr).next = get_g_xbase_head();
             set_g_xbase_head(curr);
         }
         return true;
@@ -507,24 +501,24 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
         return false;
     }
 
-    let dbase = rust_dbase_open(path);
+    let dbase = dbase_open(path);
     if dbase != null_mut() {
         (*xbase).is_dbase = true;
         (*xbase).dbase = dbase;
-        (*xbase).next = rust_get_g_xbase_head();
+        (*xbase).next = get_g_xbase_head();
         set_g_xbase_head(xbase);
         return true;
     }
 
     let mut working_directory = [0 as c_char; COMPAT_MAX_PATH];
-    if getcwd(working_directory.as_mut_ptr(), COMPAT_MAX_PATH as GETCWD_SIZE) == null_mut() {
+    if getcwd(working_directory.as_mut_ptr(), COMPAT_MAX_PATH as GetcwdSize) == null_mut() {
         // FIXME: Leaking xbase and path.
         return false;
     }
 
     if chdir(path) == 0 {
         chdir(working_directory.as_ptr());
-        (*xbase).next = rust_get_g_xbase_head();
+        (*xbase).next = get_g_xbase_head();
         set_g_xbase_head(xbase);
         return true;
     }
@@ -536,7 +530,7 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
 
     chdir(working_directory.as_ptr());
 
-    (*xbase).next = rust_get_g_xbase_head();
+    (*xbase).next = get_g_xbase_head();
     set_g_xbase_head(xbase);
 
     true
@@ -571,11 +565,11 @@ pub unsafe extern "C" fn rust_xbase_reopen_all(paths: *mut c_char) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn rust_xlist_enumerate(
     pattern: *const c_char,
-    handler: extern "C" fn(*const XListEnumerationContext),
+    handler: extern "C" fn(*const XListEnumerationContext) -> bool,
     xlist: *const XList) -> bool {
 
     assert_ne!(pattern, null()); // "filespec", "xfile.c", 845
-    assert_ne!(handler, mem::transmute::<*const c_void, extern "C" fn(*const XListEnumerationContext)>(null())); // "enumfunc", "xfile.c", 846
+    assert_ne!(handler, mem::transmute::<*const c_void, extern "C" fn(*const XListEnumerationContext) -> bool>(null())); // "enumfunc", "xfile.c", 846
 
     let mut directory_file_find_data = DirectoryFileFindData::default();
     let mut context = XListEnumerationContext::default();
@@ -586,17 +580,16 @@ pub unsafe extern "C" fn rust_xlist_enumerate(
     strcpy(native_pattern.as_mut_ptr(), pattern);
     rust_compat_windows_path_to_native(native_pattern.as_mut_ptr());
 
-    /*
     let mut drive = [0 as c_char; COMPAT_MAX_DRIVE as usize];
     let mut dir = [0 as c_char; COMPAT_MAX_DIR as usize];
     let mut file_name = [0 as c_char; COMPAT_MAX_FNAME as usize];
     let mut extension = [0 as c_char; COMPAT_MAX_EXT as usize];
     rust_compat_splitpath(native_pattern.as_mut_ptr(), drive.as_mut_ptr(), dir.as_mut_ptr(), file_name.as_mut_ptr(), extension.as_mut_ptr());
     if drive[0] != '\0' as c_char || dir[0] == '\\' as c_char || dir[0] == '/' as c_char || dir[0] == '.' as c_char {
-        if rust_file_find_first(native_pattern.as_ptr(), &mut directory_file_find_data) {
+        if file_find_first(native_pattern.as_ptr(), &mut directory_file_find_data) {
             loop {
-                let is_directory = fileFindIsDirectory(&directory_file_find_data);
-                let entry_name = fileFindGetName(&directory_file_find_data);
+                let is_directory = file_find_is_directory(&directory_file_find_data);
+                let entry_name = file_find_get_name(&directory_file_find_data);
 
                 if is_directory {
                     let dot_dot = CString::new("..").expect("valid string");
@@ -616,88 +609,103 @@ pub unsafe extern "C" fn rust_xlist_enumerate(
                     break;
                 }
 
-                if !rust_file_find_next(&mut directory_file_find_data) {
+                if !file_find_next(&mut directory_file_find_data) {
                     break;
                 }
             }
         }
-        return rust_file_find_close(&mut directory_file_find_data);
+        return file_find_close(&mut directory_file_find_data);
     }
 
-    XBase* xbase = rust_get_g_xbase_head();
-    while (xbase != nullptr) {
-        if (xbase->isDbase) {
-            DFileFindData dbaseFindData;
-            if (dbaseFindFirstEntry(xbase->dbase, &dbaseFindData, pattern)) {
-                context.type = XFILE_ENUMERATION_ENTRY_TYPE_DFILE;
+    let mut xbase = get_g_xbase_head();
+    while xbase != null_mut() {
+        if (*xbase).is_dbase {
+            let mut dbase_find_data = DFileFindData::default();
+            if dbase_find_first_entry((*xbase).dbase, &mut dbase_find_data, pattern) {
+                context._type = XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_DFILE;
 
-                do {
-                    strcpy(context.name, dbaseFindData.fileName);
-                    if (!handler(&context)) {
-                    return dbaseFindClose(xbase->dbase, &dbaseFindData);
+                loop {
+                    strcpy(context.name.as_mut_ptr(), dbase_find_data.file_name.as_ptr());
+                    if !handler(&context) {
+                        return dbase_find_close((*xbase).dbase, &dbase_find_data);
                     }
-                } while (dbaseFindNextEntry(xbase->dbase, &dbaseFindData));
+                    if !dbase_find_next_entry((*xbase).dbase, &mut dbase_find_data) {
+                        break
+                    }
+                }
 
-                dbaseFindClose(xbase->dbase, &dbaseFindData);
+                dbase_find_close((*xbase).dbase, &dbase_find_data);
             }
         } else {
-            char path[COMPAT_MAX_PATH];
-            snprintf(path, sizeof(path), "%s\\%s", xbase->path, pattern);
-            compat_windows_path_to_native(path);
+            let mut path = [0 as c_char; COMPAT_MAX_PATH];
+            let sformat_sformat = CString::new("%s\\%s").expect("valid string");
+            snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat_sformat.as_ptr(), (*xbase).path, pattern);
+            rust_compat_windows_path_to_native(path.as_mut_ptr());
 
-            if (fileFindFirst(path, &directory_file_find_data)) {
-                do {
-                    bool isDirectory = fileFindIsDirectory(&directory_file_find_data);
-                    char* entryName = fileFindGetName(&directory_file_find_data);
+            if file_find_first(path.as_mut_ptr(), &mut directory_file_find_data) {
+                loop {
+                    let is_directory = file_find_is_directory(&directory_file_find_data);
+                    let entry_name = file_find_get_name(&directory_file_find_data);
 
-                    if (isDirectory) {
-                    if (strcmp(entryName, "..") == 0 || strcmp(entryName, ".") == 0) {
-                    continue;
-                    }
+                    if is_directory {
+                        let dot_dot = CString::new("..").expect("valid string");
+                        let dot = CString::new(".").expect("valid string");
+                        if strcmp(entry_name, dot_dot.as_ptr()) == 0 || strcmp(entry_name, dot.as_ptr()) == 0 {
+                            continue;
+                        }
 
-                    context.type = XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY;
+                        context._type = XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY;
                     } else {
-                    context.type = XFILE_ENUMERATION_ENTRY_TYPE_FILE;
+                        context._type = XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_FILE;
                     }
 
-                    compat_makepath(context.name, drive, dir, entryName, nullptr);
+                    rust_compat_makepath(context.name.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), entry_name, null());
 
-                    if (!handler(&context)) {
-                    break;
+                    if !handler(&context) {
+                        break;
                     }
-                } while (fileFindNext(&directory_file_find_data));
+
+                    if !file_find_next(&mut directory_file_find_data) {
+                        break
+                    }
+                }
             }
-            findFindClose(&directory_file_find_data);
+            file_find_close(&directory_file_find_data);
         }
-        xbase = xbase->next;
+        xbase = (*xbase).next;
     }
 
-    compat_splitpath(nativePattern, drive, dir, fileName, extension);
-    if (fileFindFirst(nativePattern, &directory_file_find_data)) {
-        do {
-            bool isDirectory = fileFindIsDirectory(&directory_file_find_data);
-            char* entryName = fileFindGetName(&directory_file_find_data);
+    rust_compat_splitpath(native_pattern.as_ptr(), drive.as_mut_ptr(), dir.as_mut_ptr(), file_name.as_mut_ptr(), extension.as_mut_ptr());
+    if file_find_first(native_pattern.as_ptr(), &mut directory_file_find_data) {
+        loop {
+            let is_directory = file_find_is_directory(&directory_file_find_data);
+            let entry_name = file_find_get_name(&directory_file_find_data);
 
-            if (isDirectory) {
-            if (strcmp(entryName, "..") == 0 || strcmp(entryName, ".") == 0) {
-            continue;
-            }
+            if is_directory {
+                let dot_dot = CString::new("..").expect("valid string");
+                let dot = CString::new(".").expect("valid string");
+                if strcmp(entry_name, dot_dot.as_ptr()) == 0 || strcmp(entry_name, dot.as_ptr()) == 0 {
+                    continue;
+                }
 
-            context.type = XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY;
+                context._type = XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY;
             } else {
-            context.type = XFILE_ENUMERATION_ENTRY_TYPE_FILE;
+                context._type = XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_FILE;
             }
 
-            compat_makepath(context.name, drive, dir, entryName, nullptr);
+            rust_compat_makepath(context.name.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), entry_name, null());
 
-            if (!handler(&context)) {
-            break;
+            if !handler(&context) {
+                break;
             }
-        } while (fileFindNext(&directory_file_find_data));
+
+            if !file_find_next(&mut directory_file_find_data) {
+                break
+            }
+        }
     }
 
-    findFindClose(&directory_file_find_data)*/
-    true
+    file_find_close(&directory_file_find_data)
 }
 
 /*
