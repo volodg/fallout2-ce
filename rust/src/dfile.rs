@@ -9,7 +9,7 @@ use libz_sys::{
     Z_NO_FLUSH, Z_OK,
 };
 use std::ffi::{c_void, CString};
-use std::{mem, slice};
+use std::mem;
 use std::ptr::{null, null_mut};
 
 // The size of decompression buffer for reading compressed [DFile]s.
@@ -36,12 +36,25 @@ const DFILE_ERROR: u32 = 0x04;
 // Specifies that [DFile] was opened in text mode.
 const DFILE_TEXT: u32 = 0x08;
 
+#[derive(Clone)]
 struct DBaseEntry {
     path: Option<CString>,
     compressed: [i8; 1],
     uncompressed_size: [i32; 1],
     data_size: [i32; 1],
     data_offset: [i32; 1],
+}
+
+impl Default for DBaseEntry {
+    fn default() -> Self {
+        Self {
+            path: None,
+            compressed: [0 as i8; 1],
+            uncompressed_size: [0 as i32; 1],
+            data_size: [0 as i32; 1],
+            data_offset: [0 as i32; 1],
+        }
+    }
 }
 
 impl DBaseEntry {
@@ -62,7 +75,7 @@ pub struct DBase {
     entries_length: [i32; 1],
 
     // The array of entries.
-    entries: *mut DBaseEntry,
+    entries: Option<Vec<DBaseEntry>>,
 
     // The head of linked list of open file handles.
     dfile_head: *mut DFile,
@@ -223,8 +236,7 @@ pub unsafe fn dfile_open_internal(
     assert_ne!(file_path, null()); // dfile.c, 296
     assert_ne!(mode, null()); // dfile.c, 297
 
-    let entries = slice::from_raw_parts_mut((*dbase).entries, (*dbase).entries_length[0] as usize);
-
+    let entries = (*dbase).entries.as_mut().expect("");
     let optional_entry = entries.binary_search_by(|a| {
         compat_stricmp(a.get_path_cstr(), file_path)
     }).map(|i| &mut entries[i]);
@@ -514,14 +526,14 @@ pub unsafe fn dbase_close(dbase: *mut DBase) -> bool {
         curr = next;
     }
 
-    if (*dbase).entries != null_mut() {
+    if (*dbase).entries.is_some() {
         for index in 0..((*dbase).entries_length[0]) {
-            let entry = (*dbase).entries.offset(index as isize);
+            let entry = &mut (*dbase).entries.as_mut().expect("")[index as usize];
             if (*entry).path != None {
                 (*entry).path = None;
             }
         }
-        free((*dbase).entries as *mut c_void);
+        (*dbase).entries = None
     }
 
     if (*dbase).path != None {
@@ -624,20 +636,17 @@ pub unsafe fn dbase_open(file_path: *const c_char) -> *mut DBase {
         return null_mut();
     }
 
-    let entries_allocation_size =
-        mem::size_of_val(&*(*dbase).entries) * (*dbase).entries_length[0] as usize;
-    (*dbase).entries = malloc(entries_allocation_size) as *mut DBaseEntry;
-    if (*dbase).entries == null_mut() {
+    let entries = Box::new(vec![DBaseEntry::default(); (*dbase).entries_length[0] as usize]);
+    (*dbase).entries = Some(*entries);
+    if (*dbase).entries.is_none() {
         close_on_error(dbase, stream);
         return null_mut();
     }
 
-    memset((*dbase).entries as *mut c_void, 0, entries_allocation_size);
-
     // Read entries one by one, stopping on any error.
     let mut entry_index = 0;
     for i in 0..(*dbase).entries_length[0] {
-        let entry = (*dbase).entries.offset(i as isize);
+        let entry = &mut (*dbase).entries.as_mut().expect("")[i as usize];
 
         let mut path_length = [0 as c_int; 1];
         if fread(
@@ -726,7 +735,7 @@ pub unsafe fn dbase_find_first_entry(
     pattern: *const c_char,
 ) -> bool {
     for index in 0..(*dbase).entries_length[0] {
-        let entry = (*dbase).entries.offset(index as isize);
+        let entry = &(*dbase).entries.as_ref().expect("")[index as usize];
         if fpattern_match(pattern, (*entry).get_path_cstr()) {
             strcpy(
                 (*find_file_data).file_name.as_mut_ptr() as *mut c_char,
@@ -749,7 +758,7 @@ pub unsafe fn dbase_find_next_entry(
     find_file_data: *mut DFileFindData,
 ) -> bool {
     for index in ((*find_file_data).index + 1)..(*dbase).entries_length[0] {
-        let entry = (*dbase).entries.offset(index as isize);
+        let entry = &(*dbase).entries.as_ref().expect("")[index as usize];
         if fpattern_match(
             (*find_file_data).pattern.as_mut_ptr() as *mut c_char,
             (*entry).get_path_cstr(),
