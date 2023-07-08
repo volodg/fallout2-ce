@@ -2,11 +2,11 @@ use std::ffi::{c_int, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicPtr, Ordering};
-use libc::{c_char, c_long, c_uint, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, malloc, memset, rewind, size_t, snprintf};
+use libc::{c_char, c_long, c_uint, chdir, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, getcwd, malloc, memset, rewind, size_t, snprintf, strcpy};
 use libz_sys::{gzclose, gzeof, gzFile, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
 use vsprintf::vsprintf;
 use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof, dfile_get_size, rust_dbase_close};
-use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, compat_gzgets, rust_compat_fgets, rust_get_file_size};
+use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, compat_gzgets, rust_compat_fgets, rust_get_file_size, rust_compat_mkdir};
 
 #[repr(C)]
 #[derive(PartialEq)]
@@ -339,13 +339,81 @@ pub unsafe extern "C" fn rust_xbase_close_all() {
     }
 }
 
+// Recursively creates specified file path.
+#[no_mangle]
+pub unsafe extern "C" fn rust_xbase_make_directory(file_path: *mut c_char) -> c_int {
+    let mut working_directory = [0 as c_char; COMPAT_MAX_PATH];
+    if getcwd(working_directory.as_mut_ptr(), COMPAT_MAX_PATH) == null_mut() {
+        return -1;
+    }
+
+    let mut drive = [0 as c_char; COMPAT_MAX_DRIVE as usize];
+    let mut dir = [0 as c_char; COMPAT_MAX_DIR as usize];
+    rust_compat_splitpath(file_path, drive.as_mut_ptr(), dir.as_mut_ptr(), null_mut(), null_mut());
+
+    let mut path = [0 as c_char; COMPAT_MAX_PATH];
+    let sformat_sformat = CString::new("%s\\%s").expect("valid string");
+
+    if drive[0] != '\0' as c_char || dir[0] == '\\' as c_char || dir[0] == '/' as c_char || dir[0] == '.' as c_char {
+        // [filePath] is an absolute path.
+        strcpy(path.as_mut_ptr(), file_path);
+    } else {
+        // Find first directory-based xbase.
+        let mut curr = rust_get_g_xbase_head();
+        while curr != null() {
+            if !(*curr).is_dbase {
+                snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat_sformat.as_ptr(), (*curr).path, file_path);
+                break;
+            }
+            curr = (*curr).next;
+        }
+
+        if curr == null() {
+            // Either there are no directory-based xbase, or there are no open
+            // xbases at all - resolve path against current working directory.
+            snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat_sformat.as_ptr(), working_directory, file_path);
+        }
+    }
+
+    let mut pch = path.as_mut_ptr();
+
+    if *pch == '\\' as c_char || *pch == '/' as c_char {
+        pch = pch.offset(1);
+    }
+
+    while *pch != '\0' as c_char {
+        if *pch == '\\' as c_char || *pch == '/' as c_char {
+            let temp = *pch;
+            *pch = '\0' as c_char;
+
+            if chdir(path.as_ptr()) != 0 {
+                if rust_compat_mkdir(path.as_ptr()) != 0 {
+                    chdir(working_directory.as_mut_ptr());
+                    return -1;
+                }
+            } else {
+                chdir(working_directory.as_ptr());
+            }
+
+            *pch = temp;
+        }
+        pch = pch.offset(1);
+    }
+
+    // Last path component.
+    rust_compat_mkdir(path.as_ptr());
+
+    chdir(working_directory.as_ptr());
+
+    0
+}
+
 /*
-// Closes all xbases.
+// Recursively creates specified file path.
 //
-// NOTE: Inlined.
-//
-// 0x4E01F8
-static void xbaseCloseAll()
+// 0x4DFFAC
+// ????
+static int xbaseMakeDirectory(const char* filePath)
 {
 
 }

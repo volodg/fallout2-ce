@@ -34,7 +34,8 @@ extern "C" {
     int rust_xfile_eof(fallout::XFile* stream);
     long rust_xfile_get_size(fallout::XFile* stream);
     void rust_xbase_close_all();
-    // rust_xfile_close_all()
+    int rust_xbase_make_directory(const char* filePath);
+    // rust_xbase_make_directory()
 }
 
 namespace fallout {
@@ -54,7 +55,6 @@ typedef struct XListEnumerationContext {
 typedef bool(XListEnumerationHandler)(XListEnumerationContext* context);
 
 static bool xlistEnumerate(const char* pattern, XListEnumerationHandler* handler, XList* xlist);
-static int xbaseMakeDirectory(const char* path);
 static void xbaseExitHandler(void);
 static bool xlistEnumerateHandler(XListEnumerationContext* context);
 
@@ -239,7 +239,7 @@ bool xbaseOpen(const char* path)
         return true;
     }
 
-    if (xbaseMakeDirectory(path) != 0) {
+    if (rust_xbase_make_directory(path) != 0) {
         // FIXME: Leaking xbase and path.
         return false;
     }
@@ -393,75 +393,6 @@ void xlistFree(XList* xlist)
     free(xlist->fileNames);
 
     memset(xlist, 0, sizeof(*xlist));
-}
-
-// Recursively creates specified file path.
-//
-// 0x4DFFAC
-static int xbaseMakeDirectory(const char* filePath)
-{
-    char workingDirectory[COMPAT_MAX_PATH];
-    if (getcwd(workingDirectory, COMPAT_MAX_PATH) == nullptr) {
-        return -1;
-    }
-
-    char drive[COMPAT_MAX_DRIVE];
-    char dir[COMPAT_MAX_DIR];
-    compat_splitpath(filePath, drive, dir, nullptr, nullptr);
-
-    char path[COMPAT_MAX_PATH];
-    if (drive[0] != '\0' || dir[0] == '\\' || dir[0] == '/' || dir[0] == '.') {
-        // [filePath] is an absolute path.
-        strcpy(path, filePath);
-    } else {
-        // Find first directory-based xbase.
-        XBase* curr = rust_get_g_xbase_head();
-        while (curr != nullptr) {
-            if (!curr->isDbase) {
-                snprintf(path, sizeof(path), "%s\\%s", curr->path, filePath);
-                break;
-            }
-            curr = curr->next;
-        }
-
-        if (curr == nullptr) {
-            // Either there are no directory-based xbase, or there are no open
-            // xbases at all - resolve path against current working directory.
-            snprintf(path, sizeof(path), "%s\\%s", workingDirectory, filePath);
-        }
-    }
-
-    char* pch = path;
-
-    if (*pch == '\\' || *pch == '/') {
-        pch++;
-    }
-
-    while (*pch != '\0') {
-        if (*pch == '\\' || *pch == '/') {
-            char temp = *pch;
-            *pch = '\0';
-
-            if (chdir(path) != 0) {
-                if (compat_mkdir(path) != 0) {
-                    chdir(workingDirectory);
-                    return -1;
-                }
-            } else {
-                chdir(workingDirectory);
-            }
-
-            *pch = temp;
-        }
-        pch++;
-    }
-
-    // Last path component.
-    compat_mkdir(path);
-
-    chdir(workingDirectory);
-
-    return 0;
 }
 
 // xbase atexit
