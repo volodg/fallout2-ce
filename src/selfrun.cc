@@ -90,7 +90,7 @@ void selfrunPlaybackLoop(SelfrunData* selfrunData)
             }
 
             while (gSelfrunState == SELFRUN_STATE_PLAYING) {
-                fps_limiter_mark(sharedFpsLimiter);
+                rust_fps_limiter_mark(sharedFpsLimiter);
 
                 int keyCode = inputGetInput();
                 if (keyCode != selfrunData->stopKeyCode) {
@@ -98,16 +98,16 @@ void selfrunPlaybackLoop(SelfrunData* selfrunData)
                 }
 
                 renderPresent();
-                fps_limiter_throttle(sharedFpsLimiter);
+                rust_fps_limiter_throttle(sharedFpsLimiter);
             }
 
             while (mouseGetEvent() != 0) {
-                fps_limiter_mark(sharedFpsLimiter);
+                rust_fps_limiter_mark(sharedFpsLimiter);
 
                 inputGetInput();
 
                 renderPresent();
-                fps_limiter_throttle(sharedFpsLimiter);
+                rust_fps_limiter_throttle(sharedFpsLimiter);
             }
 
             if (cursorWasHidden) {
@@ -166,7 +166,7 @@ void selfrunRecordingLoop(SelfrunData* selfrunData)
 
             bool done = false;
             while (!done) {
-                fps_limiter_mark(sharedFpsLimiter);
+                rust_fps_limiter_mark(sharedFpsLimiter);
 
                 int keyCode = inputGetInput();
                 if (keyCode == selfrunData->stopKeyCode) {
@@ -178,7 +178,7 @@ void selfrunRecordingLoop(SelfrunData* selfrunData)
                 }
 
                 renderPresent();
-                fps_limiter_throttle(sharedFpsLimiter);
+                rust_fps_limiter_throttle(sharedFpsLimiter);
             }
         }
         gSelfrunState = SELFRUN_STATE_TURNED_OFF;

@@ -19,8 +19,8 @@
 
 extern "C"
 {
-    void c_set_program_is_active(bool value);
-    bool c_get_program_is_active();
+    void rust_c_set_program_is_active(bool value);
+    bool rust_c_get_program_is_active();
 }
 
 namespace fallout {
@@ -190,7 +190,7 @@ int inputGetInput()
 
     _GNW95_process_message();
 
-    if (!c_get_program_is_active()) {
+    if (!rust_c_get_program_is_active()) {
         _GNW95_lost_focus();
     }
 
@@ -1062,12 +1062,12 @@ void _GNW95_process_message()
                 handleWindowSizeChanged();
                 break;
             case SDL_WINDOWEVENT_FOCUS_GAINED:
-                c_set_program_is_active(true);
+                rust_c_set_program_is_active(true);
                 windowRefreshAll(&_scr_size);
                 audioEngineResume();
                 break;
             case SDL_WINDOWEVENT_FOCUS_LOST:
-                c_set_program_is_active(false);
+                rust_c_set_program_is_active(false);
                 audioEnginePause();
                 break;
             }
@@ -1080,7 +1080,7 @@ void _GNW95_process_message()
 
     touch_process_gesture();
 
-    if (c_get_program_is_active() && !keyboardIsDisabled()) {
+    if (rust_c_get_program_is_active() && !keyboardIsDisabled()) {
         // NOTE: Uninline
         int tick = getTicks();
 
@@ -1150,7 +1150,7 @@ void _GNW95_lost_focus()
         _focus_func(false);
     }
 
-    while (!c_get_program_is_active()) {
+    while (!rust_c_get_program_is_active()) {
         _GNW95_process_message();
 
         if (_idle_func != NULL) {

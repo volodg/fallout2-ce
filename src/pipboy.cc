@@ -417,7 +417,7 @@ int pipboyOpen(int intent)
     gPipboyLastEventTimestamp = getTicks();
 
     while (true) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -475,7 +475,7 @@ int pipboyOpen(int intent)
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     pipboyWindowFree();
@@ -1967,7 +1967,7 @@ static bool pipboyRest(int hours, int minutes, int duration)
             double v4 = v3 * 20.0;
             int v5 = 0;
             for (int v5 = 0; v5 < (int)v4; v5++) {
-                fps_limiter_mark(sharedFpsLimiter);
+                rust_fps_limiter_mark(sharedFpsLimiter);
 
                 if (rc) {
                     break;
@@ -2006,7 +2006,7 @@ static bool pipboyRest(int hours, int minutes, int duration)
                 }
 
                 renderPresent();
-                fps_limiter_throttle(sharedFpsLimiter);
+                rust_fps_limiter_throttle(sharedFpsLimiter);
             }
 
             if (!rc) {
@@ -2029,7 +2029,7 @@ static bool pipboyRest(int hours, int minutes, int duration)
             double v7 = (v2 - v3) * 20.0;
 
             for (int hour = 0; hour < (int)v7; hour++) {
-                fps_limiter_mark(sharedFpsLimiter);
+                rust_fps_limiter_mark(sharedFpsLimiter);
 
                 if (rc) {
                     break;
@@ -2077,7 +2077,7 @@ static bool pipboyRest(int hours, int minutes, int duration)
                 }
 
                 renderPresent();
-                fps_limiter_throttle(sharedFpsLimiter);
+                rust_fps_limiter_throttle(sharedFpsLimiter);
             }
 
             if (!rc) {
@@ -2251,7 +2251,7 @@ static int pipboyRenderScreensaver()
 
     int v31 = 50;
     while (true) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         unsigned int time = getTicks();
 
@@ -2373,7 +2373,7 @@ static int pipboyRenderScreensaver()
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     blitBufferToBuffer(buf,

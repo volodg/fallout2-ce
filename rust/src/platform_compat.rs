@@ -266,11 +266,9 @@ pub unsafe extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {
     }
 }
 
-#[no_mangle]
 #[cfg(target_family = "windows")]
 fn compat_resolve_path(_path: *mut c_char) {}
 
-#[no_mangle]
 #[cfg(not(target_family = "windows"))]
 unsafe fn compat_resolve_path(path: *mut c_char) {
     let mut pch = path;
@@ -329,13 +327,11 @@ extern "C" {
     fn _mkdir(path: *const c_char) -> c_int;
 }
 
-#[no_mangle]
 #[cfg(target_family = "windows")]
 unsafe fn native_mkdir(path: *const c_char) -> c_int {
     _mkdir(path)
 }
 
-#[no_mangle]
 #[cfg(not(target_family = "windows"))]
 unsafe fn native_mkdir(path: *const c_char) -> c_int {
     libc::mkdir(path, 0755)
@@ -376,7 +372,6 @@ pub unsafe extern "C" fn rust_compat_fopen(
     return fopen(native_path.as_ptr(), mode);
 }
 
-#[no_mangle]
 pub unsafe fn compat_gzopen(path: *const c_char, mode: *const c_char) -> gzFile {
     let mut native_path = [0 as c_char; COMPAT_MAX_PATH as usize];
     strcpy(native_path.as_mut_ptr(), path);

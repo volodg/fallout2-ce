@@ -1133,7 +1133,7 @@ void _gmouse_handle_event(int mouseX, int mouseY, int mouseState)
                     int v33 = mouseY;
                     int actionIndex = 0;
                     while ((mouseGetEvent() & MOUSE_EVENT_LEFT_BUTTON_UP) == 0) {
-                        fps_limiter_mark(sharedFpsLimiter);
+                        rust_fps_limiter_mark(sharedFpsLimiter);
 
                         inputGetInput();
 
@@ -1159,7 +1159,7 @@ void _gmouse_handle_event(int mouseX, int mouseY, int mouseState)
                         }
 
                         renderPresent();
-                        fps_limiter_throttle(sharedFpsLimiter);
+                        rust_fps_limiter_throttle(sharedFpsLimiter);
                     }
 
                     isoEnable();

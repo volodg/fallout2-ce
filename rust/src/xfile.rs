@@ -18,7 +18,6 @@ enum XFileType {
     XfileTypeGzfile = 2,
 }
 
-#[repr(C)]
 union XFileTypeUnion {
     file: *mut FILE,
     dfile: *mut DFile,
@@ -54,7 +53,6 @@ pub struct XList {
     file_names: *mut *mut c_char
 }
 
-#[repr(u8)]
 #[derive(PartialEq)]
 enum XFileEnumerationEntryType {
     XfileEnumerationEntryTypeFile = 0,
@@ -62,8 +60,7 @@ enum XFileEnumerationEntryType {
     XfileEnumerationEntryTypeDfile = 2,
 }
 
-#[repr(C)]
-pub struct XListEnumerationContext {
+struct XListEnumerationContext {
     name: [c_char; COMPAT_MAX_PATH],
     _type: XFileEnumerationEntryType,
     xlist: *mut XList
@@ -88,22 +85,19 @@ extern "C" {
     fn snprintf(s: *mut c_char, n: size_t, format: *const c_char, ...) -> c_int;
 }
 
-#[no_mangle]
-pub unsafe fn get_g_xbase_head() -> *mut XBase {
+pub fn get_g_xbase_head() -> *mut XBase {
     G_X_BASE_HEAD.load(Ordering::Relaxed)
 }
 
-pub unsafe fn set_g_xbase_head(value: *mut XBase) {
+pub fn set_g_xbase_head(value: *mut XBase) {
     G_X_BASE_HEAD.store(value, Ordering::Relaxed)
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn get_g_xbase_exit_handler_registered() -> bool {
+pub fn get_g_xbase_exit_handler_registered() -> bool {
     G_X_BASE_EXIT_HANDLER_REGISTERED.load(Ordering::Relaxed)
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn set_g_xbase_exit_handler_registered(value: bool) {
+pub fn set_g_xbase_exit_handler_registered(value: bool) {
     G_X_BASE_EXIT_HANDLER_REGISTERED.store(value, Ordering::Relaxed)
 }
 

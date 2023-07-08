@@ -10,7 +10,7 @@
 
 extern "C"
 {
-    bool c_get_program_is_active();
+    bool rust_c_get_program_is_active();
 }
 
 namespace fallout {
@@ -322,7 +322,7 @@ void _GNW95_ShowRect(unsigned char* src, int srcPitch, int a3, int srcX, int src
 // 0x4CBBC8
 void _GNW95_zero_vid_mem()
 {
-    if (!c_get_program_is_active()) {
+    if (!rust_c_get_program_is_active()) {
         return;
     }
 

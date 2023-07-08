@@ -4,11 +4,12 @@
 
 #ifndef _WIN32
 #include <unistd.h>
+#else
+#include "svga.h"
+#include "window_manager.h"
 #endif
 
 #include "main.h"
-#include "svga.h"
-#include "window_manager.h"
 
 #if __APPLE__ && TARGET_OS_IOS
 #include "platform/ios/paths.h"
@@ -16,7 +17,7 @@
 
 extern "C"
 {
-    void c_set_program_is_active(bool value);
+    void rust_c_set_program_is_active(bool value);
 }
 
 namespace fallout {
@@ -64,7 +65,7 @@ int main(int argc, char* argv[])
 #endif
 
     SDL_ShowCursor(SDL_DISABLE);
-    c_set_program_is_active(true);
+    rust_c_set_program_is_active(true);
     return falloutMain(argc, argv);
 }
 #endif

@@ -20,12 +20,12 @@ pub unsafe extern "C" fn rust_get_version(dest: *mut c_char, size: usize) {
 }
 
 #[no_mangle]
-pub extern "C" fn c_get_major_version() -> c_short {
+pub extern "C" fn rust_c_get_major_version() -> c_short {
     VERSION_MAJOR as c_short
 }
 
 #[no_mangle]
-pub extern "C" fn c_get_minor_version() -> c_short {
+pub extern "C" fn rust_c_get_minor_version() -> c_short {
     VERSION_MINOR as c_short
 }
 

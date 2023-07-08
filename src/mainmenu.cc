@@ -308,7 +308,7 @@ int mainMenuWindowHandleEvents()
 
     int rc = -1;
     while (rc == -1) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -362,7 +362,7 @@ int mainMenuWindowHandleEvents()
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (oldCursorIsHidden) {

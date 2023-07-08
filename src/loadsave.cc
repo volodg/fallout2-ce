@@ -508,7 +508,7 @@ int lsgSaveGame(int mode)
     int rc = -1;
     int doubleClickSlot = -1;
     while (rc == -1) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         unsigned int tick = getTicks();
         int keyCode = inputGetInput();
@@ -622,7 +622,7 @@ int lsgSaveGame(int mode)
             bool isScrolling = false;
             int scrollCounter = 0;
             do {
-                fps_limiter_mark(sharedFpsLimiter);
+                rust_fps_limiter_mark(sharedFpsLimiter);
 
                 unsigned int start = getTicks();
                 scrollCounter += 1;
@@ -686,7 +686,7 @@ int lsgSaveGame(int mode)
                 keyCode = inputGetInput();
 
                 renderPresent();
-                fps_limiter_throttle(sharedFpsLimiter);
+                rust_fps_limiter_throttle(sharedFpsLimiter);
             } while (keyCode != 505 && keyCode != 503);
         } else {
             if (selectionChanged) {
@@ -822,7 +822,7 @@ int lsgSaveGame(int mode)
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     gameMouseSetCursor(MOUSE_CURSOR_ARROW);
@@ -1013,7 +1013,7 @@ int lsgLoadGame(int mode)
     int rc = -1;
     int doubleClickSlot = -1;
     while (rc == -1) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         unsigned int time = getTicks();
         int keyCode = inputGetInput();
@@ -1120,7 +1120,7 @@ int lsgLoadGame(int mode)
             bool isScrolling = false;
             int scrollCounter = 0;
             do {
-                fps_limiter_mark(sharedFpsLimiter);
+                rust_fps_limiter_mark(sharedFpsLimiter);
 
                 unsigned int start = getTicks();
                 scrollCounter += 1;
@@ -1189,7 +1189,7 @@ int lsgLoadGame(int mode)
                 keyCode = inputGetInput();
 
                 renderPresent();
-                fps_limiter_throttle(sharedFpsLimiter);
+                rust_fps_limiter_throttle(sharedFpsLimiter);
             } while (keyCode != 505 && keyCode != 503);
         } else {
             if (selectionChanged) {
@@ -1269,7 +1269,7 @@ int lsgLoadGame(int mode)
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     lsgWindowFree(mode == LOAD_SAVE_MODE_FROM_MAIN_MENU
@@ -1797,8 +1797,8 @@ static int lsgLoadGameInSlot(int slot)
 
 extern "C"
 {
-    short c_get_major_version();
-    short c_get_minor_version();
+    short rust_c_get_major_version();
+    short rust_c_get_minor_version();
 }
 
 // 0x47DF10
@@ -1814,8 +1814,8 @@ static int lsgSaveHeaderInSlot(int slot)
     }
 
     short temp[3];
-    temp[0] = c_get_major_version();
-    temp[1] = c_get_minor_version();
+    temp[0] = rust_c_get_major_version();
+    temp[1] = rust_c_get_minor_version();
 
     ptr->versionMinor = temp[0];
     ptr->versionMajor = temp[1];
@@ -2344,7 +2344,7 @@ static int _get_input_str2(int win, int doneKeyCode, int cancelKeyCode, char* de
 
     int rc = 1;
     while (rc == 1) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int tick = getTicks();
 
@@ -2403,7 +2403,7 @@ static int _get_input_str2(int win, int doneKeyCode, int cancelKeyCode, char* de
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     endTextInput();

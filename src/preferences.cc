@@ -1219,7 +1219,7 @@ int doPreferences(bool animated)
 
     int rc = -1;
     while (rc == -1) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int eventCode = inputGetInput();
 
@@ -1262,7 +1262,7 @@ int doPreferences(bool animated)
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (animated) {
@@ -1429,7 +1429,7 @@ static void _DoThing(int eventCode)
         int sfxVolumeExample = 0;
         int speechVolumeExample = 0;
         while (true) {
-            fps_limiter_mark(sharedFpsLimiter);
+            rust_fps_limiter_mark(sharedFpsLimiter);
 
             inputGetInput();
 
@@ -1569,11 +1569,10 @@ static void _DoThing(int eventCode)
             blitBufferToBufferTrans(_preferencesFrmImages[PREFERENCES_WINDOW_FRM_KNOB_ON].getData(), 21, 12, 21, gPreferencesWindowBuffer + PREFERENCES_WINDOW_WIDTH * meta->knobY + v31, PREFERENCES_WINDOW_WIDTH);
             windowRefresh(gPreferencesWindow);
 
-            while (getTicksSince(tick) < 35)
-                ;
+            while (getTicksSince(tick) < 35);
 
             renderPresent();
-            fps_limiter_throttle(sharedFpsLimiter);
+            rust_fps_limiter_throttle(sharedFpsLimiter);
         }
     } else if (preferenceIndex == 19) {
         gPreferencesPlayerSpeedup1 ^= 1;
