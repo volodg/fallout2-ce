@@ -226,11 +226,11 @@ pub unsafe fn dfile_close(stream: *mut DFile) -> c_int {
     rc
 }
 
-pub unsafe fn dfile_open_internal(
+#[no_mangle]
+pub unsafe extern "C" fn rust_dfile_open(
     dbase: *mut DBase,
     file_path: *const c_char,
     mode: *const c_char,
-    mut dfile: *mut DFile,
 ) -> *mut DFile {
     assert_ne!(dbase, null_mut()); // dfile.c, 295
     assert_ne!(file_path, null()); // dfile.c, 296
@@ -248,40 +248,22 @@ pub unsafe fn dfile_open_internal(
     }
 
     if optional_entry.is_err() {
-        cleanup(dfile);
         return null_mut();
     }
 
     if *mode != 'r' as c_char {
-        cleanup(dfile);
         return null_mut();
     }
 
+    let dfile = malloc(mem::size_of::<DFile>()) as *mut DFile;
     if dfile == null_mut() {
-        dfile = malloc(mem::size_of::<DFile>()) as *mut DFile;
-        if dfile == null_mut() {
-            return null_mut();
-        }
-
-        memset(dfile as *mut c_void, 0, mem::size_of::<DFile>());
-        (*dfile).dbase = dbase;
-        (*dfile).next = (*dbase).dfile_head;
-        (*dbase).dfile_head = dfile;
-    } else {
-        if dbase != (*dfile).dbase {
-            cleanup(dfile);
-            return null_mut();
-        }
-
-        if (*dfile).stream != null_mut() {
-            fclose((*dfile).stream);
-            (*dfile).stream = null_mut();
-        }
-
-        (*dfile).compressed_bytes_read = 0;
-        (*dfile).position = 0;
-        (*dfile).flags = 0;
+        return null_mut();
     }
+
+    memset(dfile as *mut c_void, 0, mem::size_of::<DFile>());
+    (*dfile).dbase = dbase;
+    (*dfile).next = (*dbase).dfile_head;
+    (*dbase).dfile_head = dfile;
 
     let entry = optional_entry.expect("valid entry") as *mut DBaseEntry;
     (*dfile).entry = entry;
@@ -363,15 +345,6 @@ pub unsafe fn dfile_open_internal(
     }
 
     dfile
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rust_dfile_open(
-    dbase: *mut DBase,
-    file_path: *const c_char,
-    mode: *const c_char,
-) -> *mut DFile {
-    dfile_open_internal(dbase, file_path, mode, null_mut())
 }
 
 // 0x4E6078
