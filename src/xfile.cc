@@ -33,7 +33,9 @@ extern "C" {
     bool rust_xbase_open(const char* path);
     bool rust_xbase_reopen_all(char* paths);
     bool rust_xlist_enumerate(const char* pattern, fallout::XListEnumerationHandler* handler, fallout::XList* xlist);
+    void rust_xlist_free(fallout::XList* xlist);
     // rust_xlist_enumerate()
+
 }
 
 namespace fallout {
@@ -172,20 +174,11 @@ bool xlistInit(const char* pattern, XList* xlist)
 // 0x4DFF48
 void xlistFree(XList* xlist)
 {
-    assert(xlist); // "list", "xfile.c", 949
-
-    for (int index = 0; index < xlist->fileNamesLength; index++) {
-        if (xlist->fileNames[index] != nullptr) {
-            free(xlist->fileNames[index]);
-        }
-    }
-
-    free(xlist->fileNames);
-
-    memset(xlist, 0, sizeof(*xlist));
+    rust_xlist_free(xlist);
 }
 
 // 0x4E0278
+// ???
 static bool xlistEnumerateHandler(XListEnumerationContext* context)
 {
     if (context->type == XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY) {

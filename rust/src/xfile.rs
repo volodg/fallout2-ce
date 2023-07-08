@@ -51,8 +51,14 @@ pub struct XBase {
 #[repr(C)]
 pub struct XList {
     file_names_length: c_int,
-    file_names: *const *const c_char
+    file_names: *mut *mut c_char
 }
+/*
+typedef struct XList {
+    int fileNamesLength;
+    char** fileNames;
+} XList;
+ */
 
 #[repr(u8)]
 enum XFileEnumerationEntryType {
@@ -65,7 +71,7 @@ enum XFileEnumerationEntryType {
 pub struct XListEnumerationContext {
     name: [c_char; COMPAT_MAX_PATH],
     _type: XFileEnumerationEntryType,
-    xlist: *const XList
+    xlist: *mut XList
 }
 
 impl Default for XListEnumerationContext {
@@ -73,7 +79,7 @@ impl Default for XListEnumerationContext {
         Self {
             name: [0 as c_char; COMPAT_MAX_PATH],
             _type: XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_FILE,
-            xlist: null()
+            xlist: null_mut()
         }
     }
 }
@@ -561,12 +567,11 @@ pub unsafe extern "C" fn rust_xbase_reopen_all(paths: *mut c_char) -> bool {
     true
 }
 
-// typedef bool(XListEnumerationHandler)(XListEnumerationContext* context);
 #[no_mangle]
 pub unsafe extern "C" fn rust_xlist_enumerate(
     pattern: *const c_char,
     handler: extern "C" fn(*const XListEnumerationContext) -> bool,
-    xlist: *const XList) -> bool {
+    xlist: *mut XList) -> bool {
 
     assert_ne!(pattern, null()); // "filespec", "xfile.c", 845
     assert_ne!(handler, mem::transmute::<*const c_void, extern "C" fn(*const XListEnumerationContext) -> bool>(null())); // "enumfunc", "xfile.c", 846
@@ -708,8 +713,71 @@ pub unsafe extern "C" fn rust_xlist_enumerate(
     file_find_close(&directory_file_find_data)
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_xlist_free(xlist: *mut XList) {
+    assert_ne!(xlist, null_mut()); // "list", "xfile.c", 949
+
+    let file_names = (*xlist).file_names;
+    for index in 0..(*xlist).file_names_length {
+        let file_name = *file_names.offset(index as isize);
+        if file_name != null_mut() {
+            free(file_name as *mut c_void);
+        }
+    }
+
+    free(file_names as *mut c_void);
+
+    memset(xlist as *mut c_void, 0, mem::size_of::<XList>());
+}
+
 /*
-static bool xlistEnumerate(const char* pattern, XListEnumerationHandler* handler, XList* xlist)
+void xlistFree(XList* xlist)
 {
+
+}
+ */
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_enumerate_handler(context: *const XListEnumerationContext) -> bool {
+    /*
+    if (*context)._type == XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY {
+        return true;
+    }
+
+    let xlist = (*context).xlist;
+
+    let file_names = realloc((*xlist).file_names as *mut u8, mem::size_of_val(&*(*xlist).file_names) * ((*xlist).file_names_length + 1));
+    if file_names == null_mut() {
+        xlistFree(xlist);
+        (*xlist).file_names_length = -1;
+        return false;
+    }
+
+    (*xlist).fileNames = fileNames;
+
+    fileNames[(*xlist).fileNamesLength] = compat_strdup((*context).name);
+    if fileNames[(*xlist).fileNamesLength] == null() {
+        xlistFree(xlist);
+        (*xlist).fileNamesLength = -1;
+        return false;
+    }
+
+    (*xlist).file_names_length += 1;*/
+
+    true
+}
+
+/*
+static bool xlistEnumerateHandler(XListEnumerationContext* context)
+{
+
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_xlist_init(
+    pattern: *const c_char,
+    xlist: *const XList) -> bool {
+    rust_xlist_enumerate(pattern, xlistEnumerateHandler, xlist)
+    (*xlist).file_names_length != -1
 }
  */
