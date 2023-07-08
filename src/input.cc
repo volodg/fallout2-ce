@@ -13,6 +13,7 @@
 #include "vcr.h"
 
 // Migrated
+#include "platform_compat.h"
 #include "audio_engine.h"
 #include "dinput.h"
 

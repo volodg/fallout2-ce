@@ -4,9 +4,10 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "xfile.h"
+// TODO Migrate
 
 // Migrated
+#include "xfile.h"
 #include "platform_compat.h"
 
 namespace fallout {

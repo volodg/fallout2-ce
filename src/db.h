@@ -3,6 +3,7 @@
 
 #include <cstddef>
 
+// Migrated
 #include "xfile.h"
 
 namespace fallout {

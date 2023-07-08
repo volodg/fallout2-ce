@@ -4,7 +4,7 @@ use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 #[cfg(not(target_family = "windows"))]
 use libc::snprintf;
-use libc::{atexit, c_char, c_long, c_uint, chdir, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, getcwd, malloc, memset, rewind, size_t, strcmp, strcpy, strtok};
+use libc::{atexit, c_char, c_long, c_uint, chdir, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, getcwd, malloc, memset, realloc, rewind, size_t, strcmp, strcpy, strtok};
 use libz_sys::{gzclose, gzeof, gzFile, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
 use vsprintf::vsprintf;
 use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof, dfile_get_size, dbase_close, dbase_open, DFileFindData, dbase_find_first_entry, dbase_find_close, dbase_find_next_entry};
@@ -53,18 +53,13 @@ pub struct XList {
     file_names_length: c_int,
     file_names: *mut *mut c_char
 }
-/*
-typedef struct XList {
-    int fileNamesLength;
-    char** fileNames;
-} XList;
- */
 
 #[repr(u8)]
+#[derive(PartialEq)]
 enum XFileEnumerationEntryType {
-    XFILE_ENUMERATION_ENTRY_TYPE_FILE = 0,
-    XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY = 1,
-    XFILE_ENUMERATION_ENTRY_TYPE_DFILE = 2,
+    XfileEnumerationEntryTypeFile = 0,
+    XfileEnumerationEntryTypeDirectory = 1,
+    XfileEnumerationEntryTypeDfile = 2,
 }
 
 #[repr(C)]
@@ -78,7 +73,7 @@ impl Default for XListEnumerationContext {
     fn default() -> Self {
         Self {
             name: [0 as c_char; COMPAT_MAX_PATH],
-            _type: XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_FILE,
+            _type: XFileEnumerationEntryType::XfileEnumerationEntryTypeFile,
             xlist: null_mut()
         }
     }
@@ -567,10 +562,9 @@ pub unsafe extern "C" fn rust_xbase_reopen_all(paths: *mut c_char) -> bool {
     true
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_xlist_enumerate(
+unsafe fn xlist_enumerate(
     pattern: *const c_char,
-    handler: extern "C" fn(*const XListEnumerationContext) -> bool,
+    handler: unsafe extern "C" fn(*const XListEnumerationContext) -> bool,
     xlist: *mut XList) -> bool {
 
     assert_ne!(pattern, null()); // "filespec", "xfile.c", 845
@@ -603,9 +597,9 @@ pub unsafe extern "C" fn rust_xlist_enumerate(
                         continue;
                     }
 
-                    context._type = XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY;
+                    context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeDirectory;
                 } else {
-                    context._type = XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_FILE;
+                    context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeFile;
                 }
 
                 rust_compat_makepath(context.name.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), entry_name, null());
@@ -627,7 +621,7 @@ pub unsafe extern "C" fn rust_xlist_enumerate(
         if (*xbase).is_dbase {
             let mut dbase_find_data = DFileFindData::default();
             if dbase_find_first_entry((*xbase).dbase, &mut dbase_find_data, pattern) {
-                context._type = XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_DFILE;
+                context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeDfile;
 
                 loop {
                     strcpy(context.name.as_mut_ptr(), dbase_find_data.file_name.as_ptr());
@@ -659,9 +653,9 @@ pub unsafe extern "C" fn rust_xlist_enumerate(
                             continue;
                         }
 
-                        context._type = XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY;
+                        context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeDirectory;
                     } else {
-                        context._type = XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_FILE;
+                        context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeFile;
                     }
 
                     rust_compat_makepath(context.name.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), entry_name, null());
@@ -693,9 +687,9 @@ pub unsafe extern "C" fn rust_xlist_enumerate(
                     continue;
                 }
 
-                context._type = XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY;
+                context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeDirectory;
             } else {
-                context._type = XFileEnumerationEntryType::XFILE_ENUMERATION_ENTRY_TYPE_FILE;
+                context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeFile;
             }
 
             rust_compat_makepath(context.name.as_mut_ptr(), drive.as_ptr(), dir.as_ptr(), entry_name, null());
@@ -730,54 +724,36 @@ pub unsafe extern "C" fn rust_xlist_free(xlist: *mut XList) {
     memset(xlist as *mut c_void, 0, mem::size_of::<XList>());
 }
 
-/*
-void xlistFree(XList* xlist)
-{
-
-}
- */
-
-#[no_mangle]
-pub unsafe extern "C" fn rust_enumerate_handler(context: *const XListEnumerationContext) -> bool {
-    /*
-    if (*context)._type == XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY {
+unsafe extern "C" fn enumerate_handler(context: *const XListEnumerationContext) -> bool {
+    if (*context)._type == XFileEnumerationEntryType::XfileEnumerationEntryTypeDirectory {
         return true;
     }
 
     let xlist = (*context).xlist;
 
-    let file_names = realloc((*xlist).file_names as *mut u8, mem::size_of_val(&*(*xlist).file_names) * ((*xlist).file_names_length + 1));
+    let file_names = realloc((*xlist).file_names as *mut c_void, mem::size_of_val(&*(*xlist).file_names) * ((*xlist).file_names_length + 1) as usize) as *mut *mut c_char;
     if file_names == null_mut() {
-        xlistFree(xlist);
+        rust_xlist_free(xlist);
         (*xlist).file_names_length = -1;
         return false;
     }
 
-    (*xlist).fileNames = fileNames;
+    (*xlist).file_names = file_names;
 
-    fileNames[(*xlist).fileNamesLength] = compat_strdup((*context).name);
-    if fileNames[(*xlist).fileNamesLength] == null() {
-        xlistFree(xlist);
-        (*xlist).fileNamesLength = -1;
+    *file_names.offset((*xlist).file_names_length as isize) = rust_compat_strdup((*context).name.as_ptr());
+    if *file_names.offset((*xlist).file_names_length as isize) == null_mut() {
+        rust_xlist_free(xlist);
+        (*xlist).file_names_length = -1;
         return false;
     }
 
-    (*xlist).file_names_length += 1;*/
+    (*xlist).file_names_length += 1;
 
     true
 }
 
-/*
-static bool xlistEnumerateHandler(XListEnumerationContext* context)
-{
-
-}
-
 #[no_mangle]
-pub unsafe extern "C" fn rust_xlist_init(
-    pattern: *const c_char,
-    xlist: *const XList) -> bool {
-    rust_xlist_enumerate(pattern, xlistEnumerateHandler, xlist)
+pub unsafe extern "C" fn rust_xlist_init(pattern: *const c_char, xlist: *mut XList) -> bool {
+    xlist_enumerate(pattern, enumerate_handler, xlist);
     (*xlist).file_names_length != -1
 }
- */

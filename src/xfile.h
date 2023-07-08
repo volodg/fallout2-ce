@@ -4,11 +4,6 @@
 #include <cstdio>
 #include <zlib.h>
 
-// TODO Migrate
-
-// Migrated
-#include "platform_compat.h"
-
 namespace fallout {
 
 struct XFile;

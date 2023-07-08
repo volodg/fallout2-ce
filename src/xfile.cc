@@ -1,19 +1,8 @@
 #include "xfile.h"
 
-#include <cassert>
-#include <cstdlib>
-#include <cstring>
-
 #ifdef _WIN32
 #include <direct.h>
 #endif
-
-// TODO Migrate
-
-namespace fallout {
-    struct XListEnumerationContext;
-    typedef bool(XListEnumerationHandler)(XListEnumerationContext* context);
-}
 
 extern "C" {
     int rust_xfile_close(fallout::XFile* stream);
@@ -32,28 +21,11 @@ extern "C" {
     long rust_xfile_get_size(fallout::XFile* stream);
     bool rust_xbase_open(const char* path);
     bool rust_xbase_reopen_all(char* paths);
-    bool rust_xlist_enumerate(const char* pattern, fallout::XListEnumerationHandler* handler, fallout::XList* xlist);
     void rust_xlist_free(fallout::XList* xlist);
-    // rust_xlist_enumerate()
-
+    bool rust_xlist_init(const char* pattern, fallout::XList* xlist);
 }
 
 namespace fallout {
-
-typedef enum XFileEnumerationEntryType {
-    XFILE_ENUMERATION_ENTRY_TYPE_FILE,
-    XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY,
-    XFILE_ENUMERATION_ENTRY_TYPE_DFILE,
-} XFileEnumerationEntryType;
-
-typedef struct XListEnumerationContext {
-    char name[COMPAT_MAX_PATH];
-    unsigned char type;
-    XList* xlist;
-} XListEnumerationContext;
-
-static bool xlistEnumerate(const char* pattern, XListEnumerationHandler* handler, XList* xlist);
-static bool xlistEnumerateHandler(XListEnumerationContext* context);
 
 // 0x4DED6C
 int xfileClose(XFile* stream)
@@ -158,54 +130,16 @@ bool xbaseOpen(const char* path)
     return rust_xbase_open(path);
 }
 
-// 0x4DFB3C
-static bool xlistEnumerate(const char* pattern, XListEnumerationHandler* handler, XList* xlist)
-{
-    return rust_xlist_enumerate(pattern, handler, xlist);
-}
-
 // 0x4DFF28
 bool xlistInit(const char* pattern, XList* xlist)
 {
-    xlistEnumerate(pattern, xlistEnumerateHandler, xlist);
-    return xlist->fileNamesLength != -1;
+    return rust_xlist_init(pattern, xlist);
 }
 
 // 0x4DFF48
 void xlistFree(XList* xlist)
 {
     rust_xlist_free(xlist);
-}
-
-// 0x4E0278
-// ???
-static bool xlistEnumerateHandler(XListEnumerationContext* context)
-{
-    if (context->type == XFILE_ENUMERATION_ENTRY_TYPE_DIRECTORY) {
-        return true;
-    }
-
-    XList* xlist = context->xlist;
-
-    char** fileNames = (char**)realloc(xlist->fileNames, sizeof(*fileNames) * (xlist->fileNamesLength + 1));
-    if (fileNames == nullptr) {
-        xlistFree(xlist);
-        xlist->fileNamesLength = -1;
-        return false;
-    }
-
-    xlist->fileNames = fileNames;
-
-    fileNames[xlist->fileNamesLength] = compat_strdup(context->name);
-    if (fileNames[xlist->fileNamesLength] == nullptr) {
-        xlistFree(xlist);
-        xlist->fileNamesLength = -1;
-        return false;
-    }
-
-    xlist->fileNamesLength++;
-
-    return true;
 }
 
 } // namespace fallout
