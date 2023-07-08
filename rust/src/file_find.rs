@@ -3,7 +3,7 @@
 use libc::DIR;
 #[cfg(not(target_family = "windows"))]
 use libc::{DIR, dirent};
-use libc::c_char;
+use libc::{c_char, DT_DIR};
 #[cfg(not(target_family = "windows"))]
 use libc::{closedir, opendir, readdir, strcpy};
 #[cfg(target_family = "windows")]
@@ -196,3 +196,26 @@ pub unsafe extern "C" fn rust_file_find_close(find_data: *mut DirectoryFileFindD
 
     true
 }
+
+#[no_mangle]
+#[cfg(target_family = "windows")]
+pub unsafe extern "C" fn rust_find_is_directory(find_data: *mut DirectoryFileFindData) -> bool {
+    return ((*find_data).ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+}
+
+#[no_mangle]
+#[cfg(not(target_family = "windows"))]
+pub unsafe extern "C" fn rust_find_is_directory(find_data: *mut DirectoryFileFindData) -> bool {
+    (*(*find_data).entry).d_type == DT_DIR
+}
+
+/*
+static inline bool fileFindIsDirectory(DirectoryFileFindData* findData)
+{
+#if defined(_WIN32)
+    return (findData->ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+#else
+    return findData->entry->d_type == DT_DIR;
+#endif
+}
+ */
