@@ -165,7 +165,7 @@ int characterSelectorOpen()
     int rc = 0;
     bool done = false;
     while (!done) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         if (_game_user_wants_to_quit != 0) {
             break;
@@ -243,7 +243,7 @@ int characterSelectorOpen()
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     paletteFadeTo(gPaletteBlack);

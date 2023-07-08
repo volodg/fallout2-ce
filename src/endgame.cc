@@ -363,7 +363,7 @@ static void endgameEndingRenderPanningScene(int direction, const char* narratorF
 
         unsigned int since = 0;
         while (start != end) {
-            fps_limiter_mark(sharedFpsLimiter);
+            rust_fps_limiter_mark(sharedFpsLimiter);
 
             int v12 = 640 - v32;
 
@@ -424,7 +424,7 @@ static void endgameEndingRenderPanningScene(int direction, const char* narratorF
             }
 
             renderPresent();
-            fps_limiter_throttle(sharedFpsLimiter);
+            rust_fps_limiter_throttle(sharedFpsLimiter);
         }
 
         tickersEnable();
@@ -436,12 +436,12 @@ static void endgameEndingRenderPanningScene(int direction, const char* narratorF
     }
 
     while (mouseGetEvent() != 0) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         inputGetInput();
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 }
 
@@ -485,7 +485,7 @@ static void endgameEndingRenderStaticScene(int fid, const char* narratorFileName
 
         int keyCode;
         while (true) {
-            fps_limiter_mark(sharedFpsLimiter);
+            rust_fps_limiter_mark(sharedFpsLimiter);
 
             keyCode = inputGetInput();
             if (keyCode != -1) {
@@ -510,7 +510,7 @@ static void endgameEndingRenderStaticScene(int fid, const char* narratorFileName
             soundContinueAll();
 
             renderPresent();
-            fps_limiter_throttle(sharedFpsLimiter);
+            rust_fps_limiter_throttle(sharedFpsLimiter);
         }
 
         tickersEnable();
@@ -527,12 +527,12 @@ static void endgameEndingRenderStaticScene(int fid, const char* narratorFileName
         paletteFadeTo(gPaletteBlack);
 
         while (mouseGetEvent() != 0) {
-            fps_limiter_mark(sharedFpsLimiter);
+            rust_fps_limiter_mark(sharedFpsLimiter);
 
             inputGetInput();
 
             renderPresent();
-            fps_limiter_throttle(sharedFpsLimiter);
+            rust_fps_limiter_throttle(sharedFpsLimiter);
         }
     }
 

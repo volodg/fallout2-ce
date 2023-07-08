@@ -400,7 +400,7 @@ void automapShow(bool isInGame, bool isUsingScanner)
 
     bool done = false;
     while (!done) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         bool needsRefresh = false;
 
@@ -484,7 +484,7 @@ void automapShow(bool isInGame, bool isUsingScanner)
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (isoWasEnabled) {

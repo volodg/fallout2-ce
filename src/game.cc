@@ -1225,18 +1225,18 @@ static void showHelp()
                 windowShow(win);
 
                 while (inputGetInput() == -1 && _game_user_wants_to_quit == 0) {
-                    fps_limiter_mark(sharedFpsLimiter);
+                    rust_fps_limiter_mark(sharedFpsLimiter);
                     renderPresent();
-                    fps_limiter_throttle(sharedFpsLimiter);
+                    rust_fps_limiter_throttle(sharedFpsLimiter);
                 }
 
                 while (mouseGetEvent() != 0) {
-                    fps_limiter_mark(sharedFpsLimiter);
+                    rust_fps_limiter_mark(sharedFpsLimiter);
 
                     inputGetInput();
 
                     renderPresent();
-                    fps_limiter_throttle(sharedFpsLimiter);
+                    rust_fps_limiter_throttle(sharedFpsLimiter);
                 }
 
                 paletteSetEntries(gPaletteBlack);

@@ -526,7 +526,7 @@ int showDialogBox(const char* title, const char** body, int bodyLength, int x, i
 
     int rc = -1;
     while (rc == -1) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -552,7 +552,7 @@ int showDialogBox(const char* title, const char** body, int bodyLength, int x, i
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     windowDestroy(win);
@@ -731,7 +731,7 @@ int showLoadFileDialog(char* title, char** fileList, char* dest, int fileListLen
 
     int rc = -1;
     while (rc == -1) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         unsigned int tick = getTicks();
         int keyCode = inputGetInput();
@@ -920,7 +920,7 @@ int showLoadFileDialog(char* title, char** fileList, char* dest, int fileListLen
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     windowDestroy(win);
@@ -1127,7 +1127,7 @@ int showSaveFileDialog(char* title, char** fileList, char* dest, int fileListLen
 
     int rc = -1;
     while (rc == -1) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         unsigned int tick = getTicks();
         int keyCode = inputGetInput();
@@ -1380,7 +1380,7 @@ int showSaveFileDialog(char* title, char** fileList, char* dest, int fileListLen
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     endTextInput();

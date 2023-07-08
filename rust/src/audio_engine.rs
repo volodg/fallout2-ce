@@ -24,7 +24,6 @@ const AUDIO_ENGINE_SOUND_BUFFER_STATUS_LOOPING: c_uint = 0x00000004;
 
 static AUDIO_ENGINE_DEVICE_ID: AtomicU32 = AtomicU32::new(u32::MAX);
 
-#[repr(C)]
 pub struct AudioEngineSoundBuffer {
     active: bool,
     size: c_uint,
@@ -60,6 +59,7 @@ impl Default for AudioEngineSoundBuffer {
 const AUDIO_ENGINE_SOUND_BUFFERS: usize = 8;
 
 unsafe impl Send for AudioEngineSoundBuffer {}
+
 unsafe impl Sync for AudioEngineSoundBuffer {}
 
 struct SdlAudioSpecHolder {
@@ -85,6 +85,7 @@ impl Default for SdlAudioSpecHolder {
 }
 
 unsafe impl Send for SdlAudioSpecHolder {}
+
 unsafe impl Sync for SdlAudioSpecHolder {}
 
 lazy_static! {
@@ -118,14 +119,12 @@ fn sound_buffer_is_valid(sound_buffer_index: c_int) -> bool {
     sound_buffer_index >= 0 && (sound_buffer_index as usize) < AUDIO_ENGINE_SOUND_BUFFERS
 }
 
-extern "C" fn c_audio_engine_mixin(_user_data: *mut c_void, stream: *mut Uint8, length: c_int) {
-    unsafe {
-        memset(
-            stream as *mut c_void,
-            AUDIO_ENGINE_SPEC.lock().expect("lock").obj.silence as c_int,
-            length as size_t,
-        );
-    }
+unsafe extern "C" fn c_audio_engine_mixin(_user_data: *mut c_void, stream: *mut Uint8, length: c_int) {
+    memset(
+        stream as *mut c_void,
+        AUDIO_ENGINE_SPEC.lock().expect("lock").obj.silence as c_int,
+        length as size_t,
+    );
 
     if !program_is_active() {
         return;
@@ -147,13 +146,11 @@ extern "C" fn c_audio_engine_mixin(_user_data: *mut c_void, stream: *mut Uint8, 
                 }
 
                 // TODO: Make something better than frame-by-frame conversion.
-                unsafe {
-                    SDL_AudioStreamPut(
-                        sound_buffer.stream,
-                        sound_buffer.data.add(sound_buffer.pos as usize),
-                        src_frame_size,
-                    );
-                }
+                SDL_AudioStreamPut(
+                    sound_buffer.stream,
+                    sound_buffer.data.add(sound_buffer.pos as usize),
+                    src_frame_size,
+                );
                 sound_buffer.pos += src_frame_size as u32;
 
                 let bytes_read = unsafe {
@@ -167,15 +164,13 @@ extern "C" fn c_audio_engine_mixin(_user_data: *mut c_void, stream: *mut Uint8, 
                     break;
                 }
 
-                unsafe {
-                    SDL_MixAudioFormat(
-                        stream.add(pos as usize),
-                        buffer.as_mut_ptr(),
-                        AUDIO_ENGINE_SPEC.lock().expect("lock").obj.format,
-                        bytes_read as u32,
-                        sound_buffer.volume,
-                    );
-                }
+                SDL_MixAudioFormat(
+                    stream.add(pos as usize),
+                    buffer.as_mut_ptr(),
+                    AUDIO_ENGINE_SPEC.lock().expect("lock").obj.format,
+                    bytes_read as u32,
+                    sound_buffer.volume,
+                );
 
                 if sound_buffer.pos >= sound_buffer.size {
                     if sound_buffer.looping {
@@ -315,8 +310,8 @@ pub extern "C" fn rust_audio_engine_create_sound_buffer(
 }
 
 fn visit_audio_engine_sound_buffer_mutex<F>(index: c_int, visitor: F) -> bool
-where
-    F: FnOnce(&ReentrantMutex<RefCell<AudioEngineSoundBuffer>>) -> bool,
+    where
+        F: FnOnce(&ReentrantMutex<RefCell<AudioEngineSoundBuffer>>) -> bool,
 {
     return audio_engine_is_initialized()
         && sound_buffer_is_valid(index)
@@ -324,8 +319,8 @@ where
 }
 
 fn visit_audio_engine_sound_buffer<F>(index: c_int, visitor: F) -> bool
-where
-    F: FnOnce(&AudioEngineSoundBuffer) -> bool,
+    where
+        F: FnOnce(&AudioEngineSoundBuffer) -> bool,
 {
     visit_audio_engine_sound_buffer_mutex(index, |sound_buffer_ref| {
         let sound_buffer_lock = sound_buffer_ref.lock();
@@ -340,8 +335,8 @@ where
 }
 
 fn visit_audio_engine_sound_buffer_mut<F>(index: c_int, visitor: F) -> bool
-where
-    F: FnOnce(&mut AudioEngineSoundBuffer) -> bool,
+    where
+        F: FnOnce(&mut AudioEngineSoundBuffer) -> bool,
 {
     visit_audio_engine_sound_buffer_mutex(index, |sound_buffer_ref| {
         let sound_buffer_lock = sound_buffer_ref.lock();
@@ -376,19 +371,6 @@ pub extern "C" fn rust_audio_engine_sound_buffer_set_volume(
 ) -> bool {
     visit_audio_engine_sound_buffer_mut(sound_buffer_index, |sound_buffer| {
         sound_buffer.volume = volume;
-        true
-    })
-}
-
-#[no_mangle]
-pub fn audio_engine_sound_buffer_get_volume(
-    sound_buffer_index: c_int,
-    volume_ptr: *mut c_int,
-) -> bool {
-    visit_audio_engine_sound_buffer(sound_buffer_index, |sound_buffer| {
-        unsafe {
-            *volume_ptr = sound_buffer.volume;
-        }
         true
     })
 }

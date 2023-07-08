@@ -8,8 +8,8 @@ struct FpsLimiter;
 extern "C"
 {
     fallout::FpsLimiter* rust_create_default_fps_limiter();
-    void fps_limiter_mark(fallout::FpsLimiter*);
-    void fps_limiter_throttle(fallout::FpsLimiter*);
+    void rust_fps_limiter_mark(fallout::FpsLimiter*);
+    void rust_fps_limiter_throttle(fallout::FpsLimiter*);
 }
 
 #endif /* FPS_LIMITER_H */

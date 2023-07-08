@@ -53,13 +53,13 @@ static FileList* gFileListHead;
 // 0x4C5D30
 int dbOpen(const char* filePath1, int a2, const char* filePath2, int a4)
 {
-    if (filePath1 != NULL) {
+    if (filePath1 != nullptr) {
         if (!xbaseOpen(filePath1)) {
             return -1;
         }
     }
 
-    if (filePath2 != NULL) {
+    if (filePath2 != nullptr) {
         xbaseOpen(filePath2);
     }
 
@@ -75,7 +75,7 @@ int _db_total()
 // 0x4C5D60
 void dbExit()
 {
-    xbaseReopenAll(NULL);
+    xbaseReopenAll(nullptr);
 }
 
 // TODO: sizePtr should be long*.
@@ -87,7 +87,7 @@ int dbGetFileSize(const char* filePath, int* sizePtr)
     assert(sizePtr); // "de", "db.c", 109
 
     File* stream = xfileOpen(filePath, "rb");
-    if (stream == NULL) {
+    if (stream == nullptr) {
         return -1;
     }
 
@@ -105,12 +105,12 @@ int dbGetFileContents(const char* filePath, void* ptr)
     assert(ptr); // "buf", "db.c", 142
 
     File* stream = xfileOpen(filePath, "rb");
-    if (stream == NULL) {
+    if (stream == nullptr) {
         return -1;
     }
 
     long size = xfileGetSize(stream);
-    if (gFileReadProgressHandler != NULL) {
+    if (gFileReadProgressHandler != nullptr) {
         unsigned char* byteBuffer = (unsigned char*)ptr;
 
         long remainingSize = size;
@@ -169,7 +169,7 @@ int filePrintFormatted(File* stream, const char* format, ...)
 // 0x4C5F24
 int fileReadChar(File* stream)
 {
-    if (gFileReadProgressHandler != NULL) {
+    if (gFileReadProgressHandler != nullptr) {
         int ch = xfileReadChar(stream);
 
         gFileReadProgressBytesRead++;
@@ -187,9 +187,9 @@ int fileReadChar(File* stream)
 // 0x4C5F70
 char* fileReadString(char* string, size_t size, File* stream)
 {
-    if (gFileReadProgressHandler != NULL) {
-        if (xfileReadString(string, size, stream) == NULL) {
-            return NULL;
+    if (gFileReadProgressHandler != nullptr) {
+        if (xfileReadString(string, size, stream) == nullptr) {
+            return nullptr;
         }
 
         gFileReadProgressBytesRead += strlen(string);
@@ -213,7 +213,7 @@ int fileWriteString(const char* string, File* stream)
 // 0x4C5FFC
 size_t fileRead(void* ptr, size_t size, size_t count, File* stream)
 {
-    if (gFileReadProgressHandler != NULL) {
+    if (gFileReadProgressHandler != nullptr) {
         unsigned char* byteBuffer = (unsigned char*)ptr;
 
         size_t totalBytesRead = 0;
@@ -566,7 +566,7 @@ int _db_fwriteLongCount(File* stream, int* arr, int count)
 int fileNameListInit(const char* pattern, char*** fileNameListPtr, int a3, int a4)
 {
     FileList* fileList = (FileList*)malloc(sizeof(*fileList));
-    if (fileList == NULL) {
+    if (fileList == nullptr) {
         return 0;
     }
 
@@ -604,7 +604,7 @@ int fileNameListInit(const char* pattern, char*** fileNameListPtr, int a3, int a
             compat_windows_path_to_native(name);
             compat_splitpath(name, nullptr, dir, fileName, extension);
 
-            if (!isWildcard || *dir == '\0' || (strchr(dir, '\\') == NULL && strchr(dir, '/') == NULL)) {
+            if (!isWildcard || *dir == '\0' || (strchr(dir, '\\') == nullptr && strchr(dir, '/') == nullptr)) {
                 // NOTE: Quick and dirty fix to buffer overflow. See RE to
                 // understand the problem.
                 char path[COMPAT_MAX_PATH];
@@ -627,7 +627,7 @@ int fileNameListInit(const char* pattern, char*** fileNameListPtr, int a3, int a
 // 0x4C6868
 void fileNameListFree(char*** fileNameListPtr, int a2)
 {
-    if (gFileListHead == NULL) {
+    if (gFileListHead == nullptr) {
         return;
     }
 
@@ -636,7 +636,7 @@ void fileNameListFree(char*** fileNameListPtr, int a2)
     while (*fileNameListPtr != currentFileList->xlist.fileNames) {
         previousFileList = currentFileList;
         currentFileList = currentFileList->next;
-        if (currentFileList == NULL) {
+        if (currentFileList == nullptr) {
             return;
         }
     }
@@ -663,11 +663,11 @@ int fileGetSize(File* stream)
 // 0x4C68C4
 void fileSetReadProgressHandler(FileReadProgressHandler* handler, int size)
 {
-    if (handler != NULL && size != 0) {
+    if (handler != nullptr && size != 0) {
         gFileReadProgressHandler = handler;
         gFileReadProgressChunkSize = size;
     } else {
-        gFileReadProgressHandler = NULL;
+        gFileReadProgressHandler = nullptr;
         gFileReadProgressChunkSize = 0;
     }
 }

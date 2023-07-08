@@ -83,7 +83,7 @@ impl Default for DirectoryFileFindData {
 }
 
 #[cfg(target_family = "windows")]
-pub unsafe extern "C" fn file_find_first(path: *const c_char, find_data: *mut DirectoryFileFindData) -> bool {
+pub unsafe fn file_find_first(path: *const c_char, find_data: *mut DirectoryFileFindData) -> bool {
     let path = PCSTR::from_raw(path as *const u8);
     match FindFirstFileA(path, &mut (*find_data).ffd) {
         Ok(FindFileHandle(handler)) => (*find_data).h_find = handler as HANDLE,
@@ -164,13 +164,11 @@ pub unsafe fn file_find_next(find_data: *mut DirectoryFileFindData) -> bool {
     true
 }
 
-#[no_mangle]
 #[cfg(target_family = "windows")]
 pub unsafe fn file_find_get_name(find_data: *const DirectoryFileFindData) -> *const c_char {
     (*find_data).ffd.cFileName.as_ptr() as *const c_char
 }
 
-#[no_mangle]
 #[cfg(not(target_family = "windows"))]
 pub unsafe fn file_find_get_name(find_data: *const DirectoryFileFindData) -> *const c_char {
     (*(*find_data).entry).d_name.as_ptr()

@@ -1462,7 +1462,7 @@ int gameDialogShowReview()
     gameDialogReviewWindowUpdate(win, v1);
 
     while (true) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
         if (keyCode == 17 || keyCode == 24 || keyCode == 324) {
@@ -1491,7 +1491,7 @@ int gameDialogShowReview()
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (gameDialogReviewWindowFree(&win) == -1) {
@@ -1870,7 +1870,7 @@ int _gdProcess()
     int pageOffsets[10];
     pageOffsets[0] = 0;
     for (;;) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -1999,7 +1999,7 @@ int _gdProcess()
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     _gdReenterLevel -= 1;
@@ -2558,7 +2558,7 @@ void gameDialogWaitForFidgetToComplete()
     debugPrint("Waiting for fidget to complete...\n");
 
     while (artGetFrameCount(gGameDialogFidgetFrm) > gGameDialogFidgetFrmCurrentFrame) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         if (getTicksSince(gGameDialogFidgetLastUpdateTimestamp) >= gGameDialogFidgetUpdateDelay) {
             gameDialogRenderTalkingHead(gGameDialogFidgetFrm, gGameDialogFidgetFrmCurrentFrame);
@@ -2567,7 +2567,7 @@ void gameDialogWaitForFidgetToComplete()
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     gGameDialogFidgetFrmCurrentFrame = 0;
@@ -2609,7 +2609,7 @@ void _gdPlayTransition(int anim)
     int frame = 0;
     unsigned int time = 0;
     while (frame < artGetFrameCount(headFrm)) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         if (getTicksSince(time) >= delay) {
             gameDialogRenderTalkingHead(headFrm, frame);
@@ -2618,7 +2618,7 @@ void _gdPlayTransition(int anim)
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (artUnlock(headFrmHandle) == -1) {
@@ -2954,7 +2954,7 @@ void _gdialog_scroll_subwin(int win, int a2, unsigned char* a3, unsigned char* a
         }
 
         for (; v18 >= 0; v18--) {
-            fps_limiter_mark(sharedFpsLimiter);
+            rust_fps_limiter_mark(sharedFpsLimiter);
 
             soundContinueAll();
             blitBufferToBuffer(a3,
@@ -2973,7 +2973,7 @@ void _gdialog_scroll_subwin(int win, int a2, unsigned char* a3, unsigned char* a
             }
 
             renderPresent();
-            fps_limiter_throttle(sharedFpsLimiter);
+            rust_fps_limiter_throttle(sharedFpsLimiter);
         }
     } else {
         rect.right = GAME_DIALOG_WINDOW_WIDTH - 1;
@@ -2982,7 +2982,7 @@ void _gdialog_scroll_subwin(int win, int a2, unsigned char* a3, unsigned char* a
         rect.top = 0;
 
         for (int index = a6 / 10; index > 0; index--) {
-            fps_limiter_mark(sharedFpsLimiter);
+            rust_fps_limiter_mark(sharedFpsLimiter);
 
             soundContinueAll();
 
@@ -3013,7 +3013,7 @@ void _gdialog_scroll_subwin(int win, int a2, unsigned char* a3, unsigned char* a
             }
 
             renderPresent();
-            fps_limiter_throttle(sharedFpsLimiter);
+            rust_fps_limiter_throttle(sharedFpsLimiter);
         }
     }
 }
@@ -3699,7 +3699,7 @@ void partyMemberControlWindowHandleEvents()
 
     bool done = false;
     while (!done) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
         if (keyCode != -1) {
@@ -3775,7 +3775,7 @@ void partyMemberControlWindowHandleEvents()
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 }
 
@@ -3949,7 +3949,7 @@ void partyMemberCustomizationWindowHandleEvents()
 {
     bool done = false;
     while (!done) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         unsigned int keyCode = inputGetInput();
         if (keyCode != -1) {
@@ -3972,7 +3972,7 @@ void partyMemberCustomizationWindowHandleEvents()
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 }
 
@@ -4156,7 +4156,7 @@ int _gdCustomSelect(int a1)
     bool done = false;
     unsigned int v53 = 0;
     while (!done) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
         if (keyCode != -1) {
@@ -4234,7 +4234,7 @@ int _gdCustomSelect(int a1)
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     windowDestroy(win);

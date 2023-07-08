@@ -13,7 +13,7 @@ static MOUSE_WHEEL_DELTA_X: AtomicI32 = AtomicI32::new(0);
 static MOUSE_WHEEL_DELTA_Y: AtomicI32 = AtomicI32::new(0);
 
 #[no_mangle]
-pub extern "C" fn c_direct_input_init() -> bool {
+pub extern "C" fn rust_c_direct_input_init() -> bool {
     unsafe {
         if SDL_InitSubSystem(SDL_INIT_EVENTS) != 0 {
             return false;
@@ -21,7 +21,7 @@ pub extern "C" fn c_direct_input_init() -> bool {
     }
 
     if !mouse_device_init() || !keyboard_device_init() {
-        c_direct_input_free();
+        rust_c_direct_input_free();
         return false;
     }
 
@@ -37,19 +37,19 @@ fn keyboard_device_init() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn c_direct_input_free() {
+pub extern "C" fn rust_c_direct_input_free() {
     unsafe {
         SDL_QuitSubSystem(SDL_INIT_EVENTS);
     }
 }
 
 #[no_mangle]
-pub extern "C" fn c_mouse_device_acquire() -> bool {
+pub extern "C" fn rust_c_mouse_device_acquire() -> bool {
     true
 }
 
 #[no_mangle]
-pub extern "C" fn c_mouse_device_unacquire() -> bool {
+pub extern "C" fn rust_c_mouse_device_unacquire() -> bool {
     true
 }
 
@@ -63,7 +63,7 @@ pub struct MouseData {
 }
 
 #[no_mangle]
-pub extern "C" fn c_mouse_device_get_data(mouse_state: *mut MouseData) -> bool {
+pub extern "C" fn rust_c_mouse_device_get_data(mouse_state: *mut MouseData) -> bool {
     if mouse_state == null_mut() {
         return false;
     }
@@ -99,7 +99,7 @@ pub extern "C" fn c_mouse_device_get_data(mouse_state: *mut MouseData) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn c_keyboard_device_reset() -> bool {
+pub extern "C" fn rust_c_keyboard_device_reset() -> bool {
     unsafe {
         SDL_FlushEvents(
             SDL_KEYDOWN as sdl2::sys::Uint32,
@@ -110,7 +110,7 @@ pub extern "C" fn c_keyboard_device_reset() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn c_handle_mouse_event(event: *mut SDL_Event) {
+pub extern "C" fn rust_c_handle_mouse_event(event: *mut SDL_Event) {
     // Mouse movement and buttons are accumulated in SDL itself and will be
     // processed later in `mouseDeviceGetData` via `SDL_GetRelativeMouseState`.
 

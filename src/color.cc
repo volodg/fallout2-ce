@@ -193,7 +193,7 @@ int Color2RGB(Color c)
 void colorPaletteFadeBetween(unsigned char* oldPalette, unsigned char* newPalette, int steps)
 {
     for (int step = 0; step < steps; step++) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         unsigned char palette[768];
 
@@ -209,13 +209,13 @@ void colorPaletteFadeBetween(unsigned char* oldPalette, unsigned char* newPalett
 
         _setSystemPalette(palette);
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
-    fps_limiter_mark(sharedFpsLimiter);
+    rust_fps_limiter_mark(sharedFpsLimiter);
     _setSystemPalette(newPalette);
     renderPresent();
-    fps_limiter_throttle(sharedFpsLimiter);
+    rust_fps_limiter_throttle(sharedFpsLimiter);
 }
 
 // 0x4C73D4

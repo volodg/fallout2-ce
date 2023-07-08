@@ -392,7 +392,7 @@ int elevatorSelectLevel(int elevator, int* mapPtr, int* elevationPtr, int* tileP
     bool done = false;
     int keyCode;
     while (!done) {
-        fps_limiter_mark(sharedFpsLimiter);
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         keyCode = inputGetInput();
         if (keyCode == KEY_ESCAPE) {
@@ -412,7 +412,7 @@ int elevatorSelectLevel(int elevator, int* mapPtr, int* elevationPtr, int* tileP
         }
 
         renderPresent();
-        fps_limiter_throttle(sharedFpsLimiter);
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (keyCode != KEY_ESCAPE) {
@@ -437,7 +437,7 @@ int elevatorSelectLevel(int elevator, int* mapPtr, int* elevationPtr, int* tileP
             float v41 = (float)keyCode * v42;
             float v44 = (float)(*elevationPtr) * v42;
             do {
-                fps_limiter_mark(sharedFpsLimiter);
+                rust_fps_limiter_mark(sharedFpsLimiter);
 
                 unsigned int tick = getTicks();
                 v44 += v43;
@@ -455,7 +455,7 @@ int elevatorSelectLevel(int elevator, int* mapPtr, int* elevationPtr, int* tileP
                 }
 
                 renderPresent();
-                fps_limiter_throttle(sharedFpsLimiter);
+                rust_fps_limiter_throttle(sharedFpsLimiter);
             } while ((v43 <= 0.0 || v44 < v41) && (v43 > 0.0 || v44 > v41));
 
             inputPauseForTocks(200);

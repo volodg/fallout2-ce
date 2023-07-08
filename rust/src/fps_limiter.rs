@@ -32,14 +32,14 @@ pub extern "C" fn rust_create_default_fps_limiter() -> *const FpsLimiter {
 }
 
 #[no_mangle]
-pub extern "C" fn fps_limiter_mark(fps_limiter: *mut FpsLimiter) {
+pub extern fn rust_fps_limiter_mark(fps_limiter: *mut FpsLimiter) {
     let mut fps_limiter = unsafe { Box::from_raw(fps_limiter) };
     fps_limiter.mark();
     forget(fps_limiter)
 }
 
 #[no_mangle]
-pub extern "C" fn fps_limiter_throttle(fps_limiter: *mut FpsLimiter) {
+pub extern "C" fn rust_fps_limiter_throttle(fps_limiter: *mut FpsLimiter) {
     let fps_limiter = unsafe { Box::from_raw(fps_limiter) };
     fps_limiter.throttle();
     forget(fps_limiter)
