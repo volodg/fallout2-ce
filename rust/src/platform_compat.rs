@@ -17,9 +17,9 @@ pub const COMPAT_MAX_DRIVE: u8 = 3;
 #[cfg(not(target_family = "windows"))]
 pub const COMPAT_MAX_DIR: u16 = 256;
 #[cfg(not(target_family = "windows"))]
-const COMPAT_MAX_FNAME: u16 = 256;
+pub const COMPAT_MAX_FNAME: u16 = 256;
 #[cfg(not(target_family = "windows"))]
-const COMPAT_MAX_EXT: u16 = 256;
+pub const COMPAT_MAX_EXT: u16 = 256;
 
 pub const COMPAT_MAX_PATH: usize = 260;
 
@@ -429,7 +429,7 @@ pub unsafe fn compat_gzgets(
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_compat_remove(path: *const c_char) -> c_int {
-    let mut native_path = [0 as c_char; COMPAT_MAX_PATH as usize];
+    let mut native_path = [0 as c_char; COMPAT_MAX_PATH];
     strcpy(native_path.as_mut_ptr(), path);
     rust_compat_windows_path_to_native(native_path.as_mut_ptr());
     compat_resolve_path(native_path.as_mut_ptr());
@@ -441,12 +441,12 @@ pub unsafe extern "C" fn rust_compat_rename(
     old_file_name: *const c_char,
     new_file_name: *const c_char,
 ) -> c_int {
-    let mut native_old_file_name = [0 as c_char; COMPAT_MAX_PATH as usize];
+    let mut native_old_file_name = [0 as c_char; COMPAT_MAX_PATH];
     strcpy(native_old_file_name.as_mut_ptr(), old_file_name);
     rust_compat_windows_path_to_native(native_old_file_name.as_mut_ptr());
     compat_resolve_path(native_old_file_name.as_mut_ptr());
 
-    let mut native_new_file_name = [0 as c_char; COMPAT_MAX_PATH as usize];
+    let mut native_new_file_name = [0 as c_char; COMPAT_MAX_PATH];
     strcpy(native_new_file_name.as_mut_ptr(), new_file_name);
     rust_compat_windows_path_to_native(native_new_file_name.as_mut_ptr());
     compat_resolve_path(native_new_file_name.as_mut_ptr());

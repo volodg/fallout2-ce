@@ -52,12 +52,33 @@ pub struct DirectoryFileFindData {
     ffd: WIN32_FIND_DATAA
 }
 
+#[cfg(target_family = "windows")]
+impl Default for DirectoryFileFindData {
+    fn default() -> Self {
+        DirectoryFileFindData {
+            h_find: null_mut(),
+            ffd: null(),
+        }
+    }
+}
+
 #[repr(C)]
 #[cfg(not(target_family = "windows"))]
 pub struct DirectoryFileFindData {
     dir: *mut DIR,
     entry: *const dirent,
     path: [c_char; COMPAT_MAX_PATH]
+}
+
+#[cfg(not(target_family = "windows"))]
+impl Default for DirectoryFileFindData {
+    fn default() -> Self {
+        DirectoryFileFindData {
+            dir: null_mut(),
+            entry: null(),
+            path: [0 as c_char; COMPAT_MAX_PATH]
+        }
+    }
 }
 
 #[no_mangle]

@@ -30,7 +30,6 @@ extern "C" {
     void rust_xfile_rewind(fallout::XFile* stream);
     int rust_xfile_eof(fallout::XFile* stream);
     long rust_xfile_get_size(fallout::XFile* stream);
-    void rust_xbase_close_all();
     bool rust_xbase_open(const char* path);
     bool rust_xbase_reopen_all(char* paths);
     // rust_xbase_reopen_all()
