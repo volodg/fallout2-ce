@@ -49,19 +49,25 @@ impl DBaseEntry {
 // A representation of .DAT file.
 pub struct DBase {
     // The path of .DAT file that this structure represents.
-    path: *mut c_char,
+    path: Option<CString>,
 
     // The offset to the beginning of data section of .DAT file.
-    data_offset: c_int,
+    data_offset: i32,
 
     // The number of entries.
-    entries_length: [c_int; 1],
+    entries_length: [i32; 1],
 
     // The array of entries.
     entries: *mut DBaseEntry,
 
     // The head of linked list of open file handles.
     dfile_head: *mut DFile,
+}
+
+impl DBase {
+    fn get_path_cstr(&self) -> *const c_char {
+        self.path.as_ref().map(|x| x.as_ptr()).unwrap_or(null())
+    }
 }
 
 // A handle to open entry in .DAT file.
@@ -286,7 +292,7 @@ pub unsafe fn dfile_open_internal(
 
     // Open stream to .DAT file.
     let rb = CString::new("rb").expect("valid string");
-    (*dfile).stream = rust_compat_fopen((*dbase).path, rb.as_ptr());
+    (*dfile).stream = rust_compat_fopen((*dbase).get_path_cstr(), rb.as_ptr());
     if (*dfile).stream == null_mut() {
         cleanup(dfile);
         return null_mut();
@@ -478,8 +484,8 @@ unsafe fn dfile_read_char_internal(stream: *mut DFile) -> c_int {
     ch
 }
 
-pub unsafe fn dbase_close(dbase: *const DBase) -> bool {
-    assert_ne!(dbase, null()); // "dbase", "dfile.c", 173
+pub unsafe fn dbase_close(dbase: *mut DBase) -> bool {
+    assert_ne!(dbase, null_mut()); // "dbase", "dfile.c", 173
 
     let mut curr = (*dbase).dfile_head;
     while curr != null_mut() {
@@ -498,8 +504,8 @@ pub unsafe fn dbase_close(dbase: *const DBase) -> bool {
         free((*dbase).entries as *mut c_void);
     }
 
-    if (*dbase).path != null_mut() {
-        free((*dbase).path as *mut c_void);
+    if (*dbase).path != None {
+        (*dbase).path = None;
     }
 
     memset(dbase as *mut c_void, 0, mem::size_of::<DBase>());
@@ -626,7 +632,7 @@ pub unsafe fn dbase_open(file_path: *const c_char) -> *mut DBase {
         return null_mut();
     }
 
-    (*dbase).path = rust_compat_strdup(file_path);
+    (*dbase).path = Some(CString::from_raw(rust_compat_strdup(file_path)));
     (*dbase).data_offset = file_size as c_int - dbase_data_size[0] as c_int;
 
     fclose(stream);
