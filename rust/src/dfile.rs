@@ -244,7 +244,12 @@ pub unsafe fn dfile_open_internal(
     assert_ne!(file_path, null()); // dfile.c, 296
     assert_ne!(mode, null()); // dfile.c, 297
 
-    let entry = bsearch(file_path as *const c_void, (*dbase).entries as *const c_void, (*dbase).entries_length[0] as size_t, mem::size_of::<DBaseEntry>(), Some(rust_dbase_find_entry_my_file_path)) as *mut DBaseEntry;
+    let entry = bsearch(
+        file_path as *const c_void,
+        (*dbase).entries as *const c_void,
+        (*dbase).entries_length[0] as size_t,
+        mem::size_of::<DBaseEntry>(),
+        Some(rust_dbase_find_entry_my_file_path)) as *mut DBaseEntry;
 
     unsafe fn cleanup(dfile: *mut DFile) {
         if dfile != null_mut() {
