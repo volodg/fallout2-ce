@@ -3,19 +3,22 @@
 use libc::DIR;
 #[cfg(not(target_family = "windows"))]
 use libc::{DIR, dirent};
-use libc::{c_char, DT_DIR};
+#[cfg(not(target_family = "windows"))]
+use libc::DT_DIR;
+use libc::c_char;
 #[cfg(not(target_family = "windows"))]
 use libc::{closedir, opendir, readdir, strcpy};
 #[cfg(target_family = "windows")]
 use std::os::windows::raw::HANDLE;
+use std::ptr::null_mut;
 #[cfg(not(target_family = "windows"))]
-use std::ptr::{null, null_mut};
+use std::ptr::null;
 #[cfg(target_family = "windows")]
 use windows::core::PCSTR;
 #[cfg(target_family = "windows")]
 use windows::Win32::Foundation::{INVALID_HANDLE_VALUE};
 #[cfg(target_family = "windows")]
-use windows::Win32::Storage::FileSystem::{FindClose, FindFileHandle, FindFirstFileA, FindNextFileA};
+use windows::Win32::Storage::FileSystem::{FILE_ATTRIBUTE_DIRECTORY, FindClose, FindFileHandle, FindFirstFileA, FindNextFileA};
 #[cfg(target_family = "windows")]
 use windows::Win32::Storage::FileSystem::WIN32_FIND_DATAA;
 #[cfg(not(target_family = "windows"))]
@@ -57,7 +60,7 @@ impl Default for DirectoryFileFindData {
     fn default() -> Self {
         DirectoryFileFindData {
             h_find: null_mut(),
-            ffd: null(),
+            ffd: WIN32_FIND_DATAA::default(),
         }
     }
 }
@@ -200,7 +203,7 @@ pub unsafe extern "C" fn rust_file_find_close(find_data: *mut DirectoryFileFindD
 #[no_mangle]
 #[cfg(target_family = "windows")]
 pub unsafe extern "C" fn rust_find_is_directory(find_data: *mut DirectoryFileFindData) -> bool {
-    return ((*find_data).ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+    ((*find_data).ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY.0) != 0
 }
 
 #[no_mangle]

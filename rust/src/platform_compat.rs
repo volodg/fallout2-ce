@@ -12,13 +12,9 @@ use std::ptr::null_mut;
 #[cfg(not(target_family = "windows"))]
 use std::time::Instant;
 
-#[cfg(not(target_family = "windows"))]
 pub const COMPAT_MAX_DRIVE: u8 = 3;
-#[cfg(not(target_family = "windows"))]
 pub const COMPAT_MAX_DIR: u16 = 256;
-#[cfg(not(target_family = "windows"))]
 pub const COMPAT_MAX_FNAME: u16 = 256;
-#[cfg(not(target_family = "windows"))]
 pub const COMPAT_MAX_EXT: u16 = 256;
 
 pub const COMPAT_MAX_PATH: usize = 260;
@@ -272,7 +268,7 @@ pub unsafe extern "C" fn rust_compat_windows_path_to_native(path: *mut c_char) {
 
 #[no_mangle]
 #[cfg(target_family = "windows")]
-fn rust_compat_resolve_path(_path: *mut c_char) {}
+fn compat_resolve_path(_path: *mut c_char) {}
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]

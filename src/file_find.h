@@ -11,6 +11,14 @@
 #include "platform_compat.h"
 
 namespace fallout {
+    struct DirectoryFileFindData;
+}
+
+extern "C" {
+    bool rust_find_is_directory(fallout::DirectoryFileFindData* findData);
+}
+
+namespace fallout {
 
 // NOTE: This structure is significantly different from what was in the
 // original code. Watcom provides opendir/readdir/closedir implementations,
@@ -48,13 +56,7 @@ bool findFindClose(DirectoryFileFindData* findData);
 
 static inline bool fileFindIsDirectory(DirectoryFileFindData* findData)
 {
-#if defined(_WIN32)
-    return (findData->ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
-#elif defined(__WATCOMC__)
-    return (findData->entry->d_attr & _A_SUBDIR) != 0;
-#else
-    return findData->entry->d_type == DT_DIR;
-#endif
+    return rust_find_is_directory(findData);
 }
 
 // TODO Migrated

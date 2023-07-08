@@ -2,12 +2,14 @@ use std::ffi::{c_int, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
-use libc::{atexit, c_char, c_long, c_uchar, c_uint, chdir, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, getcwd, malloc, memset, rewind, size_t, snprintf, strcmp, strcpy, strtok};
+#[cfg(not(target_family = "windows"))]
+use libc::snprintf;
+use libc::{atexit, c_char, c_long, c_uint, chdir, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, getcwd, malloc, memset, rewind, size_t, strcpy, strtok};
 use libz_sys::{gzclose, gzeof, gzFile, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
 use vsprintf::vsprintf;
 use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof, dfile_get_size, dbase_close, rust_dbase_open};
-use crate::file_find::{DirectoryFileFindData, rust_file_find_close, rust_file_find_first, rust_file_find_next};
-use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, compat_gzgets, rust_compat_fgets, rust_get_file_size, rust_compat_mkdir, rust_compat_stricmp, rust_compat_strdup, rust_compat_windows_path_to_native, COMPAT_MAX_FNAME, COMPAT_MAX_EXT, rust_compat_makepath};
+use crate::file_find::DirectoryFileFindData;
+use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, compat_gzgets, rust_compat_fgets, rust_get_file_size, rust_compat_mkdir, rust_compat_stricmp, rust_compat_strdup, rust_compat_windows_path_to_native};
 
 #[repr(C)]
 #[derive(PartialEq)]
@@ -85,6 +87,11 @@ impl Default for XListEnumerationContext {
 // 0x6B24D0
 static G_X_BASE_HEAD: AtomicPtr<XBase> = AtomicPtr::new(null_mut());
 static G_X_BASE_EXIT_HANDLER_REGISTERED: AtomicBool = AtomicBool::new(false);
+
+#[cfg(target_family = "windows")]
+extern "C" {
+    fn snprintf(s: *mut c_char, n: size_t, format: *const c_char, ...) -> c_int;
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_get_g_xbase_head() -> *mut XBase {
@@ -381,10 +388,16 @@ extern "C" fn xbase_close_all() {
     }
 }
 
+#[cfg(target_family = "windows")]
+type GETCWD_SIZE = c_int;
+
+#[cfg(not(target_family = "windows"))]
+type GETCWD_SIZE = size_t;
+
 // Recursively creates specified file path.
 pub unsafe fn xbase_make_directory(file_path: *mut c_char) -> c_int {
     let mut working_directory = [0 as c_char; COMPAT_MAX_PATH];
-    if getcwd(working_directory.as_mut_ptr(), COMPAT_MAX_PATH) == null_mut() {
+    if getcwd(working_directory.as_mut_ptr(), COMPAT_MAX_PATH as GETCWD_SIZE) == null_mut() {
         return -1;
     }
 
@@ -504,7 +517,7 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
     }
 
     let mut working_directory = [0 as c_char; COMPAT_MAX_PATH];
-    if getcwd(working_directory.as_mut_ptr(), COMPAT_MAX_PATH) == null_mut() {
+    if getcwd(working_directory.as_mut_ptr(), COMPAT_MAX_PATH as GETCWD_SIZE) == null_mut() {
         // FIXME: Leaking xbase and path.
         return false;
     }
