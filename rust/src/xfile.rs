@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicPtr, Ordering};
 use libc::{c_char, c_long, c_uint, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, malloc, memset, rewind, size_t, snprintf};
 use libz_sys::{gzclose, gzeof, gzFile, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
 use vsprintf::vsprintf;
-use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof, dfile_get_size};
+use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof, dfile_get_size, rust_dbase_close};
 use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, compat_gzgets, rust_compat_fgets, rust_get_file_size};
 
 #[repr(C)]
@@ -36,7 +36,7 @@ pub struct XFile {
 #[repr(C)]
 pub struct XBase {
     // The path to directory or .DAT file that this xbase represents.
-    path: *const c_char,
+    path: *mut c_char,
 
     // The [DBase] instance that this xbase represents.
     dbase: *mut DBase,
@@ -318,3 +318,35 @@ pub unsafe extern "C" fn rust_xfile_get_size(stream: *const XFile) -> c_long {
         XFileType::XfileTypeFile => rust_get_file_size((*stream).file.file)
     }
 }
+
+// Closes all xbases.
+#[no_mangle]
+pub unsafe extern "C" fn rust_xbase_close_all() {
+    let mut curr = rust_get_g_xbase_head();
+    rust_set_g_xbase_head(null_mut());
+
+    while curr != null() {
+        let next = (*curr).next;
+
+        if (*curr).is_dbase {
+            rust_dbase_close((*curr).dbase);
+        }
+
+        free((*curr).path as *mut c_void);
+        free(curr as *mut c_void);
+
+        curr = next;
+    }
+}
+
+/*
+// Closes all xbases.
+//
+// NOTE: Inlined.
+//
+// 0x4E01F8
+static void xbaseCloseAll()
+{
+
+}
+ */

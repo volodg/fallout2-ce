@@ -33,7 +33,8 @@ extern "C" {
     void rust_xfile_rewind(fallout::XFile* stream);
     int rust_xfile_eof(fallout::XFile* stream);
     long rust_xfile_get_size(fallout::XFile* stream);
-    // rust_xfile_get_size
+    void rust_xbase_close_all();
+    // rust_xfile_close_all()
 }
 
 namespace fallout {
@@ -54,7 +55,6 @@ typedef bool(XListEnumerationHandler)(XListEnumerationContext* context);
 
 static bool xlistEnumerate(const char* pattern, XListEnumerationHandler* handler, XList* xlist);
 static int xbaseMakeDirectory(const char* path);
-static void xbaseCloseAll();
 static void xbaseExitHandler(void);
 static bool xlistEnumerateHandler(XListEnumerationContext* context);
 
@@ -156,7 +156,7 @@ long xfileGetSize(XFile* stream)
 bool xbaseReopenAll(char* paths)
 {
     // NOTE: Uninline.
-    xbaseCloseAll();
+    rust_xbase_close_all();
 
     if (paths != nullptr) {
         char* tok = strtok(paths, ";");
@@ -464,35 +464,11 @@ static int xbaseMakeDirectory(const char* filePath)
     return 0;
 }
 
-// Closes all xbases.
-//
-// NOTE: Inlined.
-//
-// 0x4E01F8
-static void xbaseCloseAll()
-{
-    XBase* curr = rust_get_g_xbase_head();
-    rust_set_g_xbase_head(nullptr);
-
-    while (curr != nullptr) {
-        XBase* next = curr->next;
-
-        if (curr->isDbase) {
-            dbaseClose(curr->dbase);
-        }
-
-        free(curr->path);
-        free(curr);
-
-        curr = next;
-    }
-}
-
 // xbase atexit
-static void xbaseExitHandler(void)
+static void xbaseExitHandler()
 {
     // NOTE: Uninline.
-    xbaseCloseAll();
+    rust_xbase_close_all();
 }
 
 // 0x4E0278
