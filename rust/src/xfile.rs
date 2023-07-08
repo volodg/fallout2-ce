@@ -2,7 +2,7 @@ use std::ffi::{c_int, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
-use libc::{atexit, c_char, c_long, c_uint, chdir, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, getcwd, malloc, memset, rewind, size_t, snprintf, strcpy};
+use libc::{atexit, c_char, c_long, c_uint, chdir, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, getcwd, malloc, memset, rewind, size_t, snprintf, strcpy, strtok};
 use libz_sys::{gzclose, gzeof, gzFile, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
 use vsprintf::vsprintf;
 use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof, dfile_get_size, dbase_close, rust_dbase_open};
@@ -330,8 +330,7 @@ pub unsafe extern "C" fn rust_xfile_get_size(stream: *const XFile) -> c_long {
 }
 
 // Closes all xbases.
-#[no_mangle]
-pub extern "C" fn rust_xbase_close_all() {
+extern "C" fn xbase_close_all() {
     unsafe {
         let mut curr = rust_get_g_xbase_head();
         set_g_xbase_head(null_mut());
@@ -426,7 +425,7 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
     // Register atexit handler so that underlying dbase (if any) can be
     // gracefully closed.
     if !get_g_xbase_exit_handler_registered() {
-        atexit(rust_xbase_close_all);
+        atexit(xbase_close_all);
         set_g_xbase_exit_handler_registered(true);
     }
 
@@ -498,8 +497,35 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
 
     true
 }
+
+// Closes all open xbases and opens a set of xbases specified by [paths].
+//
+// [paths] is a set of paths separated by semicolon. Can be NULL, in this case
+// all open xbases are simply closed.
+//
+// 0x4DF878
+#[no_mangle]
+pub unsafe extern "C" fn rust_xbase_reopen_all(paths: *mut c_char) -> bool {
+    // NOTE: Uninline.
+    xbase_close_all();
+
+    let delimiter = CString::new(";").expect("valid string");
+    if paths != null_mut() {
+        let mut tok = strtok(paths, delimiter.as_ptr());
+        while tok != null_mut() {
+            if !rust_xbase_open(tok) {
+                return false;
+            }
+            tok = strtok(null_mut(), delimiter.as_ptr());
+        }
+    }
+
+    true
+}
+
 /*
-bool xbaseOpen(const char* path)
+bool xbaseReopenAll(char* paths)
 {
+
 }
  */

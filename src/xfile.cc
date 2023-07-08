@@ -7,8 +7,6 @@
 
 #ifdef _WIN32
 #include <direct.h>
-#else
-#include <unistd.h>
 #endif
 
 // TODO Migrate
@@ -34,7 +32,8 @@ extern "C" {
     long rust_xfile_get_size(fallout::XFile* stream);
     void rust_xbase_close_all();
     bool rust_xbase_open(const char* path);
-    // rust_xbase_open()
+    bool rust_xbase_reopen_all(char* paths);
+    // rust_xbase_reopen_all()
 }
 
 namespace fallout {
@@ -54,7 +53,6 @@ typedef struct XListEnumerationContext {
 typedef bool(XListEnumerationHandler)(XListEnumerationContext* context);
 
 static bool xlistEnumerate(const char* pattern, XListEnumerationHandler* handler, XList* xlist);
-static void xbaseExitHandler(void);
 static bool xlistEnumerateHandler(XListEnumerationContext* context);
 
 // 0x4DED6C
@@ -151,20 +149,7 @@ long xfileGetSize(XFile* stream)
 // 0x4DF878
 bool xbaseReopenAll(char* paths)
 {
-    // NOTE: Uninline.
-    rust_xbase_close_all();
-
-    if (paths != nullptr) {
-        char* tok = strtok(paths, ";");
-        while (tok != nullptr) {
-            if (!rust_xbase_open(tok)) {
-                return false;
-            }
-            tok = strtok(nullptr, ";");
-        }
-    }
-
-    return true;
+    return rust_xbase_reopen_all(paths);
 }
 
 // 0x4DF938
@@ -314,13 +299,6 @@ void xlistFree(XList* xlist)
     free(xlist->fileNames);
 
     memset(xlist, 0, sizeof(*xlist));
-}
-
-// xbase atexit
-static void xbaseExitHandler()
-{
-    // NOTE: Uninline.
-    rust_xbase_close_all();
 }
 
 // 0x4E0278
