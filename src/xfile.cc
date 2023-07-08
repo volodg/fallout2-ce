@@ -19,7 +19,6 @@
 extern "C" {
     int rust_xfile_close(fallout::XFile* stream);
     fallout::XBase* rust_get_g_xbase_head();
-    void rust_set_g_xbase_head(fallout::XBase* base);
     fallout::XFile* rust_xfile_open(const char* filePath, const char* mode);
     int rust_xfile_print_formatted_args(fallout::XFile* stream, const char* format, va_list args);
     int rust_xfile_read_char(fallout::XFile* stream);
@@ -34,11 +33,8 @@ extern "C" {
     int rust_xfile_eof(fallout::XFile* stream);
     long rust_xfile_get_size(fallout::XFile* stream);
     void rust_xbase_close_all();
-    int rust_xbase_make_directory(const char* filePath);
-    bool rust_get_g_xbase_exit_handler_registered();
-    void rust_set_g_xbase_exit_handler_registered(bool);
-    // rust_get_g_xbase_exit_handler_registered()
-    // rust_set_g_xbase_exit_handler_registered()
+    bool rust_xbase_open(const char* path);
+    // rust_xbase_open()
 }
 
 namespace fallout {
@@ -161,7 +157,7 @@ bool xbaseReopenAll(char* paths)
     if (paths != nullptr) {
         char* tok = strtok(paths, ";");
         while (tok != nullptr) {
-            if (!xbaseOpen(tok)) {
+            if (!rust_xbase_open(tok)) {
                 return false;
             }
             tok = strtok(nullptr, ";");
@@ -172,85 +168,9 @@ bool xbaseReopenAll(char* paths)
 }
 
 // 0x4DF938
-// ???
 bool xbaseOpen(const char* path)
 {
-    assert(path); // "path", "xfile.c", 747
-
-    // Register atexit handler so that underlying dbase (if any) can be
-    // gracefully closed.
-    if (!rust_get_g_xbase_exit_handler_registered()) {
-        atexit(xbaseExitHandler);
-        rust_set_g_xbase_exit_handler_registered(true);
-    }
-
-    XBase* curr = rust_get_g_xbase_head();
-    XBase* prev = nullptr;
-    while (curr != nullptr) {
-        if (compat_stricmp(path, curr->path) == 0) {
-            break;
-        }
-
-        prev = curr;
-        curr = curr->next;
-    }
-
-    if (curr != nullptr) {
-        if (prev != nullptr) {
-            // Move found xbase to the top.
-            prev->next = curr->next;
-            curr->next = rust_get_g_xbase_head();
-            rust_set_g_xbase_head(curr);
-        }
-        return true;
-    }
-
-    XBase* xbase = (XBase*)malloc(sizeof(*xbase));
-    if (xbase == nullptr) {
-        return false;
-    }
-
-    memset(xbase, 0, sizeof(*xbase));
-
-    xbase->path = compat_strdup(path);
-    if (xbase->path == nullptr) {
-        free(xbase);
-        return false;
-    }
-
-    DBase* dbase = dbaseOpen(path);
-    if (dbase != nullptr) {
-        xbase->isDbase = true;
-        xbase->dbase = dbase;
-        xbase->next = rust_get_g_xbase_head();
-        rust_set_g_xbase_head(xbase);
-        return true;
-    }
-
-    char workingDirectory[COMPAT_MAX_PATH];
-    if (getcwd(workingDirectory, COMPAT_MAX_PATH) == nullptr) {
-        // FIXME: Leaking xbase and path.
-        return false;
-    }
-
-    if (chdir(path) == 0) {
-        chdir(workingDirectory);
-        xbase->next = rust_get_g_xbase_head();
-        rust_set_g_xbase_head(xbase);
-        return true;
-    }
-
-    if (rust_xbase_make_directory(path) != 0) {
-        // FIXME: Leaking xbase and path.
-        return false;
-    }
-
-    chdir(workingDirectory);
-
-    xbase->next = rust_get_g_xbase_head();
-    rust_set_g_xbase_head(xbase);
-
-    return true;
+    return rust_xbase_open(path);
 }
 
 // 0x4DFB3C

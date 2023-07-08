@@ -112,7 +112,6 @@ typedef struct DFileFindData {
 } DFileFindData;
 
 DBase* dbaseOpen(const char* filename);
-bool dbaseClose(DBase* dbase);
 bool dbaseFindFirstEntry(DBase* dbase, DFileFindData* findFileData, const char* pattern);
 bool dbaseFindNextEntry(DBase* dbase, DFileFindData* findFileData);
 bool dbaseFindClose(DBase* dbase, DFileFindData* findFileData);

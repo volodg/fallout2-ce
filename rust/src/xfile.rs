@@ -2,11 +2,11 @@ use std::ffi::{c_int, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
-use libc::{c_char, c_long, c_uint, chdir, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, getcwd, malloc, memset, rewind, size_t, snprintf, strcpy};
+use libc::{atexit, c_char, c_long, c_uint, chdir, fclose, feof, fgetc, FILE, fputc, fputs, fread, free, fseek, ftell, fwrite, getcwd, malloc, memset, rewind, size_t, snprintf, strcpy};
 use libz_sys::{gzclose, gzeof, gzFile, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite, voidp, voidpc, z_off_t};
 use vsprintf::vsprintf;
-use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof, dfile_get_size, rust_dbase_close};
-use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, compat_gzgets, rust_compat_fgets, rust_get_file_size, rust_compat_mkdir};
+use crate::dfile::{DBase, DFile, dfile_close, rust_dfile_open, dfile_print_formatted_args, dfile_read_char, dfile_read_string, dfile_write_char, dfile_write_string, dfile_read, dfile_write, dfile_seek, dfile_tell, dfile_rewind, dfile_eof, dfile_get_size, dbase_close, rust_dbase_open};
+use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_DRIVE, COMPAT_MAX_PATH, rust_compat_fopen, compat_gzopen, rust_compat_splitpath, compat_gzgets, rust_compat_fgets, rust_get_file_size, rust_compat_mkdir, rust_compat_stricmp, rust_compat_strdup};
 
 #[repr(C)]
 #[derive(PartialEq)]
@@ -56,22 +56,21 @@ static G_X_BASE_HEAD: AtomicPtr<XBase> = AtomicPtr::new(null_mut());
 static G_X_BASE_EXIT_HANDLER_REGISTERED: AtomicBool = AtomicBool::new(false);
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_get_g_xbase_head() -> *const XBase {
+pub unsafe extern "C" fn rust_get_g_xbase_head() -> *mut XBase {
     G_X_BASE_HEAD.load(Ordering::Relaxed)
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_set_g_xbase_head(value: *mut XBase) {
+pub unsafe fn set_g_xbase_head(value: *mut XBase) {
     G_X_BASE_HEAD.store(value, Ordering::Relaxed)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_get_g_xbase_exit_handler_registered() -> bool {
+pub unsafe extern "C" fn get_g_xbase_exit_handler_registered() -> bool {
     G_X_BASE_EXIT_HANDLER_REGISTERED.load(Ordering::Relaxed)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_set_g_xbase_exit_handler_registered(value: bool) {
+pub unsafe extern "C" fn set_g_xbase_exit_handler_registered(value: bool) {
     G_X_BASE_EXIT_HANDLER_REGISTERED.store(value, Ordering::Relaxed)
 }
 
@@ -332,27 +331,28 @@ pub unsafe extern "C" fn rust_xfile_get_size(stream: *const XFile) -> c_long {
 
 // Closes all xbases.
 #[no_mangle]
-pub unsafe extern "C" fn rust_xbase_close_all() {
-    let mut curr = rust_get_g_xbase_head();
-    rust_set_g_xbase_head(null_mut());
+pub extern "C" fn rust_xbase_close_all() {
+    unsafe {
+        let mut curr = rust_get_g_xbase_head();
+        set_g_xbase_head(null_mut());
 
-    while curr != null() {
-        let next = (*curr).next;
+        while curr != null_mut() {
+            let next = (*curr).next;
 
-        if (*curr).is_dbase {
-            rust_dbase_close((*curr).dbase);
+            if (*curr).is_dbase {
+                dbase_close((*curr).dbase);
+            }
+
+            free((*curr).path as *mut c_void);
+            free(curr as *mut c_void);
+
+            curr = next;
         }
-
-        free((*curr).path as *mut c_void);
-        free(curr as *mut c_void);
-
-        curr = next;
     }
 }
 
 // Recursively creates specified file path.
-#[no_mangle]
-pub unsafe extern "C" fn rust_xbase_make_directory(file_path: *mut c_char) -> c_int {
+pub unsafe fn xbase_make_directory(file_path: *mut c_char) -> c_int {
     let mut working_directory = [0 as c_char; COMPAT_MAX_PATH];
     if getcwd(working_directory.as_mut_ptr(), COMPAT_MAX_PATH) == null_mut() {
         return -1;
@@ -371,7 +371,7 @@ pub unsafe extern "C" fn rust_xbase_make_directory(file_path: *mut c_char) -> c_
     } else {
         // Find first directory-based xbase.
         let mut curr = rust_get_g_xbase_head();
-        while curr != null() {
+        while curr != null_mut() {
             if !(*curr).is_dbase {
                 snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat_sformat.as_ptr(), (*curr).path, file_path);
                 break;
@@ -379,7 +379,7 @@ pub unsafe extern "C" fn rust_xbase_make_directory(file_path: *mut c_char) -> c_
             curr = (*curr).next;
         }
 
-        if curr == null() {
+        if curr == null_mut() {
             // Either there are no directory-based xbase, or there are no open
             // xbases at all - resolve path against current working directory.
             snprintf(path.as_mut_ptr(), mem::size_of_val(&path), sformat_sformat.as_ptr(), working_directory, file_path);
@@ -419,13 +419,87 @@ pub unsafe extern "C" fn rust_xbase_make_directory(file_path: *mut c_char) -> c_
     0
 }
 
-/*
-// Recursively creates specified file path.
-//
-// 0x4DFFAC
-// ????
-static int xbaseMakeDirectory(const char* filePath)
-{
+#[no_mangle]
+pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
+    assert_ne!(path, null_mut()); // "path", "xfile.c", 747
 
+    // Register atexit handler so that underlying dbase (if any) can be
+    // gracefully closed.
+    if !get_g_xbase_exit_handler_registered() {
+        atexit(rust_xbase_close_all);
+        set_g_xbase_exit_handler_registered(true);
+    }
+
+    let mut curr = rust_get_g_xbase_head();
+    let mut prev = null_mut();
+    while curr != null_mut() {
+        if rust_compat_stricmp(path, (*curr).path) == 0 {
+            break;
+        }
+
+        prev = curr;
+        curr = (*curr).next;
+    }
+
+    if curr != null_mut() {
+        if prev != null_mut() {
+            // Move found xbase to the top.
+            (*prev).next = (*curr).next;
+            (*curr).next = rust_get_g_xbase_head();
+            set_g_xbase_head(curr);
+        }
+        return true;
+    }
+
+    let xbase = malloc(mem::size_of::<XBase>()) as *mut XBase;
+    if xbase == null_mut() {
+        return false;
+    }
+
+    memset(xbase as *mut c_void, 0, mem::size_of::<XBase>());
+
+    (*xbase).path = rust_compat_strdup(path);
+    if (*xbase).path == null_mut() {
+        free(xbase as *mut c_void);
+        return false;
+    }
+
+    let dbase = rust_dbase_open(path);
+    if dbase != null_mut() {
+        (*xbase).is_dbase = true;
+        (*xbase).dbase = dbase;
+        (*xbase).next = rust_get_g_xbase_head();
+        set_g_xbase_head(xbase);
+        return true;
+    }
+
+    let mut working_directory = [0 as c_char; COMPAT_MAX_PATH];
+    if getcwd(working_directory.as_mut_ptr(), COMPAT_MAX_PATH) == null_mut() {
+        // FIXME: Leaking xbase and path.
+        return false;
+    }
+
+    if chdir(path) == 0 {
+        chdir(working_directory.as_ptr());
+        (*xbase).next = rust_get_g_xbase_head();
+        set_g_xbase_head(xbase);
+        return true;
+    }
+
+    if xbase_make_directory(path) != 0 {
+        // FIXME: Leaking xbase and path.
+        return false;
+    }
+
+    chdir(working_directory.as_ptr());
+
+    (*xbase).next = rust_get_g_xbase_head();
+    set_g_xbase_head(xbase);
+
+    true
+}
+/*
+bool xbaseOpen(const char* path)
+{
 }
  */
