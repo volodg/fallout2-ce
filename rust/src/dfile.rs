@@ -144,32 +144,37 @@ pub struct DFile {
 
 impl Drop for DFile {
     fn drop(&mut self) {
-    }
-}
+        unsafe {
+            if (*self.entry).compressed[0] == 1 {
+                if inflateEnd(self.decompression_stream) != Z_OK {
+                    // rc = -1;
+                }
+            }
 
-impl Default for DFile {
-    fn default() -> Self {
-        Self {
-            dbase: null_mut(),
-            entry: null_mut(),
-            flags: 0,
-            stream: null_mut(),
-            decompression_stream: z_streamp::from(null_mut()),
-            decompression_buffer: null_mut(),
-            ungotten: 0,
-            compressed_ungotten: 0,
-            compressed_bytes_read: 0,
-            position: 0,
-            next: None,
+            if self.decompression_stream != null_mut() {
+                free(self.decompression_stream as *mut c_void);
+            }
+
+            if self.decompression_buffer != null_mut() {
+                free(self.decompression_buffer as *mut c_void);
+            }
+
+            if self.stream != null_mut() {
+                fclose(self.stream);
+            }
+
+            if (*self.dbase).dfile_head.is_none() {
+                return;
+            }
         }
     }
 }
 
 impl DFile {
-    fn new(stream: *mut FILE) -> Self {
+    fn new(entry: *mut DBaseEntry, stream: *mut FILE) -> Self {
         Self {
             dbase: null_mut(),
-            entry: null_mut(),
+            entry,
             flags: 0,
             stream,
             decompression_stream: z_streamp::from(null_mut()),
@@ -211,27 +216,7 @@ impl Default for DFileFindData {
     }
 }
 
-pub unsafe fn dfile_close(stream: &DFile) -> c_int {
-    let mut rc: c_int = 0;
-
-    if (*stream.entry).compressed[0] == 1 {
-        if inflateEnd(stream.decompression_stream) != Z_OK {
-            rc = -1;
-        }
-    }
-
-    if stream.decompression_stream != null_mut() {
-        free(stream.decompression_stream as *mut c_void);
-    }
-
-    if stream.decompression_buffer != null_mut() {
-        free(stream.decompression_buffer as *mut c_void);
-    }
-
-    if stream.stream != null_mut() {
-        fclose(stream.stream);
-    }
-
+pub unsafe fn dfile_remove_node(stream: &DFile) -> c_int {
     // Loop thru open file handles and find previous to remove current handle
     // from linked list.
     //
@@ -255,7 +240,7 @@ pub unsafe fn dfile_close(stream: &DFile) -> c_int {
         }
     }
 
-    rc
+    0
 }
 
 pub unsafe fn rust_dfile_open(
@@ -287,10 +272,9 @@ pub unsafe fn rust_dfile_open(
         return None;
     }
 
-    let mut dfile = DFile::new(stream);
-
     let entry = optional_entry.expect("valid entry") as *mut DBaseEntry;
-    dfile.entry = entry;
+
+    let mut dfile = DFile::new(entry, stream);
 
     // Relocate stream to the beginning of data for specified entry.
     if fseek(
@@ -299,7 +283,6 @@ pub unsafe fn rust_dfile_open(
         SEEK_SET,
     ) != 0
     {
-        dfile_close(&dfile);
         return None;
     }
 
@@ -311,14 +294,12 @@ pub unsafe fn rust_dfile_open(
         if dfile.decompression_stream == null_mut() {
             dfile.decompression_stream = malloc(mem::size_of::<z_stream>()) as z_streamp;
             if dfile.decompression_stream == null_mut() {
-                dfile_close(&dfile);
                 return None;
             }
 
             dfile.decompression_buffer =
                 malloc(DFILE_DECOMPRESSION_BUFFER_SIZE as size_t) as *mut c_uchar;
             if dfile.decompression_buffer == null_mut() {
-                dfile_close(&dfile);
                 return None;
             }
         }
@@ -338,7 +319,6 @@ pub unsafe fn rust_dfile_open(
             mem::size_of::<z_stream>() as c_int,
         ) != Z_OK
         {
-            dfile_close(&dfile);
             return None;
         }
     } else {
@@ -514,13 +494,10 @@ unsafe fn dfile_read_char_internal(stream: &mut DFile) -> c_int {
 pub unsafe fn dbase_close(dbase: *mut DBase) -> bool {
     assert_ne!(dbase, null_mut()); // "dbase", "dfile.c", 173
 
-    let mut curr = (*dbase).dfile_head.clone();
-    while curr.is_some() {
-        let next = curr.as_ref().expect("").borrow().next.clone();
-        dfile_close(&curr.as_ref().expect("").as_ref().borrow());
-        curr = next;
+    {
+        let _head = (*dbase).dfile_head.clone();
+        (*dbase).dfile_head = None;
     }
-    (*dbase).dfile_head = None;
     (*dbase).entries = None;
     (*dbase).path = None;
 

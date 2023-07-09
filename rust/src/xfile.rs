@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use crate::dfile::{
     dbase_close, dbase_find_close, dbase_find_first_entry, dbase_find_next_entry, dbase_open,
-    dfile_close, dfile_eof, dfile_get_size, dfile_print_formatted_args, dfile_read,
+    dfile_remove_node, dfile_eof, dfile_get_size, dfile_print_formatted_args, dfile_read,
     dfile_read_char, dfile_read_string, dfile_rewind, dfile_seek, dfile_tell, dfile_write,
     dfile_write_char, dfile_write_string, rust_dfile_open, DBase, DFile, DFileFindData,
 };
@@ -129,7 +129,7 @@ pub unsafe extern "C" fn rust_xfile_close(stream: *mut XFile) -> c_int {
     let stream = Box::from_raw(stream);
 
     let rc = match (*stream).file {
-        XFileType::DFile(file) => dfile_close(&file.as_ref().borrow()),
+        XFileType::DFile(file) => dfile_remove_node(&file.as_ref().borrow()),
         XFileType::GZFile(file) => gzclose(file),
         XFileType::File(file) => fclose(file),
     };
