@@ -10,7 +10,7 @@ use libz_sys::{
     Z_NO_FLUSH, Z_OK,
 };
 use std::ffi::{c_void, CString};
-use std::mem;
+use std::{mem, ptr};
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
 
@@ -211,10 +211,9 @@ impl Default for DFileFindData {
     }
 }
 
-pub unsafe fn dfile_close(stream_rc: Rc<RefCell<DFile>>) -> c_int {
+pub unsafe fn dfile_close(stream: &DFile) -> c_int {
     let mut rc: c_int = 0;
 
-    let stream = stream_rc.borrow();
     if (*stream.entry).compressed[0] == 1 {
         if inflateEnd(stream.decompression_stream) != Z_OK {
             rc = -1;
@@ -240,7 +239,7 @@ pub unsafe fn dfile_close(stream_rc: Rc<RefCell<DFile>>) -> c_int {
     let mut curr = (*stream.dbase).dfile_head.clone();
     let mut prev: Option<Rc<RefCell<DFile>>> = None;
     while curr.is_some() {
-        if Rc::ptr_eq(curr.as_ref().expect(""), &stream_rc) {
+        if ptr::eq(curr.as_ref().expect("").as_ptr(), stream) {
             break;
         }
 
@@ -252,7 +251,7 @@ pub unsafe fn dfile_close(stream_rc: Rc<RefCell<DFile>>) -> c_int {
         if prev.is_none() {
             (*stream.dbase).dfile_head = stream.next.clone();
         } else {
-            prev.expect("").borrow_mut().next = (*stream).next.clone();
+            prev.expect("").borrow_mut().next = stream.next.clone();
         }
     }
 
@@ -288,23 +287,19 @@ pub unsafe fn rust_dfile_open(
         return None;
     }
 
-    let dfile = Rc::new(RefCell::new(DFile::new(stream)));
-
-    dfile.borrow_mut().dbase = dbase;
-    dfile.borrow_mut().next = (*dbase).dfile_head.clone();
-    (*dbase).dfile_head = Some(dfile.clone());
+    let mut dfile = DFile::new(stream);
 
     let entry = optional_entry.expect("valid entry") as *mut DBaseEntry;
-    dfile.borrow_mut().entry = entry;
+    dfile.entry = entry;
 
     // Relocate stream to the beginning of data for specified entry.
     if fseek(
-        dfile.borrow().stream,
+        dfile.stream,
         ((*dbase).data_offset + (*entry).data_offset[0]) as c_long,
         SEEK_SET,
     ) != 0
     {
-        dfile_close(dfile);
+        dfile_close(&dfile);
         return None;
     }
 
@@ -313,57 +308,63 @@ pub unsafe fn rust_dfile_open(
         // buffer. This step is not needed when previous instance of dfile is
         // passed via parameter, which might already have stream and
         // buffer allocated.
-        if dfile.borrow().decompression_stream == null_mut() {
-            dfile.borrow_mut().decompression_stream = malloc(mem::size_of::<z_stream>()) as z_streamp;
-            if dfile.borrow().decompression_stream == null_mut() {
-                dfile_close(dfile);
+        if dfile.decompression_stream == null_mut() {
+            dfile.decompression_stream = malloc(mem::size_of::<z_stream>()) as z_streamp;
+            if dfile.decompression_stream == null_mut() {
+                dfile_close(&dfile);
                 return None;
             }
 
-            dfile.borrow_mut().decompression_buffer =
+            dfile.decompression_buffer =
                 malloc(DFILE_DECOMPRESSION_BUFFER_SIZE as size_t) as *mut c_uchar;
-            if dfile.borrow().decompression_buffer == null_mut() {
-                dfile_close(dfile);
+            if dfile.decompression_buffer == null_mut() {
+                dfile_close(&dfile);
                 return None;
             }
         }
 
-        (*dfile.borrow().decompression_stream).zalloc =
+        (*dfile.decompression_stream).zalloc =
             mem::transmute::<*const c_void, alloc_func>(null());
-        (*dfile.borrow().decompression_stream).zfree = mem::transmute::<*const c_void, free_func>(null());
-        (*dfile.borrow().decompression_stream).opaque = mem::transmute::<*const c_void, voidpf>(null());
-        (*dfile.borrow().decompression_stream).next_in = dfile.borrow().decompression_buffer;
-        (*dfile.borrow().decompression_stream).avail_in = 0;
+        (*dfile.decompression_stream).zfree = mem::transmute::<*const c_void, free_func>(null());
+        (*dfile.decompression_stream).opaque = mem::transmute::<*const c_void, voidpf>(null());
+        (*dfile.decompression_stream).next_in = dfile.decompression_buffer;
+        (*dfile.decompression_stream).avail_in = 0;
 
         // Used ZLIB_VERSION
         let version = CString::new("1.2.11").expect("valid string");
         if inflateInit_(
-            dfile.borrow().decompression_stream,
+            dfile.decompression_stream,
             version.as_ptr(),
             mem::size_of::<z_stream>() as c_int,
         ) != Z_OK
         {
-            dfile_close(dfile);
+            dfile_close(&dfile);
             return None;
         }
     } else {
         // Entry is not compressed, there is no need to keep decompression
         // stream and decompression buffer (in case [dfile] was passed via
         // parameter).
-        if dfile.borrow().decompression_stream != null_mut() {
-            free(dfile.borrow().decompression_stream as *mut c_void);
-            dfile.borrow_mut().decompression_stream = null_mut();
+        if dfile.decompression_stream != null_mut() {
+            free(dfile.decompression_stream as *mut c_void);
+            dfile.decompression_stream = null_mut();
         }
 
-        if dfile.borrow().decompression_buffer != null_mut() {
-            free(dfile.borrow().decompression_buffer as *mut c_void);
-            dfile.borrow_mut().decompression_buffer = null_mut();
+        if dfile.decompression_buffer != null_mut() {
+            free(dfile.decompression_buffer as *mut c_void);
+            dfile.decompression_buffer = null_mut();
         }
     }
 
     if *mode.offset(1) == 't' as c_char {
-        dfile.borrow_mut().flags |= DFILE_TEXT as c_int;
+        dfile.flags |= DFILE_TEXT as c_int;
     }
+
+    dfile.dbase = dbase;
+    dfile.next = (*dbase).dfile_head.clone();
+
+    let dfile = Rc::new(RefCell::new(dfile));
+    (*dbase).dfile_head = Some(dfile.clone());
 
     Some(dfile)
 }
@@ -516,7 +517,7 @@ pub unsafe fn dbase_close(dbase: *mut DBase) -> bool {
     let mut curr = (*dbase).dfile_head.clone();
     while curr.is_some() {
         let next = curr.as_ref().expect("").borrow().next.clone();
-        dfile_close(curr.expect("").clone());
+        dfile_close(&curr.as_ref().expect("").as_ref().borrow());
         curr = next;
     }
     (*dbase).dfile_head = None;

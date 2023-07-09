@@ -129,7 +129,7 @@ pub unsafe extern "C" fn rust_xfile_close(stream: *mut XFile) -> c_int {
     let stream = Box::from_raw(stream);
 
     let rc = match (*stream).file {
-        XFileType::DFile(file) => dfile_close(file.clone()),
+        XFileType::DFile(file) => dfile_close(&file.as_ref().borrow()),
         XFileType::GZFile(file) => gzclose(file),
         XFileType::File(file) => fclose(file),
     };
