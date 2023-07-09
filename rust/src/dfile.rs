@@ -162,10 +162,6 @@ impl Drop for DFile {
             if self.stream != null_mut() {
                 fclose(self.stream);
             }
-
-            if (*self.dbase).dfile_head.is_none() {
-                return;
-            }
         }
     }
 }
