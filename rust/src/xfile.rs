@@ -53,7 +53,7 @@ impl Default for XFile {
 // A universal database of files.
 pub struct XBase {
     // The path to directory or .DAT file that this xbase represents.
-    path: *mut c_char,
+    path: Option<CString>,
 
     // The [DBase] instance that this xbase represents.
     dbase: Option<Rc<RefCell<DBase>>>,
@@ -66,6 +66,12 @@ pub struct XBase {
 
     // Next [XBase] in linked list.
     next: *mut XBase,
+}
+
+impl XBase {
+    fn get_path_cstr(&self) -> *const c_char {
+        self.path.as_ref().map(|x| x.as_ptr()).unwrap_or(null())
+    }
 }
 
 #[repr(C)]
@@ -204,7 +210,7 @@ pub unsafe extern "C" fn rust_xfile_open(
                     path.as_mut_ptr(),
                     mem::size_of_val(&path),
                     sformat_sformat.as_ptr(),
-                    (*curr).path,
+                    (*curr).get_path_cstr(),
                     file_path,
                 );
 
@@ -463,7 +469,7 @@ extern "C" fn xbase_close_all() {
                 (*curr).dbase = None;
             }
 
-            free((*curr).path as *mut c_void);
+            (*curr).path = None;
             free(curr as *mut c_void);
 
             curr = next;
@@ -517,7 +523,7 @@ pub unsafe fn xbase_make_directory(file_path: *mut c_char) -> c_int {
                     path.as_mut_ptr(),
                     mem::size_of_val(&path),
                     sformat_sformat.as_ptr(),
-                    (*curr).path,
+                    (*curr).get_path_cstr(),
                     file_path,
                 );
                 break;
@@ -585,7 +591,7 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
     let mut curr = get_g_xbase_head();
     let mut prev = null_mut();
     while curr != null_mut() {
-        if rust_compat_stricmp(path, (*curr).path) == 0 {
+        if rust_compat_stricmp(path, (*curr).get_path_cstr()) == 0 {
             break;
         }
 
@@ -610,8 +616,8 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
 
     memset(xbase as *mut c_void, 0, mem::size_of::<XBase>());
 
-    (*xbase).path = rust_compat_strdup(path);
-    if (*xbase).path == null_mut() {
+    (*xbase).path = Some(CString::from_raw(rust_compat_strdup(path)));
+    if (*xbase).path == None {
         free(xbase as *mut c_void);
         return false;
     }
@@ -787,7 +793,7 @@ unsafe fn xlist_enumerate(
                 path.as_mut_ptr(),
                 mem::size_of_val(&path),
                 sformat_sformat.as_ptr(),
-                (*xbase).path,
+                (*xbase).get_path_cstr(),
                 pattern,
             );
             rust_compat_windows_path_to_native(path.as_mut_ptr());
