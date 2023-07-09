@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use crate::dfile::{
-    dbase_close, dbase_find_close, dbase_find_first_entry, dbase_find_next_entry, dbase_open,
+    dbase_find_close, dbase_find_first_entry, dbase_find_next_entry, dbase_open,
     dfile_remove_node, dfile_eof, dfile_get_size, dfile_print_formatted_args, dfile_read,
     dfile_read_char, dfile_read_string, dfile_rewind, dfile_seek, dfile_tell, dfile_write,
     dfile_write_char, dfile_write_string, rust_dfile_open, DBase, DFile, DFileFindData,
@@ -56,7 +56,7 @@ pub struct XBase {
     path: *mut c_char,
 
     // The [DBase] instance that this xbase represents.
-    dbase: *mut DBase,
+    dbase: Option<Rc<RefCell<DBase>>>,
 
     // A flag used to denote that this xbase represents .DAT file (true), or
     // a directory (false).
@@ -187,7 +187,7 @@ pub unsafe extern "C" fn rust_xfile_open(
         while curr != null_mut() {
             if (*curr).is_dbase {
                 // Attempt to open dfile stream from dbase.
-                let dfile = rust_dfile_open((*curr).dbase, file_path, mode);
+                let dfile = rust_dfile_open(&mut (*curr).dbase.as_ref().expect("").borrow_mut(), file_path, mode);
                 if dfile.is_some() {
                     (*stream).file = XFileType::DFile(dfile.expect(""));
                     snprintf(
@@ -460,7 +460,7 @@ extern "C" fn xbase_close_all() {
             let next = (*curr).next;
 
             if (*curr).is_dbase {
-                dbase_close((*curr).dbase);
+                (*curr).dbase = None;
             }
 
             free((*curr).path as *mut c_void);
@@ -617,7 +617,7 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
     }
 
     let dbase = dbase_open(path);
-    if dbase != null_mut() {
+    if dbase.is_some() {
         (*xbase).is_dbase = true;
         (*xbase).dbase = dbase;
         (*xbase).next = get_g_xbase_head();
@@ -761,7 +761,8 @@ unsafe fn xlist_enumerate(
     while xbase != null_mut() {
         if (*xbase).is_dbase {
             let mut dbase_find_data = DFileFindData::default();
-            if dbase_find_first_entry((*xbase).dbase, &mut dbase_find_data, pattern) {
+            let dbase = &(*xbase).dbase.as_ref().expect("").borrow();
+            if dbase_find_first_entry(dbase, &mut dbase_find_data, pattern) {
                 context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeDfile;
 
                 loop {
@@ -770,14 +771,14 @@ unsafe fn xlist_enumerate(
                         dbase_find_data.file_name.as_ptr(),
                     );
                     if !handler(&context) {
-                        return dbase_find_close((*xbase).dbase, &dbase_find_data);
+                        return dbase_find_close(dbase, &dbase_find_data);
                     }
-                    if !dbase_find_next_entry((*xbase).dbase, &mut dbase_find_data) {
+                    if !dbase_find_next_entry(dbase, &mut dbase_find_data) {
                         break;
                     }
                 }
 
-                dbase_find_close((*xbase).dbase, &dbase_find_data);
+                dbase_find_close(dbase, &dbase_find_data);
             }
         } else {
             let mut path = [0 as c_char; COMPAT_MAX_PATH];

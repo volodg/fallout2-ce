@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use crate::fpattern::fpattern_match;
 use crate::platform_compat::{rust_compat_fopen, rust_compat_strdup, rust_get_file_size, COMPAT_MAX_PATH, compat_stricmp};
 use libc::{
-    c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, fread, free, fseek, malloc, memset,
+    c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, fread, free, fseek, malloc,
     size_t, strcpy, ungetc, FILE, SEEK_CUR, SEEK_END, SEEK_SET,
 };
 use libz_sys::{
@@ -81,6 +81,18 @@ pub struct DBase {
 
     // The head of linked list of open file handles.
     dfile_head: Option<Rc<RefCell<DFile>>>,
+}
+
+impl Default for DBase {
+    fn default() -> Self {
+        Self {
+            path: None,
+            data_offset: 0,
+            entries_length: [0 as i32; 1],
+            entries: None,
+            dfile_head: None,
+        }
+    }
 }
 
 impl DBase {
@@ -240,11 +252,10 @@ pub unsafe fn dfile_remove_node(stream: &DFile) -> c_int {
 }
 
 pub unsafe fn rust_dfile_open(
-    dbase: *mut DBase,
+    dbase: &mut DBase,
     file_path: *const c_char,
     mode: *const c_char,
 ) -> Option<Rc<RefCell<DFile>>> {
-    assert_ne!(dbase, null_mut()); // dfile.c, 295
     assert_ne!(file_path, null()); // dfile.c, 296
     assert_ne!(mode, null()); // dfile.c, 297
 
@@ -257,18 +268,18 @@ pub unsafe fn rust_dfile_open(
         return None;
     }
 
+    let entry = optional_entry.expect("valid entry") as *mut DBaseEntry;
+
     if *mode != 'r' as c_char {
         return None;
     }
 
     // Open stream to .DAT file.
     let rb = CString::new("rb").expect("valid string");
-    let stream = rust_compat_fopen((*dbase).get_path_cstr(), rb.as_ptr());
+    let stream = rust_compat_fopen(dbase.get_path_cstr(), rb.as_ptr());
     if stream == null_mut() {
         return None;
     }
-
-    let entry = optional_entry.expect("valid entry") as *mut DBaseEntry;
 
     let mut dfile = DFile::new(entry, stream);
 
@@ -487,40 +498,19 @@ unsafe fn dfile_read_char_internal(stream: &mut DFile) -> c_int {
     ch
 }
 
-pub unsafe fn dbase_close(dbase: *mut DBase) -> bool {
-    assert_ne!(dbase, null_mut()); // "dbase", "dfile.c", 173
-
-    (*dbase).dfile_head = None;
-    (*dbase).entries = None;
-    (*dbase).path = None;
-
-    memset(dbase as *mut c_void, 0, mem::size_of::<DBase>());
-
-    free(dbase as *mut c_void);
-
-    true
-}
-
-pub unsafe fn dbase_open(file_path: *const c_char) -> *mut DBase {
+pub unsafe fn dbase_open(file_path: *const c_char) -> Option<Rc<RefCell<DBase>>> {
     assert_ne!(file_path, null()); // "filename", "dfile.c", 74
 
     let rb = CString::new("rb").expect("valid string");
     let str = rb.as_ptr();
     let stream = rust_compat_fopen(file_path, str);
     if stream == null_mut() {
-        return null_mut();
+        return None;
     }
 
-    let dbase = malloc(mem::size_of::<DBase>()) as *mut DBase;
-    if dbase == null_mut() {
-        fclose(stream);
-        return null_mut();
-    }
+    let mut dbase = DBase::default();
 
-    memset(dbase as *mut c_void, 0, mem::size_of_val(&*dbase));
-
-    unsafe fn close_on_error(dbase: *mut DBase, stream: *mut FILE) {
-        dbase_close(dbase);
+    unsafe fn close_on_error(stream: *mut FILE) {
         fclose(stream);
     }
 
@@ -534,8 +524,8 @@ pub unsafe fn dbase_open(file_path: *const c_char) -> *mut DBase {
         SEEK_SET,
     ) != 0
     {
-        close_on_error(dbase, stream);
-        return null_mut();
+        close_on_error(stream);
+        return None;
     }
 
     // Read the size of entries table.
@@ -547,8 +537,8 @@ pub unsafe fn dbase_open(file_path: *const c_char) -> *mut DBase {
         stream,
     ) != 1
     {
-        close_on_error(dbase, stream);
-        return null_mut();
+        close_on_error(stream);
+        return None;
     }
 
     // Read the size of entire dbase content.
@@ -563,8 +553,8 @@ pub unsafe fn dbase_open(file_path: *const c_char) -> *mut DBase {
         stream,
     ) != 1
     {
-        close_on_error(dbase, stream);
-        return null_mut();
+        close_on_error(stream);
+        return None;
     }
 
     // Reposition stream to the beginning of the entries table.
@@ -575,32 +565,32 @@ pub unsafe fn dbase_open(file_path: *const c_char) -> *mut DBase {
         SEEK_SET,
     ) != 0
     {
-        close_on_error(dbase, stream);
-        return null_mut();
+        close_on_error(stream);
+        return None;
     }
 
     if fread(
-        (*dbase).entries_length.as_mut_ptr() as *mut c_void,
-        mem::size_of_val(&(*dbase).entries_length),
+        dbase.entries_length.as_mut_ptr() as *mut c_void,
+        mem::size_of_val(&dbase.entries_length),
         1,
         stream,
     ) != 1
     {
-        close_on_error(dbase, stream);
-        return null_mut();
+        close_on_error(stream);
+        return None;
     }
 
-    let entries = Box::new(vec![DBaseEntry::default(); (*dbase).entries_length[0] as usize]);
-    (*dbase).entries = Some(*entries);
-    if (*dbase).entries.is_none() {
-        close_on_error(dbase, stream);
-        return null_mut();
+    let entries = Box::new(vec![DBaseEntry::default(); dbase.entries_length[0] as usize]);
+    dbase.entries = Some(*entries);
+    if dbase.entries.is_none() {
+        close_on_error(stream);
+        return None;
     }
 
     // Read entries one by one, stopping on any error.
     let mut entry_index = 0;
-    for i in 0..(*dbase).entries_length[0] {
-        let entry = &mut (*dbase).entries.as_mut().expect("")[i as usize];
+    for i in 0..dbase.entries_length[0] {
+        let entry = &mut dbase.entries.as_mut().expect("")[i as usize];
 
         let mut path_length = [0 as c_int; 1];
         if fread(
@@ -668,23 +658,23 @@ pub unsafe fn dbase_open(file_path: *const c_char) -> *mut DBase {
         entry_index = i + 1;
     }
 
-    if entry_index < (*dbase).entries_length[0] {
+    if entry_index < dbase.entries_length[0] {
         // We haven't reached the end, which means there was an error while
         // reading entries.
-        close_on_error(dbase, stream);
-        return null_mut();
+        close_on_error(stream);
+        return None;
     }
 
-    (*dbase).path = Some(CString::from_raw(rust_compat_strdup(file_path)));
-    (*dbase).data_offset = file_size as c_int - dbase_data_size[0] as c_int;
+    dbase.path = Some(CString::from_raw(rust_compat_strdup(file_path)));
+    dbase.data_offset = file_size as c_int - dbase_data_size[0] as c_int;
 
     fclose(stream);
 
-    dbase
+    Some(Rc::new(RefCell::new(dbase)))
 }
 
 pub unsafe fn dbase_find_first_entry(
-    dbase: *const DBase,
+    dbase: &DBase,
     find_file_data: *mut DFileFindData,
     pattern: *const c_char,
 ) -> bool {
@@ -708,7 +698,7 @@ pub unsafe fn dbase_find_first_entry(
 }
 
 pub unsafe fn dbase_find_next_entry(
-    dbase: *const DBase,
+    dbase: &DBase,
     find_file_data: *mut DFileFindData,
 ) -> bool {
     for index in ((*find_file_data).index + 1)..(*dbase).entries_length[0] {
@@ -1015,7 +1005,7 @@ pub unsafe fn dfile_get_size(stream: &DFile) -> c_long {
 }
 
 pub unsafe fn dbase_find_close(
-    _dbase: *const DBase,
+    _dbase: &DBase,
     _find_file_data: *const DFileFindData,
 ) -> bool {
     true
