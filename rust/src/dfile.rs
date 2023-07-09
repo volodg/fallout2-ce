@@ -93,7 +93,6 @@ impl DBase {
 pub struct DFile {
     dbase: *mut DBase,
     entry: *mut DBaseEntry,
-    #[allow(dead_code)]
     flags: c_int,
 
     // The stream of .DAT file opened for reading in binary mode.
@@ -116,28 +115,24 @@ pub struct DFile {
     // The last ungot character.
     //
     // See [DFILE_HAS_UNGETC] notes.
-    #[allow(dead_code)]
     ungotten: c_int,
 
     // The last ungot compressed character.
     //
     // This value is used when reading compressed text streams to detect
     // Windows end of line sequence \r\n.
-    #[allow(dead_code)]
     compressed_ungotten: c_int,
 
     // The number of bytes read so far from compressed stream.
     //
     // This value is only used when reading compressed streams. The range is
     // 0..entry->dataSize.
-    #[allow(dead_code)]
     compressed_bytes_read: c_int,
 
     // The position in read stream.
     //
     // This value is tracked in terms of uncompressed data (even in compressed
     // streams). The range is 0..entry->uncompressedSize.
-    #[allow(dead_code)]
     position: c_long,
 
     // Next [DFile] in linked list.
@@ -159,6 +154,24 @@ impl Default for DFile {
             entry: null_mut(),
             flags: 0,
             stream: null_mut(),
+            decompression_stream: z_streamp::from(null_mut()),
+            decompression_buffer: null_mut(),
+            ungotten: 0,
+            compressed_ungotten: 0,
+            compressed_bytes_read: 0,
+            position: 0,
+            next: None,
+        }
+    }
+}
+
+impl DFile {
+    fn new(stream: *mut FILE) -> Self {
+        Self {
+            dbase: null_mut(),
+            entry: null_mut(),
+            flags: 0,
+            stream,
             decompression_stream: z_streamp::from(null_mut()),
             decompression_buffer: null_mut(),
             ungotten: 0,
@@ -198,7 +211,6 @@ impl Default for DFileFindData {
     }
 }
 
-// 
 pub unsafe fn dfile_close(stream_rc: Rc<RefCell<DFile>>) -> c_int {
     let mut rc: c_int = 0;
 
@@ -244,9 +256,6 @@ pub unsafe fn dfile_close(stream_rc: Rc<RefCell<DFile>>) -> c_int {
         }
     }
 
-    // memset(stream as *mut c_void, 0, mem::size_of::<DFile>());
-
-    // free(stream as *mut c_void);
     rc
 }
 
@@ -272,7 +281,14 @@ pub unsafe fn rust_dfile_open(
         return None;
     }
 
-    let dfile = Rc::new(RefCell::new(DFile::default()));
+    // Open stream to .DAT file.
+    let rb = CString::new("rb").expect("valid string");
+    let stream = rust_compat_fopen((*dbase).get_path_cstr(), rb.as_ptr());
+    if stream == null_mut() {
+        return None;
+    }
+
+    let dfile = Rc::new(RefCell::new(DFile::new(stream)));
 
     dfile.borrow_mut().dbase = dbase;
     dfile.borrow_mut().next = (*dbase).dfile_head.clone();
@@ -280,14 +296,6 @@ pub unsafe fn rust_dfile_open(
 
     let entry = optional_entry.expect("valid entry") as *mut DBaseEntry;
     dfile.borrow_mut().entry = entry;
-
-    // Open stream to .DAT file.
-    let rb = CString::new("rb").expect("valid string");
-    dfile.borrow_mut().stream = rust_compat_fopen((*dbase).get_path_cstr(), rb.as_ptr());
-    if dfile.borrow().stream == null_mut() {
-        dfile_close(dfile);
-        return None;
-    }
 
     // Relocate stream to the beginning of data for specified entry.
     if fseek(
