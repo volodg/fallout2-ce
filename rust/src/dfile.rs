@@ -193,35 +193,36 @@ impl Default for DFileFindData {
     }
 }
 
-pub unsafe fn dfile_close(stream: Rc<RefCell<DFile>>) -> c_int {
+pub unsafe fn dfile_close(stream_rc: Rc<RefCell<DFile>>) -> c_int {
     let mut rc: c_int = 0;
 
-    if (*stream.borrow().entry).compressed[0] == 1 {
-        if inflateEnd(stream.borrow().decompression_stream) != Z_OK {
+    let stream = stream_rc.borrow();
+    if (*stream.entry).compressed[0] == 1 {
+        if inflateEnd(stream.decompression_stream) != Z_OK {
             rc = -1;
         }
     }
 
-    if stream.borrow().decompression_stream != null_mut() {
-        free(stream.borrow().decompression_stream as *mut c_void);
+    if stream.decompression_stream != null_mut() {
+        free(stream.decompression_stream as *mut c_void);
     }
 
-    if stream.borrow().decompression_buffer != null_mut() {
-        free(stream.borrow().decompression_buffer as *mut c_void);
+    if stream.decompression_buffer != null_mut() {
+        free(stream.decompression_buffer as *mut c_void);
     }
 
-    if stream.borrow().stream != null_mut() {
-        fclose(stream.borrow().stream);
+    if stream.stream != null_mut() {
+        fclose(stream.stream);
     }
 
     // Loop thru open file handles and find previous to remove current handle
     // from linked list.
     //
     // NOTE: Compiled code is slightly different.
-    let mut curr = (*stream.clone().borrow().dbase).dfile_head.clone();
+    let mut curr = (*stream.dbase).dfile_head.clone();
     let mut prev: Option<Rc<RefCell<DFile>>> = None;
     while curr.is_some() {
-        if Rc::ptr_eq(curr.as_ref().expect(""), &stream) {
+        if Rc::ptr_eq(curr.as_ref().expect(""), &stream_rc) {
             break;
         }
 
@@ -231,15 +232,11 @@ pub unsafe fn dfile_close(stream: Rc<RefCell<DFile>>) -> c_int {
 
     if curr.is_some() {
         if prev.is_none() {
-            (*stream.borrow().dbase).dfile_head = stream.borrow().next.clone();
+            (*stream.dbase).dfile_head = stream.next.clone();
         } else {
-            prev.expect("").borrow_mut().next = (*stream).borrow().next.clone();
+            prev.expect("").borrow_mut().next = (*stream).next.clone();
         }
     }
-
-    // memset(stream as *mut c_void, 0, mem::size_of::<DFile>());
-
-    // free(stream as *mut c_void);
 
     rc
 }
