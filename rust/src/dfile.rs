@@ -494,10 +494,7 @@ unsafe fn dfile_read_char_internal(stream: &mut DFile) -> c_int {
 pub unsafe fn dbase_close(dbase: *mut DBase) -> bool {
     assert_ne!(dbase, null_mut()); // "dbase", "dfile.c", 173
 
-    {
-        let _head = (*dbase).dfile_head.clone();
-        (*dbase).dfile_head = None;
-    }
+    (*dbase).dfile_head = None;
     (*dbase).entries = None;
     (*dbase).path = None;
 
