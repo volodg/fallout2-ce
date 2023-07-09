@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use crate::dfile::{
     dbase_close, dbase_find_close, dbase_find_first_entry, dbase_find_next_entry, dbase_open,
     dfile_close, dfile_eof, dfile_get_size, dfile_print_formatted_args, dfile_read,
@@ -27,12 +28,13 @@ use libz_sys::{
 use std::ffi::{c_int, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
+use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use vsprintf::vsprintf;
 
 enum XFileType {
     File(*mut FILE),
-    DFile(*mut DFile),
+    DFile(Rc<RefCell<DFile>>),
     GZFile(gzFile),
 }
 
@@ -127,7 +129,7 @@ pub unsafe extern "C" fn rust_xfile_close(stream: *mut XFile) -> c_int {
     let stream = Box::from_raw(stream);
 
     let rc = match (*stream).file {
-        XFileType::DFile(file) => dfile_close(file),
+        XFileType::DFile(file) => dfile_close(file.clone()),
         XFileType::GZFile(file) => gzclose(file),
         XFileType::File(file) => fclose(file),
     };
@@ -186,8 +188,8 @@ pub unsafe extern "C" fn rust_xfile_open(
             if (*curr).is_dbase {
                 // Attempt to open dfile stream from dbase.
                 let dfile = rust_dfile_open((*curr).dbase, file_path, mode);
-                if dfile != null_mut() {
-                    (*stream).file = XFileType::DFile(dfile);
+                if dfile.is_some() {
+                    (*stream).file = XFileType::DFile(dfile.expect(""));
                     snprintf(
                         path.as_mut_ptr(),
                         mem::size_of_val(&path),
@@ -269,14 +271,14 @@ pub unsafe extern "C" fn rust_xfile_print_formatted_args(
     assert_ne!(stream, null()); // "stream", "xfile.c", 332
     assert_ne!(format, null()); // "format", "xfile.c", 333
 
-    match (*stream).file {
+    match &(*stream).file {
         XFileType::DFile(file) => {
-            dfile_print_formatted_args(file, format, args)
+            dfile_print_formatted_args(&file.as_ref().borrow(), format, args)
         },
         XFileType::GZFile(file) => {
             let str = vsprintf(format, args).expect("valid");
             gzwrite(
-                file,
+                file.clone(),
                 str.as_ptr() as voidpc,
                 str.len() as c_uint,
             )
@@ -287,7 +289,7 @@ pub unsafe extern "C" fn rust_xfile_print_formatted_args(
                 str.as_ptr() as *const c_void,
                 str.len() as size_t,
                 1,
-                file,
+                *file,
             ) as c_int
         },
     }
@@ -297,10 +299,10 @@ pub unsafe extern "C" fn rust_xfile_print_formatted_args(
 pub unsafe extern "C" fn rust_xfile_read_char(stream: *const XFile) -> c_int {
     assert_ne!(stream, null()); // "stream", "xfile.c", 354
 
-    match (*stream).file {
-        XFileType::DFile(file) => dfile_read_char(file),
-        XFileType::GZFile(file) => gzgetc(file),
-        XFileType::File(file) => fgetc(file),
+    match &(*stream).file {
+        XFileType::DFile(file) => dfile_read_char(&mut file.as_ref().borrow_mut()),
+        XFileType::GZFile(file) => gzgetc(file.clone()),
+        XFileType::File(file) => fgetc(*file),
     }
 }
 
@@ -314,10 +316,10 @@ pub unsafe extern "C" fn rust_xfile_read_string(
     assert_ne!(size, 0); // "n", "xfile.c", 376
     assert_ne!(stream, null()); // "stream", "xfile.c", 377
 
-    match (*stream).file {
-        XFileType::DFile(file) => dfile_read_string(string, size, file),
-        XFileType::GZFile(file) => compat_gzgets(file, string, size),
-        XFileType::File(file) => rust_compat_fgets(string, size, file),
+    match &(*stream).file {
+        XFileType::DFile(file) => dfile_read_string(string, size, &mut file.as_ref().borrow_mut()),
+        XFileType::GZFile(file) => compat_gzgets(file.clone(), string, size),
+        XFileType::File(file) => rust_compat_fgets(string, size, *file),
     }
 }
 
@@ -325,10 +327,10 @@ pub unsafe extern "C" fn rust_xfile_read_string(
 pub unsafe extern "C" fn rust_xfile_write_char(ch: c_int, stream: *const XFile) -> c_int {
     assert_ne!(stream, null()); // "stream", "xfile.c", 399
 
-    match (*stream).file {
-        XFileType::DFile(file) => dfile_write_char(ch, file),
-        XFileType::GZFile(file) => gzputc(file, ch),
-        XFileType::File(file) => fputc(ch, file),
+    match &(*stream).file {
+        XFileType::DFile(file) => dfile_write_char(ch, &file.as_ref().borrow()),
+        XFileType::GZFile(file) => gzputc(file.clone(), ch),
+        XFileType::File(file) => fputc(ch, *file),
     }
 }
 
@@ -340,10 +342,10 @@ pub unsafe extern "C" fn rust_xfile_write_string(
     assert_ne!(string, null()); // "s", "xfile.c", 421
     assert_ne!(stream, null()); // "stream", "xfile.c", 422
 
-    match (*stream).file {
-        XFileType::DFile(file) => dfile_write_string(string, file),
-        XFileType::GZFile(file) => gzputs(file, string),
-        XFileType::File(file) => fputs(string, file),
+    match &(*stream).file {
+        XFileType::DFile(file) => dfile_write_string(string, &file.as_ref().borrow()),
+        XFileType::GZFile(file) => gzputs(file.clone(), string),
+        XFileType::File(file) => fputs(string, *file),
     }
 }
 
@@ -357,16 +359,16 @@ pub unsafe extern "C" fn rust_xfile_read(
     assert_ne!(ptr, null_mut()); // "ptr", "xfile.c", 421
     assert_ne!(stream, null()); // "stream", "xfile.c", 422
 
-    match (*stream).file {
-        XFileType::DFile(file) => dfile_read(ptr, size, count, file),
+    match &(*stream).file {
+        XFileType::DFile(file) => dfile_read(ptr, size, count, &mut file.as_ref().borrow_mut()),
         XFileType::GZFile(file) => {
             gzread(
-                file,
+                file.clone(),
                 ptr as voidp,
                 (size * count) as c_uint,
             ) as size_t
         },
-        XFileType::File(file) => fread(ptr, size, count, file),
+        XFileType::File(file) => fread(ptr, size, count, *file),
     }
 }
 
@@ -380,10 +382,10 @@ pub unsafe extern "C" fn rust_xfile_write(
     assert_ne!(ptr, null()); // "ptr", "xfile.c", 504
     assert_ne!(stream, null()); // "stream", "xfile.c", 505
 
-    match (*stream).file {
-        XFileType::DFile(file) => dfile_write(ptr, size, count, file),
-        XFileType::GZFile(file) => gzwrite(file, ptr, (size * count) as c_uint) as size_t,
-        XFileType::File(file) => fwrite(ptr, size, count, file),
+    match &(*stream).file {
+        XFileType::DFile(file) => dfile_write(ptr, size, count, &file.as_ref().borrow()),
+        XFileType::GZFile(file) => gzwrite(file.clone(), ptr, (size * count) as c_uint) as size_t,
+        XFileType::File(file) => fwrite(ptr, size, count, *file),
     }
 }
 
@@ -395,10 +397,10 @@ pub unsafe extern "C" fn rust_xfile_seek(
 ) -> c_int {
     assert_ne!(stream, null()); // "stream", "xfile.c", 547
 
-    match (*stream).file {
-        XFileType::DFile(file) => dfile_seek(file, offset, origin),
-        XFileType::GZFile(file) => gzseek(file, offset as z_off_t, origin) as c_int,
-        XFileType::File(file) => fseek(file, offset, origin),
+    match &(*stream).file {
+        XFileType::DFile(file) => dfile_seek(&mut file.as_ref().borrow_mut(), offset, origin),
+        XFileType::GZFile(file) => gzseek(file.clone(), offset as z_off_t, origin) as c_int,
+        XFileType::File(file) => fseek(*file, offset, origin),
     }
 }
 
@@ -406,10 +408,10 @@ pub unsafe extern "C" fn rust_xfile_seek(
 pub unsafe extern "C" fn rust_xfile_tell(stream: *const XFile) -> c_long {
     assert_ne!(stream, null()); // "stream", "xfile.c", 588
 
-    match (*stream).file {
-        XFileType::DFile(file) => dfile_tell(file),
-        XFileType::GZFile(file) => gztell(file) as c_long,
-        XFileType::File(file) => ftell(file),
+    match &(*stream).file {
+        XFileType::DFile(file) => dfile_tell(&file.as_ref().borrow()),
+        XFileType::GZFile(file) => gztell(file.clone()) as c_long,
+        XFileType::File(file) => ftell(*file),
     }
 }
 
@@ -417,12 +419,12 @@ pub unsafe extern "C" fn rust_xfile_tell(stream: *const XFile) -> c_long {
 pub unsafe extern "C" fn rust_xfile_rewind(stream: *const XFile) {
     assert_ne!(stream, null()); // "stream", "xfile.c", 608
 
-    match (*stream).file {
-        XFileType::DFile(file) => dfile_rewind(file),
+    match &(*stream).file {
+        XFileType::DFile(file) => dfile_rewind(&mut file.as_ref().borrow_mut()),
         XFileType::GZFile(file) => {
-            gzrewind(file);
+            gzrewind(file.clone());
         },
-        XFileType::File(file) => rewind(file),
+        XFileType::File(file) => rewind(*file),
     }
 }
 
@@ -430,10 +432,10 @@ pub unsafe extern "C" fn rust_xfile_rewind(stream: *const XFile) {
 pub unsafe extern "C" fn rust_xfile_eof(stream: *const XFile) -> c_int {
     assert_ne!(stream, null()); // "stream", "xfile.c", 648
 
-    match (*stream).file {
-        XFileType::DFile(file) => dfile_eof(file),
-        XFileType::GZFile(file) => gzeof(file),
-        XFileType::File(file) => feof(file),
+    match &(*stream).file {
+        XFileType::DFile(file) => dfile_eof(&file.as_ref().borrow()),
+        XFileType::GZFile(file) => gzeof(file.clone()),
+        XFileType::File(file) => feof(*file),
     }
 }
 
@@ -441,10 +443,10 @@ pub unsafe extern "C" fn rust_xfile_eof(stream: *const XFile) -> c_int {
 pub unsafe extern "C" fn rust_xfile_get_size(stream: *const XFile) -> c_long {
     assert_ne!(stream, null()); // "stream", "xfile.c", 690
 
-    match (*stream).file {
-        XFileType::DFile(file) => dfile_get_size(file),
+    match &(*stream).file {
+        XFileType::DFile(file) => dfile_get_size(&file.as_ref().borrow()),
         XFileType::GZFile(_) => 0,
-        XFileType::File(file) => rust_get_file_size(file),
+        XFileType::File(file) => rust_get_file_size(*file),
     }
 }
 

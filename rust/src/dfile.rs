@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use crate::fpattern::fpattern_match;
 use crate::platform_compat::{rust_compat_fopen, rust_compat_strdup, rust_get_file_size, COMPAT_MAX_PATH, compat_stricmp};
 use libc::{
@@ -11,6 +12,7 @@ use libz_sys::{
 use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
+use std::rc::Rc;
 
 // The size of decompression buffer for reading compressed [DFile]s.
 const DFILE_DECOMPRESSION_BUFFER_SIZE: u32 = 0x400;
@@ -78,7 +80,7 @@ pub struct DBase {
     entries: Option<Vec<DBaseEntry>>,
 
     // The head of linked list of open file handles.
-    dfile_head: *mut DFile,
+    dfile_head: Option<Rc<RefCell<DFile>>>,
 }
 
 impl DBase {
@@ -142,7 +144,25 @@ pub struct DFile {
     //
     // [DFile]s are stored in [DBase] in reverse order, so it's actually a
     // previous opened file, not next.
-    next: *mut DFile,
+    next: Option<Rc<RefCell<DFile>>>,
+}
+
+impl Default for DFile {
+    fn default() -> Self {
+        Self {
+            dbase: null_mut(),
+            entry: null_mut(),
+            flags: 0,
+            stream: null_mut(),
+            decompression_stream: z_streamp::from(null_mut()),
+            decompression_buffer: null_mut(),
+            ungotten: 0,
+            compressed_ungotten: 0,
+            compressed_bytes_read: 0,
+            position: 0,
+            next: None,
+        }
+    }
 }
 
 pub struct DFileFindData {
@@ -173,65 +193,62 @@ impl Default for DFileFindData {
     }
 }
 
-pub unsafe fn dfile_close(stream: *mut DFile) -> c_int {
-    assert_ne!(stream, null_mut()); // "stream", "dfile.c", 253
-
+pub unsafe fn dfile_close(stream: Rc<RefCell<DFile>>) -> c_int {
     let mut rc: c_int = 0;
 
-    if (*(*stream).entry).compressed[0] == 1 {
-        if inflateEnd((*stream).decompression_stream) != Z_OK {
+    if (*stream.borrow().entry).compressed[0] == 1 {
+        if inflateEnd(stream.borrow().decompression_stream) != Z_OK {
             rc = -1;
         }
     }
 
-    if (*stream).decompression_stream != null_mut() {
-        free((*stream).decompression_stream as *mut c_void);
+    if stream.borrow().decompression_stream != null_mut() {
+        free(stream.borrow().decompression_stream as *mut c_void);
     }
 
-    if (*stream).decompression_buffer != null_mut() {
-        free((*stream).decompression_buffer as *mut c_void);
+    if stream.borrow().decompression_buffer != null_mut() {
+        free(stream.borrow().decompression_buffer as *mut c_void);
     }
 
-    if (*stream).stream != null_mut() {
-        fclose((*stream).stream);
+    if stream.borrow().stream != null_mut() {
+        fclose(stream.borrow().stream);
     }
 
     // Loop thru open file handles and find previous to remove current handle
     // from linked list.
     //
     // NOTE: Compiled code is slightly different.
-    let mut curr = (*(*stream).dbase).dfile_head;
-    let mut prev = null_mut();
-    while curr != null_mut() {
-        if curr == stream {
+    let mut curr = (*stream.clone().borrow().dbase).dfile_head.clone();
+    let mut prev: Option<Rc<RefCell<DFile>>> = None;
+    while curr.is_some() {
+        if Rc::ptr_eq(curr.as_ref().expect(""), &stream) {
             break;
         }
 
-        prev = curr;
-        curr = (*curr).next;
+        prev = curr.clone();
+        curr = curr.expect("").borrow().next.clone();
     }
 
-    if curr != null_mut() {
-        if prev == null_mut() {
-            (*(*stream).dbase).dfile_head = (*stream).next;
+    if curr.is_some() {
+        if prev.is_none() {
+            (*stream.borrow().dbase).dfile_head = stream.borrow().next.clone();
         } else {
-            (*prev).next = (*stream).next;
+            prev.expect("").borrow_mut().next = (*stream).borrow().next.clone();
         }
     }
 
-    memset(stream as *mut c_void, 0, mem::size_of::<DFile>());
+    // memset(stream as *mut c_void, 0, mem::size_of::<DFile>());
 
-    free(stream as *mut c_void);
+    // free(stream as *mut c_void);
 
     rc
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_dfile_open(
+pub unsafe fn rust_dfile_open(
     dbase: *mut DBase,
     file_path: *const c_char,
     mode: *const c_char,
-) -> *mut DFile {
+) -> Option<Rc<RefCell<DFile>>> {
     assert_ne!(dbase, null_mut()); // dfile.c, 295
     assert_ne!(file_path, null()); // dfile.c, 296
     assert_ne!(mode, null()); // dfile.c, 297
@@ -241,50 +258,40 @@ pub unsafe extern "C" fn rust_dfile_open(
         compat_stricmp(a.get_path_cstr(), file_path)
     }).map(|i| &mut entries[i]);
 
-    unsafe fn cleanup(dfile: *mut DFile) {
-        if dfile != null_mut() {
-            dfile_close(dfile);
-        }
-    }
-
     if optional_entry.is_err() {
-        return null_mut();
+        return None;
     }
 
     if *mode != 'r' as c_char {
-        return null_mut();
+        return None;
     }
 
-    let dfile = malloc(mem::size_of::<DFile>()) as *mut DFile;
-    if dfile == null_mut() {
-        return null_mut();
-    }
+    let dfile = Rc::new(RefCell::new(DFile::default()));
 
-    memset(dfile as *mut c_void, 0, mem::size_of::<DFile>());
-    (*dfile).dbase = dbase;
-    (*dfile).next = (*dbase).dfile_head;
-    (*dbase).dfile_head = dfile;
+    dfile.borrow_mut().dbase = dbase;
+    dfile.borrow_mut().next = (*dbase).dfile_head.clone();
+    (*dbase).dfile_head = Some(dfile.clone());
 
     let entry = optional_entry.expect("valid entry") as *mut DBaseEntry;
-    (*dfile).entry = entry;
+    dfile.borrow_mut().entry = entry;
 
     // Open stream to .DAT file.
     let rb = CString::new("rb").expect("valid string");
-    (*dfile).stream = rust_compat_fopen((*dbase).get_path_cstr(), rb.as_ptr());
-    if (*dfile).stream == null_mut() {
-        cleanup(dfile);
-        return null_mut();
+    dfile.borrow_mut().stream = rust_compat_fopen((*dbase).get_path_cstr(), rb.as_ptr());
+    if dfile.borrow().stream == null_mut() {
+        dfile_close(dfile);
+        return None;
     }
 
     // Relocate stream to the beginning of data for specified entry.
     if fseek(
-        (*dfile).stream,
+        dfile.borrow().stream,
         ((*dbase).data_offset + (*entry).data_offset[0]) as c_long,
         SEEK_SET,
     ) != 0
     {
-        cleanup(dfile);
-        return null_mut();
+        dfile_close(dfile);
+        return None;
     }
 
     if (*entry).compressed[0] == 1 {
@@ -292,64 +299,64 @@ pub unsafe extern "C" fn rust_dfile_open(
         // buffer. This step is not needed when previous instance of dfile is
         // passed via parameter, which might already have stream and
         // buffer allocated.
-        if (*dfile).decompression_stream == null_mut() {
-            (*dfile).decompression_stream = malloc(mem::size_of::<z_stream>()) as z_streamp;
-            if (*dfile).decompression_stream == null_mut() {
-                cleanup(dfile);
-                return null_mut();
+        if dfile.borrow().decompression_stream == null_mut() {
+            dfile.borrow_mut().decompression_stream = malloc(mem::size_of::<z_stream>()) as z_streamp;
+            if dfile.borrow().decompression_stream == null_mut() {
+                dfile_close(dfile);
+                return None;
             }
 
-            (*dfile).decompression_buffer =
+            dfile.borrow_mut().decompression_buffer =
                 malloc(DFILE_DECOMPRESSION_BUFFER_SIZE as size_t) as *mut c_uchar;
-            if (*dfile).decompression_buffer == null_mut() {
-                cleanup(dfile);
-                return null_mut();
+            if dfile.borrow().decompression_buffer == null_mut() {
+                dfile_close(dfile);
+                return None;
             }
         }
 
-        (*(*dfile).decompression_stream).zalloc =
+        (*dfile.borrow().decompression_stream).zalloc =
             mem::transmute::<*const c_void, alloc_func>(null());
-        (*(*dfile).decompression_stream).zfree = mem::transmute::<*const c_void, free_func>(null());
-        (*(*dfile).decompression_stream).opaque = mem::transmute::<*const c_void, voidpf>(null());
-        (*(*dfile).decompression_stream).next_in = (*dfile).decompression_buffer;
-        (*(*dfile).decompression_stream).avail_in = 0;
+        (*dfile.borrow().decompression_stream).zfree = mem::transmute::<*const c_void, free_func>(null());
+        (*dfile.borrow().decompression_stream).opaque = mem::transmute::<*const c_void, voidpf>(null());
+        (*dfile.borrow().decompression_stream).next_in = dfile.borrow().decompression_buffer;
+        (*dfile.borrow().decompression_stream).avail_in = 0;
 
         // Used ZLIB_VERSION
         let version = CString::new("1.2.11").expect("valid string");
         if inflateInit_(
-            (*dfile).decompression_stream,
+            dfile.borrow().decompression_stream,
             version.as_ptr(),
             mem::size_of::<z_stream>() as c_int,
         ) != Z_OK
         {
-            cleanup(dfile);
-            return null_mut();
+            dfile_close(dfile);
+            return None;
         }
     } else {
         // Entry is not compressed, there is no need to keep decompression
         // stream and decompression buffer (in case [dfile] was passed via
         // parameter).
-        if (*dfile).decompression_stream != null_mut() {
-            free((*dfile).decompression_stream as *mut c_void);
-            (*dfile).decompression_stream = null_mut();
+        if dfile.borrow().decompression_stream != null_mut() {
+            free(dfile.borrow().decompression_stream as *mut c_void);
+            dfile.borrow_mut().decompression_stream = null_mut();
         }
 
-        if (*dfile).decompression_buffer != null_mut() {
-            free((*dfile).decompression_buffer as *mut c_void);
-            (*dfile).decompression_buffer = null_mut();
+        if dfile.borrow().decompression_buffer != null_mut() {
+            free(dfile.borrow().decompression_buffer as *mut c_void);
+            dfile.borrow_mut().decompression_buffer = null_mut();
         }
     }
 
     if *mode.offset(1) == 't' as c_char {
-        (*dfile).flags |= DFILE_TEXT as c_int;
+        dfile.borrow_mut().flags |= DFILE_TEXT as c_int;
     }
 
-    dfile
+    Some(dfile)
 }
 
 // 0x4E6078
 unsafe fn dfile_read_compressed(
-    stream: *mut DFile,
+    stream: &mut DFile,
     mut ptr: *const c_void,
     mut size: size_t,
 ) -> bool {
@@ -361,8 +368,8 @@ unsafe fn dfile_read_compressed(
 
         size -= 1;
 
-        (*stream).flags &= !DFILE_HAS_COMPRESSED_UNGETC;
-        (*stream).position += 1;
+        stream.flags &= !DFILE_HAS_COMPRESSED_UNGETC;
+        stream.position += 1;
 
         if size == 0 {
             return true;
@@ -418,14 +425,14 @@ unsafe fn dfile_read_compressed(
 // NOTE: Inlined.
 //
 // 0x4E613C
-unsafe fn dfile_unget_compressed(stream: *mut DFile, ch: c_int) {
-    (*stream).compressed_ungotten = ch;
-    (*stream).flags |= DFILE_HAS_COMPRESSED_UNGETC;
-    (*stream).position -= 1;
+unsafe fn dfile_unget_compressed(stream: &mut DFile, ch: c_int) {
+    stream.compressed_ungotten = ch;
+    stream.flags |= DFILE_HAS_COMPRESSED_UNGETC;
+    stream.position -= 1;
 }
 
 // 0x4E5F9C
-unsafe fn dfile_read_char_internal(stream: *mut DFile) -> c_int {
+unsafe fn dfile_read_char_internal(stream: &mut DFile) -> c_int {
     if (*(*stream).entry).compressed[0] == 1 {
         let mut ch = ['\0' as c_char; 1];
         if !dfile_read_compressed(
@@ -492,10 +499,10 @@ unsafe fn dfile_read_char_internal(stream: *mut DFile) -> c_int {
 pub unsafe fn dbase_close(dbase: *mut DBase) -> bool {
     assert_ne!(dbase, null_mut()); // "dbase", "dfile.c", 173
 
-    let mut curr = (*dbase).dfile_head;
-    while curr != null_mut() {
-        let next = (*curr).next;
-        dfile_close(curr);
+    let mut curr = (*dbase).dfile_head.clone();
+    while curr.is_some() {
+        let next = curr.as_ref().expect("").clone().borrow().next.clone();
+        dfile_close(curr.as_ref().expect("").clone());
         curr = next;
     }
 
@@ -748,8 +755,8 @@ pub unsafe fn dbase_find_next_entry(
     false
 }
 
-pub unsafe fn dfile_read_char(stream: *mut DFile) -> c_int {
-    assert_ne!(stream, null_mut()); // "stream", "dfile.c", 384
+pub unsafe fn dfile_read_char(stream: &mut DFile) -> c_int {
+    // assert_ne!(stream, null_mut()); // "stream", "dfile.c", 384
 
     if ((*stream).flags & DFILE_EOF as c_int) != 0 || ((*stream).flags & DFILE_ERROR as c_int) != 0
     {
@@ -772,11 +779,11 @@ pub unsafe fn dfile_read_char(stream: *mut DFile) -> c_int {
 pub unsafe fn dfile_read_string(
     string: *mut c_char,
     mut size: c_int,
-    stream: *mut DFile,
+    stream: &mut DFile,
 ) -> *const c_char {
     assert_ne!(string, null_mut()); // "s", "dfile.c", 407
     assert_ne!(size, 0); // "n", "dfile.c", 408
-    assert_ne!(stream, null_mut()); // "stream", "dfile.c", 409
+    // assert_ne!(stream, null_mut()); // "stream", "dfile.c", 409
 
     if ((*stream).flags & DFILE_EOF as c_int) != 0 || ((*stream).flags & DFILE_ERROR as c_int) != 0
     {
@@ -822,10 +829,10 @@ pub unsafe fn dfile_read(
     mut ptr: *const c_void,
     size: size_t,
     count: size_t,
-    stream: *mut DFile,
+    stream: &mut DFile,
 ) -> size_t {
     assert_ne!(ptr, null_mut()); // "ptr", "dfile.c", 499
-    assert_ne!(stream, null_mut()); // "stream", dfile.c, 500
+    // assert_ne!(stream, null_mut()); // "stream", dfile.c, 500
 
     if ((*stream).flags & DFILE_EOF as c_int) != 0 || ((*stream).flags & DFILE_ERROR as c_int) != 0
     {
@@ -877,16 +884,15 @@ pub unsafe fn dfile_write(
     ptr: *const c_void,
     _size: size_t,
     count: size_t,
-    stream: *const DFile,
+    _stream: &DFile,
 ) -> size_t {
     assert_ne!(ptr, null()); // "ptr", "dfile.c", 538
-    assert_ne!(stream, null()); // "stream", "dfile.c", 539
 
     count - 1
 }
 
-pub unsafe fn dfile_seek(stream: *mut DFile, offset: c_long, origin: c_int) -> c_int {
-    assert_ne!(stream, null_mut()); // "stream", "dfile.c", 569
+pub unsafe fn dfile_seek(stream: &mut DFile, offset: c_long, origin: c_int) -> c_int {
+    // assert_ne!(stream, null_mut()); // "stream", "dfile.c", 569
 
     if ((*stream).flags & DFILE_ERROR as c_int) != 0 {
         return 1;
@@ -989,8 +995,8 @@ pub unsafe fn dfile_seek(stream: *mut DFile, offset: c_long, origin: c_int) -> c
     0
 }
 
-pub unsafe fn dfile_rewind(stream: *mut DFile) {
-    assert_ne!(stream, null_mut()); // "stream", "dfile.c", 664
+pub unsafe fn dfile_rewind(stream: &mut DFile) {
+    // assert_ne!(stream, null_mut()); // "stream", "dfile.c", 664
 
     dfile_seek(stream, 0, SEEK_SET);
 
@@ -998,42 +1004,39 @@ pub unsafe fn dfile_rewind(stream: *mut DFile) {
 }
 
 pub unsafe fn dfile_print_formatted_args(
-    stream: *const DFile,
+    _stream: &DFile,
     format: *const c_char,
     _args: *mut c_void,
 ) -> c_int {
-    assert_ne!(stream, null()); // "stream", "dfile.c", 368
     assert_ne!(format, null()); // "format", "dfile.c", 369
 
     -1
 }
 
-pub unsafe fn dfile_write_char(_ch: c_int, stream: *const DFile) -> c_int {
-    assert_ne!(stream, null()); // "stream", "dfile.c", 437
-
+pub unsafe fn dfile_write_char(_ch: c_int, _stream: &DFile) -> c_int {
     -1
 }
 
-pub unsafe fn dfile_write_string(string: *const c_char, stream: *const DFile) -> c_int {
+pub unsafe fn dfile_write_string(string: *const c_char, _stream: &DFile) -> c_int {
     assert_ne!(string, null()); // "s", "dfile.c", 448
-    assert_ne!(stream, null()); // "stream", "dfile.c", 449
+    // assert_ne!(stream, null()); // "stream", "dfile.c", 449
 
     -1
 }
 
-pub unsafe fn dfile_tell(stream: *const DFile) -> c_long {
-    assert_ne!(stream, null()); // "stream", "dfile.c", 654
+pub unsafe fn dfile_tell(stream: &DFile) -> c_long {
+    // assert_ne!(stream, null()); // "stream", "dfile.c", 654
 
-    (*stream).position
+    stream.position
 }
 
-pub unsafe fn dfile_eof(stream: *const DFile) -> c_int {
-    assert_ne!(stream, null()); // "stream", "dfile.c", 685
+pub unsafe fn dfile_eof(stream: &DFile) -> c_int {
+    // assert_ne!(stream, null()); // "stream", "dfile.c", 685
 
-    (*stream).flags & DFILE_EOF as c_int
+    stream.flags & DFILE_EOF as c_int
 }
 
-pub unsafe fn dfile_get_size(stream: *const DFile) -> c_long {
+pub unsafe fn dfile_get_size(stream: &DFile) -> c_long {
     (*(*stream).entry).uncompressed_size[0] as c_long
 }
 
