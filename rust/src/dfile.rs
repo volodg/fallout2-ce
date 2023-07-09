@@ -147,6 +147,11 @@ pub struct DFile {
     next: Option<Rc<RefCell<DFile>>>,
 }
 
+impl Drop for DFile {
+    fn drop(&mut self) {
+    }
+}
+
 impl Default for DFile {
     fn default() -> Self {
         Self {
@@ -193,6 +198,7 @@ impl Default for DFileFindData {
     }
 }
 
+// 
 pub unsafe fn dfile_close(stream_rc: Rc<RefCell<DFile>>) -> c_int {
     let mut rc: c_int = 0;
 
@@ -238,6 +244,9 @@ pub unsafe fn dfile_close(stream_rc: Rc<RefCell<DFile>>) -> c_int {
         }
     }
 
+    // memset(stream as *mut c_void, 0, mem::size_of::<DFile>());
+
+    // free(stream as *mut c_void);
     rc
 }
 
@@ -498,24 +507,13 @@ pub unsafe fn dbase_close(dbase: *mut DBase) -> bool {
 
     let mut curr = (*dbase).dfile_head.clone();
     while curr.is_some() {
-        let next = curr.as_ref().expect("").clone().borrow().next.clone();
-        dfile_close(curr.as_ref().expect("").clone());
+        let next = curr.as_ref().expect("").borrow().next.clone();
+        dfile_close(curr.expect("").clone());
         curr = next;
     }
-
-    if (*dbase).entries.is_some() {
-        for index in 0..((*dbase).entries_length[0]) {
-            let entry = &mut (*dbase).entries.as_mut().expect("")[index as usize];
-            if (*entry).path != None {
-                (*entry).path = None;
-            }
-        }
-        (*dbase).entries = None
-    }
-
-    if (*dbase).path != None {
-        (*dbase).path = None;
-    }
+    (*dbase).dfile_head = None;
+    (*dbase).entries = None;
+    (*dbase).path = None;
 
     memset(dbase as *mut c_void, 0, mem::size_of::<DBase>());
 
