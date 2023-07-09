@@ -187,7 +187,7 @@ pub unsafe extern "C" fn rust_xfile_open(
         while curr != null_mut() {
             if (*curr).is_dbase {
                 // Attempt to open dfile stream from dbase.
-                let dfile = rust_dfile_open(&mut (*curr).dbase.as_ref().expect("").borrow_mut(), file_path, mode);
+                let dfile = rust_dfile_open(&(*curr).dbase.as_ref().expect(""), file_path, mode);
                 if dfile.is_some() {
                     (*stream).file = XFileType::DFile(dfile.expect(""));
                     snprintf(

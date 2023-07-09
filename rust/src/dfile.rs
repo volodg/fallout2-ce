@@ -12,7 +12,7 @@ use libz_sys::{
 use std::ffi::{c_void, CString};
 use std::{mem, ptr};
 use std::ptr::{null, null_mut};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 // The size of decompression buffer for reading compressed [DFile]s.
 const DFILE_DECOMPRESSION_BUFFER_SIZE: u32 = 0x400;
@@ -103,7 +103,7 @@ impl DBase {
 
 // A handle to open entry in .DAT file.
 pub struct DFile {
-    dbase: *mut DBase,
+    dbase: Weak<RefCell<DBase>>,
     entry: *mut DBaseEntry,
     flags: c_int,
 
@@ -181,7 +181,7 @@ impl Drop for DFile {
 impl DFile {
     fn new(entry: *mut DBaseEntry, stream: *mut FILE) -> Self {
         Self {
-            dbase: null_mut(),
+            dbase: Weak::new(),
             entry,
             flags: 0,
             stream,
@@ -229,7 +229,8 @@ pub unsafe fn dfile_remove_node(stream: &DFile) -> c_int {
     // from linked list.
     //
     // NOTE: Compiled code is slightly different.
-    let mut curr = (*stream.dbase).dfile_head.clone();
+    let dbase = stream.dbase.upgrade().expect("");
+    let mut curr = dbase.borrow().dfile_head.clone();
     let mut prev: Option<Rc<RefCell<DFile>>> = None;
     while curr.is_some() {
         if ptr::eq(curr.as_ref().expect("").as_ptr(), stream) {
@@ -242,7 +243,7 @@ pub unsafe fn dfile_remove_node(stream: &DFile) -> c_int {
 
     if curr.is_some() {
         if prev.is_none() {
-            (*stream.dbase).dfile_head = stream.next.clone();
+            dbase.borrow_mut().dfile_head = stream.next.clone();
         } else {
             prev.expect("").borrow_mut().next = stream.next.clone();
         }
@@ -252,12 +253,14 @@ pub unsafe fn dfile_remove_node(stream: &DFile) -> c_int {
 }
 
 pub unsafe fn rust_dfile_open(
-    dbase: &mut DBase,
+    dbase_rc: &Rc<RefCell<DBase>>,
     file_path: *const c_char,
     mode: *const c_char,
 ) -> Option<Rc<RefCell<DFile>>> {
     assert_ne!(file_path, null()); // dfile.c, 296
     assert_ne!(mode, null()); // dfile.c, 297
+
+    let dbase = &mut dbase_rc.as_ref().borrow_mut();
 
     let entries = (*dbase).entries.as_mut().expect("");
     let optional_entry = entries.binary_search_by(|a| {
@@ -347,7 +350,7 @@ pub unsafe fn rust_dfile_open(
         dfile.flags |= DFILE_TEXT as c_int;
     }
 
-    dfile.dbase = dbase;
+    dfile.dbase = Rc::downgrade(&dbase_rc);
     dfile.next = (*dbase).dfile_head.clone();
 
     let dfile = Rc::new(RefCell::new(dfile));
@@ -920,7 +923,7 @@ pub unsafe fn dfile_seek(stream: &mut DFile, offset: c_long, origin: c_int) -> c
 
     if fseek(
         (*stream).stream,
-        ((*(*stream).dbase).data_offset + (*(*stream).entry).data_offset[0]) as c_long,
+        ((*(*stream).dbase.upgrade().expect("")).borrow().data_offset + (*(*stream).entry).data_offset[0]) as c_long,
         SEEK_SET,
     ) != 0
     {
