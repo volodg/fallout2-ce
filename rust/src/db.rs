@@ -211,7 +211,7 @@ pub unsafe extern "C" fn rust_file_read_string(string: *mut c_char, size: size_t
 #[no_mangle]
 pub unsafe extern "C" fn rust_file_read(ptr: *mut c_void, size: size_t, count: size_t, stream: *const XFile) -> size_t {
     if mem::transmute::<unsafe extern "C" fn(), *const c_void>(rust_get_g_file_read_progress_handler()) != null() {
-        let mut byte_buffer = ptr;// as *mut c_uchar;
+        let mut byte_buffer = ptr;
 
         let mut total_bytes_read = 0;
         let mut remaining_size = size * count;
