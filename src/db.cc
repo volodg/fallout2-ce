@@ -13,7 +13,8 @@
 // rust_db_open
 extern "C" {
     int rust_db_open(const char* filePath1, int a2, const char* filePath2, int a4);
-    // rust_db_open
+    int rust_db_get_file_size(const char* filePath, int* sizePtr);
+    // rust_db_get_file_size
 }
 
 namespace fallout {
@@ -79,19 +80,7 @@ void dbExit()
 // 0x4C5D68
 int dbGetFileSize(const char* filePath, int* sizePtr)
 {
-    assert(filePath); // "filename", "db.c", 108
-    assert(sizePtr); // "de", "db.c", 109
-
-    File* stream = xfileOpen(filePath, "rb");
-    if (stream == nullptr) {
-        return -1;
-    }
-
-    *sizePtr = xfileGetSize(stream);
-
-    xfileClose(stream);
-
-    return 0;
+    return rust_db_get_file_size(filePath, sizePtr);
 }
 
 // 0x4C5DD4

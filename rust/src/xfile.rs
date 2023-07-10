@@ -166,9 +166,9 @@ pub unsafe extern "C" fn rust_xfile_close(stream: *mut XFile) -> c_int {
 pub unsafe extern "C" fn rust_xfile_open(
     file_path: *const c_char,
     mode: *const c_char,
-) -> *const XFile {
-    assert_ne!(file_path, null_mut()); // "filename", "xfile.c", 162
-    assert_ne!(mode, null_mut()); // "mode", "xfile.c", 163
+) -> *mut XFile {
+    assert_ne!(file_path, null()); // "filename", "xfile.c", 162
+    assert_ne!(mode, null()); // "mode", "xfile.c", 163
 
     let mut stream = Box::new(XFile::default());
 
@@ -193,7 +193,7 @@ pub unsafe extern "C" fn rust_xfile_open(
         // [filePath] is an absolute path. Attempt to open as plain stream.
         let file = rust_compat_fopen(file_path, mode);
         if file == null_mut() {
-            return null();
+            return null_mut();
         }
 
         (*stream).file = XFileType::File(file);
@@ -251,7 +251,7 @@ pub unsafe extern "C" fn rust_xfile_open(
                 // relative to the current working directory.
                 let file = rust_compat_fopen(file_path, mode);
                 if file == null_mut() {
-                    return null();
+                    return null_mut();
                 }
                 (*stream).file = XFileType::File(file);
 
