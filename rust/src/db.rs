@@ -334,10 +334,23 @@ pub unsafe extern "C" fn rust_db_fwrite_long(stream: *const XFile, value: c_int)
     0
 }
 
-/*
-int _db_fwriteLong(File* stream, int value)
-{
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_read_uint8_list(stream: *const XFile, arr: *mut c_uchar, count: c_int) -> c_int {
+    for index in 0..count {
+        let mut ch = 0;
+        // NOTE: Uninline.
+        if rust_file_read_uint8(stream, &mut ch) == -1 {
+            return -1;
+        }
 
+        *arr.offset(index as isize) = ch;
+    }
+
+    0
+}
+/*
+int fileReadUInt8List(File* stream, unsigned char* arr, int count)
+{
 }
  */
 

@@ -32,6 +32,7 @@ extern "C" {
     int rust_file_write_uint8(fallout::File* stream, unsigned char value);
     int rust_file_write_int16(fallout::File* stream, short value);
     int rust_db_fwrite_long(fallout::File* stream, int value);
+    int rust_file_read_uint8_list(fallout::File* stream, unsigned char* arr, int count);
     // rust_file_read_uint8
 }
 
@@ -268,17 +269,7 @@ int fileWriteBool(File* stream, bool value)
 // 0x4C62FC
 int fileReadUInt8List(File* stream, unsigned char* arr, int count)
 {
-    for (int index = 0; index < count; index++) {
-        unsigned char ch;
-        // NOTE: Uninline.
-        if (fileReadUInt8(stream, &ch) == -1) {
-            return -1;
-        }
-
-        arr[index] = ch;
-    }
-
-    return 0;
+    return rust_file_read_uint8_list(stream, arr, count);
 }
 
 // NOTE: Probably uncollapsed 0x4C62FC. There are couple of places where
