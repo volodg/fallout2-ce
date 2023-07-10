@@ -19,7 +19,7 @@ use crate::platform_compat::{
 use libc::snprintf;
 use libc::{
     atexit, c_char, c_long, c_uint, chdir, fclose, feof, fgetc, fputc, fputs, fread, free, fseek,
-    ftell, fwrite, getcwd, malloc, memset, realloc, rewind, size_t, strcmp, strcpy, strtok, FILE,
+    ftell, fwrite, getcwd, memset, realloc, rewind, size_t, strcmp, strcpy, strtok, FILE,
 };
 use libz_sys::{
     gzFile, gzclose, gzeof, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite,
@@ -27,9 +27,12 @@ use libz_sys::{
 };
 use std::ffi::{c_int, c_void, CString};
 use std::mem;
+use std::ops::DerefMut;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use spin::RwLock;
 use vsprintf::vsprintf;
 
 enum XFileType {
@@ -65,8 +68,23 @@ pub struct XBase {
     is_dbase: bool,
 
     // Next [XBase] in linked list.
-    next: *mut XBase,
+    next: Option<Arc<RwLock<XBase>>>,
 }
+
+impl Default for XBase {
+    fn default() -> Self {
+        Self {
+            path: None,
+            dbase: None,
+            is_dbase: false,
+            next: None,
+        }
+    }
+}
+
+unsafe impl Send for XBase {}
+
+unsafe impl Sync for XBase {}
 
 impl XBase {
     fn get_path_cstr(&self) -> *const c_char {
@@ -104,7 +122,7 @@ impl Default for XListEnumerationContext {
 }
 
 // 0x6B24D0
-static G_X_BASE_HEAD: AtomicPtr<XBase> = AtomicPtr::new(null_mut());
+static G_X_BASE_HEAD: RwLock<Option<Arc<RwLock<XBase>>>> = RwLock::new(None);
 static G_X_BASE_EXIT_HANDLER_REGISTERED: AtomicBool = AtomicBool::new(false);
 
 #[cfg(target_family = "windows")]
@@ -113,11 +131,29 @@ extern "C" {
 }
 
 pub fn get_g_xbase_head() -> *mut XBase {
-    G_X_BASE_HEAD.load(Ordering::Relaxed)
+    let read_binding = G_X_BASE_HEAD.read();
+    let lock = read_binding.as_ref();
+    xbase_arc_to_pointer(&lock)
 }
 
-pub fn set_g_xbase_head(value: *mut XBase) {
-    G_X_BASE_HEAD.store(value, Ordering::Relaxed)
+fn xbase_arc_to_pointer(value: &Option<&Arc<RwLock<XBase>>>) -> *mut XBase {
+    match value {
+        Some(lock) => {
+            let mut write_binding = lock.write();
+            write_binding.deref_mut()
+        },
+        None => null_mut()
+    }
+}
+
+pub fn get_g_xbase_head_rc() -> Option<Arc<RwLock<XBase>>> {
+    let read_binding = G_X_BASE_HEAD.read();
+    read_binding.clone()
+}
+
+pub fn set_g_xbase_head(value: Option<Arc<RwLock<XBase>>>) {
+    let mut lock = G_X_BASE_HEAD.write();
+    *lock = value;
 }
 
 pub fn get_g_xbase_exit_handler_registered() -> bool {
@@ -188,7 +224,7 @@ pub unsafe extern "C" fn rust_xfile_open(
     } else {
         // [filePath] is a relative path. Loop thru open xbases and attempt to
         // open [filePath] from appropriate xbase.
-        let mut curr = G_X_BASE_HEAD.load(Ordering::Relaxed);
+        let mut curr = get_g_xbase_head();
         let sformat_sformat = CString::new("%s\\%s").expect("valid string");
         while curr != null_mut() {
             if (*curr).is_dbase {
@@ -221,7 +257,8 @@ pub unsafe extern "C" fn rust_xfile_open(
                     break;
                 }
             }
-            curr = (*curr).next;
+            let curr_rc = (*curr).next.clone();
+            curr = xbase_arc_to_pointer(&curr_rc.as_ref());
         }
 
         match (*stream).file {
@@ -458,23 +495,7 @@ pub unsafe extern "C" fn rust_xfile_get_size(stream: *const XFile) -> c_long {
 
 // Closes all xbases.
 extern "C" fn xbase_close_all() {
-    unsafe {
-        let mut curr = get_g_xbase_head();
-        set_g_xbase_head(null_mut());
-
-        while curr != null_mut() {
-            let next = (*curr).next;
-
-            if (*curr).is_dbase {
-                (*curr).dbase = None;
-            }
-
-            (*curr).path = None;
-            free(curr as *mut c_void);
-
-            curr = next;
-        }
-    }
+    set_g_xbase_head(None);
 }
 
 #[cfg(target_family = "windows")]
@@ -528,7 +549,8 @@ pub unsafe fn xbase_make_directory(file_path: *mut c_char) -> c_int {
                 );
                 break;
             }
-            curr = (*curr).next;
+            let curr_rc = (*curr).next.clone();
+            curr = xbase_arc_to_pointer(&curr_rc.as_ref());
         }
 
         if curr == null_mut() {
@@ -589,6 +611,7 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
     }
 
     let mut curr = get_g_xbase_head();
+    let mut curr_rc = get_g_xbase_head_rc();
     let mut prev = null_mut();
     while curr != null_mut() {
         if rust_compat_stricmp(path, (*curr).get_path_cstr()) == 0 {
@@ -596,37 +619,33 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
         }
 
         prev = curr;
-        curr = (*curr).next;
+        curr_rc = (*curr).next.clone();
+        curr = xbase_arc_to_pointer(&curr_rc.as_ref());
     }
 
     if curr != null_mut() {
         if prev != null_mut() {
             // Move found xbase to the top.
-            (*prev).next = (*curr).next;
-            (*curr).next = get_g_xbase_head();
-            set_g_xbase_head(curr);
+            (*prev).next = (*curr).next.clone();
+            (*curr).next = get_g_xbase_head_rc();
+            set_g_xbase_head(curr_rc);
         }
         return true;
     }
 
-    let xbase = malloc(mem::size_of::<XBase>()) as *mut XBase;
-    if xbase == null_mut() {
-        return false;
-    }
+    let mut xbase = XBase::default();
 
-    memset(xbase as *mut c_void, 0, mem::size_of::<XBase>());
-
-    (*xbase).path = Some(CString::from_raw(rust_compat_strdup(path)));
-    if (*xbase).path == None {
-        free(xbase as *mut c_void);
+    xbase.path = Some(CString::from_raw(rust_compat_strdup(path)));
+    if xbase.path == None {
         return false;
     }
 
     let dbase = dbase_open(path);
     if dbase.is_some() {
-        (*xbase).is_dbase = true;
-        (*xbase).dbase = dbase;
-        (*xbase).next = get_g_xbase_head();
+        xbase.is_dbase = true;
+        xbase.dbase = dbase;
+        xbase.next = get_g_xbase_head_rc();
+        let xbase = Some(Arc::new(RwLock::new(xbase)));
         set_g_xbase_head(xbase);
         return true;
     }
@@ -643,7 +662,8 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
 
     if chdir(path) == 0 {
         chdir(working_directory.as_ptr());
-        (*xbase).next = get_g_xbase_head();
+        xbase.next = get_g_xbase_head_rc();
+        let xbase = Some(Arc::new(RwLock::new(xbase)));
         set_g_xbase_head(xbase);
         return true;
     }
@@ -655,7 +675,8 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
 
     chdir(working_directory.as_ptr());
 
-    (*xbase).next = get_g_xbase_head();
+    xbase.next = get_g_xbase_head_rc();
+    let xbase = Some(Arc::new(RwLock::new(xbase)));
     set_g_xbase_head(xbase);
 
     true
@@ -837,7 +858,8 @@ unsafe fn xlist_enumerate(
             }
             file_find_close(&directory_file_find_data);
         }
-        xbase = (*xbase).next;
+        let xbase_rc = (*xbase).next.clone();
+        xbase = xbase_arc_to_pointer(&xbase_rc.as_ref());
     }
 
     rust_compat_splitpath(
