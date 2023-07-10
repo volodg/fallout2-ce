@@ -568,8 +568,7 @@ pub unsafe fn xbase_make_directory(file_path: *mut c_char) -> c_int {
     0
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
+pub unsafe fn xbase_open(path: *mut c_char) -> bool {
     assert_ne!(path, null_mut()); // "path", "xfile.c", 747
 
     // Register atexit handler so that underlying dbase (if any) can be
@@ -665,7 +664,7 @@ pub unsafe extern "C" fn rust_xbase_reopen_all(paths: *mut c_char) -> bool {
     if paths != null_mut() {
         let mut tok = strtok(paths, delimiter.as_ptr());
         while tok != null_mut() {
-            if !rust_xbase_open(tok) {
+            if !xbase_open(tok) {
                 return false;
             }
             tok = strtok(null_mut(), delimiter.as_ptr());

@@ -9,3 +9,4 @@ mod platform_compat;
 mod version;
 mod win32;
 mod xfile;
+mod db;

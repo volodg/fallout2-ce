@@ -10,6 +10,12 @@
 #include "xfile.h"
 #include "platform_compat.h"
 
+// rust_db_open
+extern "C" {
+    int rust_db_open(const char* filePath1, int a2, const char* filePath2, int a4);
+    // rust_db_open
+}
+
 namespace fallout {
 
 typedef struct FileList {
@@ -22,7 +28,7 @@ static int _db_list_compare(const void* p1, const void* p2);
 // Generic file progress report handler.
 //
 // 0x51DEEC
-static FileReadProgressHandler* gFileReadProgressHandler = NULL;
+static FileReadProgressHandler* gFileReadProgressHandler = nullptr;
 
 // Bytes read so far while tracking progress.
 //
@@ -53,17 +59,7 @@ static FileList* gFileListHead;
 // 0x4C5D30
 int dbOpen(const char* filePath1, int a2, const char* filePath2, int a4)
 {
-    if (filePath1 != nullptr) {
-        if (!xbaseOpen(filePath1)) {
-            return -1;
-        }
-    }
-
-    if (filePath2 != nullptr) {
-        xbaseOpen(filePath2);
-    }
-
-    return 0;
+    return rust_db_open(filePath1, a2, filePath2, a4);
 }
 
 // 0x4C5D58
