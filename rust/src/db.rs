@@ -2,7 +2,7 @@ use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicI32, AtomicPtr, Ordering};
-use libc::{c_char, c_int, c_long, size_t, strlen};
+use libc::{c_char, c_int, c_long, c_uchar, c_uint, size_t, strlen};
 use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, rust_xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string};
 
 type FileReadProgressHandler = unsafe extern "C" fn();
@@ -239,8 +239,19 @@ pub unsafe extern "C" fn rust_file_read(ptr: *mut c_void, size: size_t, count: s
     rust_xfile_read(ptr, size, count, stream)
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_read_uint8(stream: *const XFile, value_ptr: *mut c_uchar) -> c_int {
+    let value = rust_file_read_char(stream);
+    if value == -1 {
+        return -1;
+    }
+
+    *value_ptr = (value & 0xFF) as c_uchar;
+
+    0
+}
 /*
-size_t fileRead(void* ptr, size_t size, size_t count, File* stream)
+int fileReadUInt8(File* stream, unsigned char* valuePtr)
 {
 }
  */

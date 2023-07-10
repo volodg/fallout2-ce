@@ -25,7 +25,8 @@ extern "C" {
     int rust_file_read_char(fallout::File* stream);
     char* rust_file_read_string(char* string, size_t size, fallout::File* stream);
     size_t rust_file_read(void* ptr, size_t size, size_t count, fallout::File* stream);
-// rust_file_read
+    int rust_file_read_uint8(fallout::File* stream, unsigned char* valuePtr);
+    // rust_file_read_uint8
 }
 
 namespace fallout {
@@ -165,14 +166,7 @@ int fileEof(File* stream)
 // 0x4C60E0
 int fileReadUInt8(File* stream, unsigned char* valuePtr)
 {
-    int value = fileReadChar(stream);
-    if (value == -1) {
-        return -1;
-    }
-
-    *valuePtr = value & 0xFF;
-
-    return 0;
+    return rust_file_read_uint8(stream, valuePtr);
 }
 
 // NOTE: Not sure about signness.
