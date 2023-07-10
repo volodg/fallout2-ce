@@ -214,6 +214,33 @@ callback: unsafe extern "C" fn(ptr: *mut c_void, size: size_t, count: size_t, st
 ) -> size_t {
     if mem::transmute::<unsafe extern "C" fn(), *const c_void>(rust_get_g_file_read_progress_handler()) != null() {
         return callback(ptr, size, count, stream);
+        /*
+        let mut byte_buffer = ptr;
+
+        let mut total_bytes_read = 0;
+        let mut remaining_size = size * count;
+        let mut chunk_size = rust_get_g_file_read_progress_chunk_size() - rust_get_g_file_read_progress_bytes_read();
+
+        while remaining_size >= chunk_size as size_t {
+            let bytes_read = rust_xfile_read(byte_buffer, mem::size_of_val(&byte_buffer), chunk_size as size_t, stream);
+            byte_buffer = byte_buffer.offset(bytes_read as isize);
+            total_bytes_read += bytes_read;
+            remaining_size -= bytes_read;
+
+            rust_set_g_file_read_progress_bytes_read(0);
+            rust_get_g_file_read_progress_handler()();
+
+            chunk_size = rust_get_g_file_read_progress_chunk_size();
+        }
+
+        if remaining_size != 0 {
+            let bytes_read = rust_xfile_read(byte_buffer, mem::size_of_val(&byte_buffer), remaining_size, stream);
+            rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() + bytes_read as c_int);
+            total_bytes_read += bytes_read;
+        }
+
+        return total_bytes_read / size;
+         */
     }
 
     rust_xfile_read(ptr, size, count, stream)
