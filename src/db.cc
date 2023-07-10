@@ -10,6 +10,10 @@
 #include "xfile.h"
 #include "platform_compat.h"
 
+namespace fallout {
+    struct FileList;
+}
+
 extern "C" {
     int rust_db_open(const char* filePath1, int a2, const char* filePath2, int a4);
     int rust_db_get_file_size(const char* filePath, int* sizePtr);
@@ -19,6 +23,8 @@ extern "C" {
     void rust_set_g_file_read_progress_bytes_read(int);
     int rust_get_g_file_read_progress_chunk_size();
     void rust_set_g_file_read_progress_chunk_size(int);
+    fallout::FileList* rust_g_get_file_list_head();
+    void rust_g_set_file_list_head(fallout::FileList*);
     // rust_db_get_file_size
 }
 
@@ -30,9 +36,6 @@ typedef struct FileList {
 } FileList;
 
 static int _db_list_compare(const void* p1, const void* p2);
-
-// 0x673044
-static FileList* gFileListHead;
 
 // Opens file database.
 //
@@ -588,8 +591,8 @@ int fileNameListInit(const char* pattern, char*** fileNameListPtr, int a3, int a
         }
     }
 
-    fileList->next = gFileListHead;
-    gFileListHead = fileList;
+    fileList->next = rust_g_get_file_list_head();
+    rust_g_set_file_list_head(fileList);
 
     *fileNameListPtr = xlist->fileNames;
 
@@ -599,12 +602,12 @@ int fileNameListInit(const char* pattern, char*** fileNameListPtr, int a3, int a
 // 0x4C6868
 void fileNameListFree(char*** fileNameListPtr, int a2)
 {
-    if (gFileListHead == nullptr) {
+    if (rust_g_get_file_list_head() == nullptr) {
         return;
     }
 
-    FileList* currentFileList = gFileListHead;
-    FileList* previousFileList = gFileListHead;
+    FileList* currentFileList = rust_g_get_file_list_head();
+    FileList* previousFileList = rust_g_get_file_list_head();
     while (*fileNameListPtr != currentFileList->xlist.fileNames) {
         previousFileList = currentFileList;
         currentFileList = currentFileList->next;
@@ -613,8 +616,8 @@ void fileNameListFree(char*** fileNameListPtr, int a2)
         }
     }
 
-    if (previousFileList == gFileListHead) {
-        gFileListHead = currentFileList->next;
+    if (previousFileList == rust_g_get_file_list_head()) {
+        rust_g_set_file_list_head(currentFileList->next);
     } else {
         previousFileList->next = currentFileList->next;
     }

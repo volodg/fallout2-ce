@@ -55,6 +55,19 @@ pub unsafe extern "C" fn rust_set_g_file_read_progress_chunk_size(value: c_int) 
     G_FILE_READ_PROGRESS_CHUNK_SIZE.store(value, Ordering::Relaxed)
 }
 
+// 0x673044
+static G_FILE_LIST_HEAD: AtomicPtr<FileList> = AtomicPtr::new(null_mut());
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_g_get_file_list_head() -> *mut FileList {
+    G_FILE_LIST_HEAD.load(Ordering::Relaxed)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_g_set_file_list_head(value: *mut FileList) {
+    G_FILE_LIST_HEAD.store(value, Ordering::Relaxed)
+}
+
 /*
 
 // Bytes read so far while tracking progress.
@@ -76,7 +89,7 @@ static FileList* gFileListHead;
 
 #[repr(C)]
 #[allow(dead_code)]
-struct FileList {
+pub struct FileList {
     xlist: XList,
     next: *const FileList
 }
