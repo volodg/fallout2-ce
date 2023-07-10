@@ -2,12 +2,10 @@
 
 #include <cassert>
 #include <cstdlib>
-// #include <cstring>
 
 // TODO Migrate
 
 // Migrated
-// #include "platform_compat.h"
 #include "xfile.h"
 
 namespace fallout {
@@ -39,7 +37,6 @@ extern "C" {
     int rust_file_write_int16_list(fallout::File* stream, short* arr, int count);
     int rust_file_write_int32_list(fallout::File* stream, int* arr, int count);
     int rust_db_fwrite_long_count(fallout::File* stream, int* arr, int count);
-    int rust_db_list_compare(const void* p1, const void* p2);
     int rust_file_name_list_init(const char* pattern, char*** fileNameListPtr, int a3, int a4);
     // rust_file_read_uint8
 }

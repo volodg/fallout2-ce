@@ -19,8 +19,6 @@ namespace fallout {
 
 #define COMPAT_MAX_DRIVE 3
 #define COMPAT_MAX_DIR 256
-#define COMPAT_MAX_FNAME 256
-#define COMPAT_MAX_EXT 256
 
 int compat_stricmp(const char* string1, const char* string2);
 int compat_strnicmp(const char* string1, const char* string2, unsigned long size);
@@ -36,7 +34,6 @@ FILE* compat_fopen(const char* path, const char* mode);
 char* compat_fgets(char* buffer, int maxCount, FILE* stream);
 int compat_remove(const char* path);
 int compat_rename(const char* oldFileName, const char* newFileName);
-void compat_windows_path_to_native(char* path);
 int compat_access(const char* path, int mode);
 char* compat_strdup(const char* string);
 long getFileSize(FILE* stream);

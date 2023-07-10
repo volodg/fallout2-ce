@@ -17,7 +17,6 @@ extern "C" {
     long rust_xfile_get_size(fallout::XFile* stream);
     bool rust_xbase_reopen_all(char* paths);
     void rust_xlist_free(fallout::XList* xlist);
-    bool rust_xlist_init(const char* pattern, fallout::XList* xlist);
 }
 
 namespace fallout {
@@ -93,12 +92,6 @@ long xfileGetSize(XFile* stream)
 bool xbaseReopenAll(char* paths)
 {
     return rust_xbase_reopen_all(paths);
-}
-
-// 0x4DFF28
-bool xlistInit(const char* pattern, XList* xlist)
-{
-    return rust_xlist_init(pattern, xlist);
 }
 
 // 0x4DFF48

@@ -11,7 +11,7 @@ use crate::file_find::{
 use crate::platform_compat::{
     compat_gzgets, compat_gzopen, rust_compat_fgets, rust_compat_fopen, rust_compat_makepath,
     rust_compat_mkdir, rust_compat_splitpath, rust_compat_strdup, rust_compat_stricmp,
-    rust_compat_windows_path_to_native, rust_get_file_size, COMPAT_MAX_DIR, COMPAT_MAX_DRIVE,
+    compat_windows_path_to_native, rust_get_file_size, COMPAT_MAX_DIR, COMPAT_MAX_DRIVE,
     COMPAT_MAX_EXT, COMPAT_MAX_FNAME, COMPAT_MAX_PATH,
 };
 #[cfg(not(target_family = "windows"))]
@@ -690,7 +690,7 @@ unsafe fn xlist_enumerate(
 
     let mut native_pattern = [0 as c_char; COMPAT_MAX_PATH];
     strcpy(native_pattern.as_mut_ptr(), pattern);
-    rust_compat_windows_path_to_native(native_pattern.as_mut_ptr());
+    compat_windows_path_to_native(native_pattern.as_mut_ptr());
 
     let mut drive = [0 as c_char; COMPAT_MAX_DRIVE as usize];
     let mut dir = [0 as c_char; COMPAT_MAX_DIR as usize];
@@ -781,7 +781,7 @@ unsafe fn xlist_enumerate(
                 xbase.get_path_cstr(),
                 pattern,
             );
-            rust_compat_windows_path_to_native(path.as_mut_ptr());
+            compat_windows_path_to_native(path.as_mut_ptr());
 
             if file_find_first(path.as_mut_ptr(), &mut directory_file_find_data) {
                 loop {
@@ -921,8 +921,7 @@ unsafe extern "C" fn enumerate_handler(context: *const XListEnumerationContext) 
     true
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_xlist_init(pattern: *const c_char, xlist: *mut XList) -> bool {
+pub unsafe fn xlist_init(pattern: *const c_char, xlist: *mut XList) -> bool {
     xlist_enumerate(pattern, enumerate_handler, xlist);
     (*xlist).file_names_length != -1
 }

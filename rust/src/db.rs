@@ -3,8 +3,8 @@ use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicI32, AtomicPtr, Ordering};
 use libc::{c_char, c_int, c_long, c_short, c_uchar, c_ushort, free, malloc, memmove, memset, qsort, size_t, snprintf, strchr, strlen};
-use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_EXT, COMPAT_MAX_FNAME, COMPAT_MAX_PATH, rust_compat_splitpath, rust_compat_strdup, rust_compat_stricmp, rust_compat_windows_path_to_native};
-use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string, xfile_write_char, rust_xlist_init};
+use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_EXT, COMPAT_MAX_FNAME, COMPAT_MAX_PATH, rust_compat_splitpath, rust_compat_strdup, rust_compat_stricmp, compat_windows_path_to_native};
+use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string, xfile_write_char, xlist_init};
 
 type FileReadProgressHandler = unsafe extern "C" fn();
 
@@ -463,7 +463,7 @@ pub unsafe extern "C" fn rust_file_name_list_init(pattern: *const c_char, file_n
     memset(file_list as *mut c_void, 0, mem::size_of::<FileList>());
 
     let xlist = &mut (*file_list).xlist;
-    if !rust_xlist_init(pattern, xlist) {
+    if !xlist_init(pattern, xlist) {
         free(file_list as *mut c_void);
         return 0;
     }
@@ -496,7 +496,7 @@ pub unsafe extern "C" fn rust_file_name_list_init(pattern: *const c_char, file_n
             let mut dir = [0 as c_char; COMPAT_MAX_DIR as usize];
             let mut file_name = [0 as c_char; COMPAT_MAX_FNAME as usize];
             let mut extension = [0 as c_char; COMPAT_MAX_EXT as usize];
-            rust_compat_windows_path_to_native(name);
+            compat_windows_path_to_native(name);
             rust_compat_splitpath(name, null_mut(), dir.as_mut_ptr(), file_name.as_mut_ptr(), extension.as_mut_ptr());
 
             if !is_wildcard || dir[0] == '\0' as c_char || (strchr(dir.as_ptr(), '\\' as c_int) == null_mut() && strchr(dir.as_ptr(), '/' as c_int) == null_mut()) {

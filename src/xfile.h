@@ -9,7 +9,7 @@ namespace fallout {
 struct XFile;
 
 typedef struct XList {
-    int fileNamesLength;
+    int _fileNamesLength;
     char** fileNames;
 } XList;
 
@@ -24,7 +24,6 @@ void xfileRewind(XFile* stream);
 int xfileEof(XFile* stream);
 long xfileGetSize(XFile* stream);
 bool xbaseReopenAll(char* paths);
-bool xlistInit(const char* pattern, XList* xlist);
 void xlistFree(XList* xlist);
 
 } // namespace fallout
