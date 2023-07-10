@@ -7,8 +7,8 @@
 // TODO Migrate
 
 // Migrated
-#include "xfile.h"
 #include "platform_compat.h"
+#include "xfile.h"
 
 namespace fallout {
     struct FileList;
@@ -28,7 +28,9 @@ extern "C" {
     int rust_db_get_file_contents(const char* filePath, void* ptr);
     int rust_file_read_char(fallout::File* stream);
     char* rust_file_read_string(char* string, size_t size, fallout::File* stream);
-    // rust_file_read_string
+    size_t rust_file_read(void* ptr, size_t size, size_t count, fallout::File* stream,
+        size_t (*)(void*, size_t, size_t, fallout::File*));
+// rust_file_read
 }
 
 namespace fallout {
@@ -127,38 +129,41 @@ int fileWriteString(const char* string, File* stream)
     return xfileWriteString(string, stream);
 }
 
+static size_t fileRead2(void* ptr, size_t size, size_t count, File* stream);
+
+static size_t fileRead2(void* ptr, size_t size, size_t count, File* stream)
+{
+    unsigned char* byteBuffer = (unsigned char*)ptr;
+
+    size_t totalBytesRead = 0;
+    long remainingSize = size * count;
+    long chunkSize = rust_get_g_file_read_progress_chunk_size() - rust_get_g_file_read_progress_bytes_read();
+
+    while (remainingSize >= chunkSize) {
+        size_t bytesRead = xfileRead(byteBuffer, sizeof(*byteBuffer), chunkSize, stream);
+        byteBuffer += bytesRead;
+        totalBytesRead += bytesRead;
+        remainingSize -= bytesRead;
+
+        rust_set_g_file_read_progress_bytes_read(0);
+        rust_get_g_file_read_progress_handler()();
+
+        chunkSize = rust_get_g_file_read_progress_chunk_size();
+    }
+
+    if (remainingSize != 0) {
+        size_t bytesRead = xfileRead(byteBuffer, sizeof(*byteBuffer), remainingSize, stream);
+        rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() + bytesRead);
+        totalBytesRead += bytesRead;
+    }
+
+    return totalBytesRead / size;
+}
+
 // 0x4C5FFC
 size_t fileRead(void* ptr, size_t size, size_t count, File* stream)
 {
-    if (rust_get_g_file_read_progress_handler() != nullptr) {
-        unsigned char* byteBuffer = (unsigned char*)ptr;
-
-        size_t totalBytesRead = 0;
-        long remainingSize = size * count;
-        long chunkSize = rust_get_g_file_read_progress_chunk_size() - rust_get_g_file_read_progress_bytes_read();
-
-        while (remainingSize >= chunkSize) {
-            size_t bytesRead = xfileRead(byteBuffer, sizeof(*byteBuffer), chunkSize, stream);
-            byteBuffer += bytesRead;
-            totalBytesRead += bytesRead;
-            remainingSize -= bytesRead;
-
-            rust_set_g_file_read_progress_bytes_read(0);
-            rust_get_g_file_read_progress_handler()();
-
-            chunkSize = rust_get_g_file_read_progress_chunk_size();
-        }
-
-        if (remainingSize != 0) {
-            size_t bytesRead = xfileRead(byteBuffer, sizeof(*byteBuffer), remainingSize, stream);
-            rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() + bytesRead);
-            totalBytesRead += bytesRead;
-        }
-
-        return totalBytesRead / size;
-    }
-
-    return xfileRead(ptr, size, count, stream);
+    return rust_file_read(ptr, size, count, stream, fileRead2);
 }
 
 // 0x4C60B8
