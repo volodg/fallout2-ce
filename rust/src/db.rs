@@ -3,7 +3,7 @@ use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicI32, AtomicPtr, Ordering};
 use libc::{c_char, c_int, c_long, size_t};
-use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, rust_xfile_read, xbase_open, XList};
+use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, rust_xfile_read, xfile_read_char, xbase_open, XFile, XList};
 
 type FileReadProgressHandler = unsafe extern "C" fn();
 
@@ -15,7 +15,7 @@ static G_FILE_READ_PROGRESS_HANDLER: AtomicPtr<c_void> = AtomicPtr::new(null_mut
 #[no_mangle]
 pub unsafe extern "C" fn rust_get_g_file_read_progress_handler() -> FileReadProgressHandler {
     let result = G_FILE_READ_PROGRESS_HANDLER.load(Ordering::Relaxed);
-    std::mem::transmute(result)
+    mem::transmute(result)
 }
 
 #[no_mangle]
@@ -170,8 +170,24 @@ pub unsafe extern "C" fn rust_db_get_file_contents(file_path: *const c_char, ptr
     0
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_read_char(stream: *const XFile) -> c_int {
+    if mem::transmute::<unsafe extern "C" fn(), *const c_void>(rust_get_g_file_read_progress_handler()) != null() {
+        let ch = xfile_read_char(stream);
+
+        rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() + 1);
+        if rust_get_g_file_read_progress_bytes_read() >= rust_get_g_file_read_progress_chunk_size() {
+            rust_get_g_file_read_progress_handler()();
+            rust_set_g_file_read_progress_bytes_read(0);
+        }
+
+        return ch;
+    }
+
+    xfile_read_char(stream)
+}
 /*
-int dbGetFileContents(const char* filePath, void* ptr)
+int fileReadChar(File* stream)
 {
 
 }

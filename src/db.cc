@@ -26,7 +26,8 @@ extern "C" {
     fallout::FileList* rust_g_get_file_list_head();
     void rust_g_set_file_list_head(fallout::FileList*);
     int rust_db_get_file_contents(const char* filePath, void* ptr);
-    // rust_db_get_file_contents
+    int rust_file_read_char(fallout::File* stream);
+    // rust_file_read_char
 }
 
 namespace fallout {
@@ -110,19 +111,7 @@ int filePrintFormatted(File* stream, const char* format, ...)
 // 0x4C5F24
 int fileReadChar(File* stream)
 {
-    if (rust_get_g_file_read_progress_handler() != nullptr) {
-        int ch = xfileReadChar(stream);
-
-        rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() + 1);
-        if (rust_get_g_file_read_progress_bytes_read() >= rust_get_g_file_read_progress_chunk_size()) {
-            rust_get_g_file_read_progress_handler()();
-            rust_set_g_file_read_progress_bytes_read(0);
-        }
-
-        return ch;
-    }
-
-    return xfileReadChar(stream);
+    return rust_file_read_char(stream);
 }
 
 // 0x4C5F70

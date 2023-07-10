@@ -8,7 +8,6 @@ extern "C" {
     int rust_xfile_close(fallout::XFile* stream);
     fallout::XFile* rust_xfile_open(const char* filePath, const char* mode);
     int rust_xfile_print_formatted_args(fallout::XFile* stream, const char* format, va_list args);
-    int rust_xfile_read_char(fallout::XFile* stream);
     char* rust_xfile_read_string(char* string, int size, fallout::XFile* stream);
     int rust_xfile_write_char(int ch, fallout::XFile* stream);
     int rust_xfile_write_string(const char* string, fallout::XFile* stream);
@@ -44,12 +43,6 @@ XFile* xfileOpen(const char* filePath, const char* mode)
 int xfilePrintFormattedArgs(XFile* stream, const char* format, va_list args)
 {
     return rust_xfile_print_formatted_args(stream, format, args);
-}
-
-// 0x4DF22C
-int xfileReadChar(XFile* stream)
-{
-    return rust_xfile_read_char(stream);
 }
 
 // 0x4DF280

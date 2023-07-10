@@ -311,8 +311,7 @@ pub unsafe extern "C" fn rust_xfile_print_formatted_args(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_xfile_read_char(stream: *const XFile) -> c_int {
+pub unsafe fn xfile_read_char(stream: *const XFile) -> c_int {
     assert_ne!(stream, null()); // "stream", "xfile.c", 354
 
     match &(*stream).file {
