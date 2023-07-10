@@ -88,7 +88,7 @@ static FileList* gFileListHead;
 #[allow(dead_code)]
 pub struct FileList {
     xlist: XList,
-    next: *const FileList
+    next: *const FileList,
 }
 
 #[no_mangle]
@@ -367,11 +367,11 @@ pub unsafe extern "C" fn rust_file_read_int16_list(stream: *const XFile, arr: *m
 #[no_mangle]
 pub unsafe extern "C" fn rust_file_read_int32_list(stream: *const XFile, arr: *mut c_int, count: c_int) -> c_int {
     if count == 0 {
-        return 0
+        return 0;
     }
 
     if rust_file_read(arr as *mut c_void, mem::size_of_val(&*arr) * count as size_t, 1, stream) < 1 {
-        return -1
+        return -1;
     }
 
     for index in 0..count {
@@ -425,17 +425,30 @@ pub unsafe extern "C" fn rust_file_write_int32_list(stream: *const XFile, arr: *
     0
 }
 
-/*
-int fileWriteInt32List(File* stream, int* arr, int count)
-{
-    for (int index = 0; index < count; index++) {
+// NOTE: Not sure about signed/unsigned int/long.
+//
+// 0x4C6550
+#[no_mangle]
+pub unsafe extern "C" fn rust_db_fwrite_long_count(stream: *const XFile, arr: *mut c_int, count: c_int) -> c_int {
+    for index in 0..count {
+        let value = *arr.offset(index as isize);
+
         // NOTE: Uninline.
-        if (_db_fwriteLong(stream, arr[index]) == -1) {
+        if rust_file_write_int16(stream, ((value >> 16) & 0xFFFF) as c_short) == -1 {
+            return -1;
+        }
+
+        // NOTE: Uninline.
+        if rust_file_write_int16(stream, (value & 0xFFFF) as c_short) == -1 {
             return -1;
         }
     }
 
-    return 0;
+    0
+}
+/*
+int _db_fwriteLongCount(File* stream, int* arr, int count)
+{
 }
  */
 
