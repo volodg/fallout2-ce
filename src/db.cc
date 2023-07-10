@@ -27,6 +27,7 @@ extern "C" {
     size_t rust_file_read(void* ptr, size_t size, size_t count, fallout::File* stream);
     int rust_file_read_uint8(fallout::File* stream, unsigned char* valuePtr);
     int rust_file_read_int16(fallout::File* stream, short* valuePtr);
+    int rust_file_read_int32(fallout::File* stream, int* valuePtr);
     // rust_file_read_uint8
 }
 
@@ -181,15 +182,7 @@ int fileReadInt16(File* stream, short* valuePtr)
 // 0x4C614C
 int fileReadInt32(File* stream, int* valuePtr)
 {
-    int value;
-
-    if (xfileRead(&value, 4, 1, stream) == -1) {
-        return -1;
-    }
-
-    *valuePtr = ((value & 0xFF000000) >> 24) | ((value & 0xFF0000) >> 8) | ((value & 0xFF00) << 8) | ((value & 0xFF) << 24);
-
-    return 0;
+    return rust_file_read_int32(stream, valuePtr);
 }
 
 // NOTE: Uncollapsed 0x4C614C. The opposite of [_db_fwriteLong]. It can be either

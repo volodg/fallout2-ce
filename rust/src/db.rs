@@ -1,4 +1,4 @@
-use std::ffi::{c_void, CString};
+use std::ffi::{c_uint, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicI32, AtomicPtr, Ordering};
@@ -268,12 +268,27 @@ pub unsafe extern "C" fn rust_file_read_int16(stream: *const XFile, value_ptr: *
     0
 }
 
-// NOTE: Not sure about signness.
-//
-// 0x4C60F4
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_read_int32(stream: *const XFile, value_ptr: *mut c_int) -> c_int {
+    let mut value = [0 as c_int; 1];
+
+    if rust_xfile_read(value.as_mut_ptr() as *mut c_void, mem::size_of_val(&value), 1, stream) == 0 {
+        return -1;
+    }
+
+    let part1 = (value[0] as c_uint & 0xFF000000) >> 24;
+    let part2 = (value[0] as c_uint & 0xFF0000) >> 8;
+    let part3 = (value[0] as c_uint & 0xFF00) << 8;
+    let part4 = (value[0] as c_uint & 0xFF) << 24;
+    *value_ptr = (part1 | part2 | part3 | part4) as c_int;
+
+    0
+}
 /*
-int fileReadInt16(File* stream, short* valuePtr)
+int fileReadInt32(File* stream, int* valuePtr)
 {
+
+    return 0;
 }
  */
 
