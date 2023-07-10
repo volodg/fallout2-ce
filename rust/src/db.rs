@@ -410,7 +410,33 @@ pub unsafe extern "C" fn rust_file_write_int16_list(stream: *const XFile, arr: *
     0
 }
 
+// NOTE: Can be either signed/unsigned + int/long variant.
+//
+// 0x4C64F8
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_write_int32_list(stream: *const XFile, arr: *mut c_int, count: c_int) -> c_int {
+    for index in 0..count {
+        // NOTE: Uninline.
+        if rust_db_fwrite_long(stream, *arr.offset(index as isize) as c_int) == -1 {
+            return -1;
+        }
+    }
+
+    0
+}
+
 /*
+int fileWriteInt32List(File* stream, int* arr, int count)
+{
+    for (int index = 0; index < count; index++) {
+        // NOTE: Uninline.
+        if (_db_fwriteLong(stream, arr[index]) == -1) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
  */
 
 #[cfg(test)]

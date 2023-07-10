@@ -37,6 +37,7 @@ extern "C" {
     int rust_file_read_int32_list(fallout::File* stream, int* arr, int count);
     int rust_file_write_uint8_list(fallout::File* stream, unsigned char* arr, int count);
     int rust_file_write_int16_list(fallout::File* stream, short* arr, int count);
+    int rust_file_write_int32_list(fallout::File* stream, int* arr, int count);
     // rust_file_read_uint8
 }
 
@@ -328,14 +329,7 @@ int fileWriteInt16List(File* stream, short* arr, int count)
 // 0x4C64F8
 int fileWriteInt32List(File* stream, int* arr, int count)
 {
-    for (int index = 0; index < count; index++) {
-        // NOTE: Uninline.
-        if (_db_fwriteLong(stream, arr[index]) == -1) {
-            return -1;
-        }
-    }
-
-    return 0;
+    return rust_file_write_int32_list(stream, arr, count);
 }
 
 // NOTE: Not sure about signed/unsigned int/long.
