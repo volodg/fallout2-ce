@@ -39,6 +39,7 @@ extern "C" {
     int rust_file_write_int16_list(fallout::File* stream, short* arr, int count);
     int rust_file_write_int32_list(fallout::File* stream, int* arr, int count);
     int rust_db_fwrite_long_count(fallout::File* stream, int* arr, int count);
+    int rust_db_list_compare(const void* p1, const void* p2);
     // rust_file_read_uint8
 }
 
@@ -456,7 +457,7 @@ void fileSetReadProgressHandler(FileReadProgressHandler* handler, int size)
 // 0x4C68E8
 int _db_list_compare(const void* p1, const void* p2)
 {
-    return compat_stricmp(*(const char**)p1, *(const char**)p2);
+    return rust_db_list_compare(p1, p2);
 }
 
 } // namespace fallout

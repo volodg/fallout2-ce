@@ -93,8 +93,8 @@ impl XBase {
 
 #[repr(C)]
 pub struct XList {
-    file_names_length: c_int,
-    file_names: *mut *mut c_char,
+    pub file_names_length: c_int,
+    pub file_names: *mut *mut c_char,
 }
 
 #[derive(PartialEq)]

@@ -2,8 +2,9 @@ use std::ffi::{c_uint, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicI32, AtomicPtr, Ordering};
-use libc::{c_char, c_int, c_long, c_short, c_uchar, c_ushort, size_t, strlen};
-use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string, xfile_write_char};
+use libc::{c_char, c_int, c_long, c_short, c_uchar, c_ushort, free, malloc, memset, qsort, size_t, strlen};
+use crate::platform_compat::{compat_stricmp, rust_compat_stricmp};
+use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string, xfile_write_char, rust_xlist_init};
 
 type FileReadProgressHandler = unsafe extern "C" fn();
 
@@ -446,9 +447,77 @@ pub unsafe extern "C" fn rust_db_fwrite_long_count(stream: *const XFile, arr: *m
 
     0
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_db_list_compare(p1: *const c_void, p2: *const c_void) -> c_int {
+    return rust_compat_stricmp(p1 as *const c_char, p2 as *const c_char);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_name_list_init(pattern: *const c_char, file_name_list_ptr: *mut *mut *mut c_char, _a3: c_int, _a4: c_int) -> c_int {
+    let file_list = malloc(mem::size_of::<FileList>()) as *mut FileList;
+
+    if file_list == null_mut() {
+        return 0;
+    }
+
+    memset(file_list as *mut c_void, 0, mem::size_of::<FileList>());
+
+    let xlist = &mut (*file_list).xlist;
+    if !rust_xlist_init(pattern, xlist) {
+        free(file_list as *mut c_void);
+        return 0;
+    }
+
+    let mut length = 0;
+    if (*xlist).file_names_length != 0 {
+        qsort((*xlist).file_names as *mut c_void, (*xlist).file_names_length as size_t, mem::size_of_val(&*(*xlist).file_names), Some(rust_db_list_compare));
+
+        /*int fileNamesLength = xlist->fileNamesLength;
+        for (int index = 0; index < fileNamesLength - 1; index++) {
+            if (compat_stricmp(xlist->fileNames[index], xlist->fileNames[index + 1]) == 0) {
+                char* temp = xlist->fileNames[index + 1];
+                memmove(&(xlist->fileNames[index + 1]), &(xlist->fileNames[index + 2]), sizeof(*xlist->fileNames) * (xlist->fileNamesLength - index - 1));
+                xlist->fileNames[xlist->fileNamesLength - 1] = temp;
+
+                fileNamesLength--;
+                index--;
+            }
+        }
+
+        bool isWildcard = *pattern == '*';
+
+        for (int index = 0; index < fileNamesLength; index += 1) {
+            char* name = xlist->fileNames[index];
+            char dir[COMPAT_MAX_DIR];
+            char fileName[COMPAT_MAX_FNAME];
+            char extension[COMPAT_MAX_EXT];
+            compat_windows_path_to_native(name);
+            compat_splitpath(name, nullptr, dir, fileName, extension);
+
+            if (!isWildcard || *dir == '\0' || (strchr(dir, '\\') == nullptr && strchr(dir, '/') == nullptr)) {
+                // NOTE: Quick and dirty fix to buffer overflow. See RE to
+                // understand the problem.
+                char path[COMPAT_MAX_PATH];
+                snprintf(path, sizeof(path), "%s%s", fileName, extension);
+                free(xlist->fileNames[length]);
+                xlist->fileNames[length] = compat_strdup(path);
+                length++;
+            }
+        }*/
+    }
+
+    length
+}
 /*
-int _db_fwriteLongCount(File* stream, int* arr, int count)
+int fileNameListInit(const char* pattern, char*** fileNameListPtr, int a3, int a4)
 {
+    fileList->next = rust_g_get_file_list_head();
+    rust_g_set_file_list_head(fileList);
+
+    *fileNameListPtr = xlist->fileNames;
+
+    return length;
 }
  */
 
