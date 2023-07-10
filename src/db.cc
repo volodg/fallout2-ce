@@ -2,12 +2,12 @@
 
 #include <cassert>
 #include <cstdlib>
-#include <cstring>
+// #include <cstring>
 
 // TODO Migrate
 
 // Migrated
-#include "platform_compat.h"
+// #include "platform_compat.h"
 #include "xfile.h"
 
 namespace fallout {
@@ -40,6 +40,7 @@ extern "C" {
     int rust_file_write_int32_list(fallout::File* stream, int* arr, int count);
     int rust_db_fwrite_long_count(fallout::File* stream, int* arr, int count);
     int rust_db_list_compare(const void* p1, const void* p2);
+    int rust_file_name_list_init(const char* pattern, char*** fileNameListPtr, int a3, int a4);
     // rust_file_read_uint8
 }
 
@@ -49,8 +50,6 @@ typedef struct FileList {
     XList xlist;
     struct FileList* next;
 } FileList;
-
-static int _db_list_compare(const void* p1, const void* p2);
 
 // Opens file database.
 //
@@ -343,66 +342,9 @@ int _db_fwriteLongCount(File* stream, int* arr, int count)
 }
 
 // 0x4C6628
-// ???
 int fileNameListInit(const char* pattern, char*** fileNameListPtr, int a3, int a4)
 {
-    FileList* fileList = (FileList*)malloc(sizeof(*fileList));
-    if (fileList == nullptr) {
-        return 0;
-    }
-
-    memset(fileList, 0, sizeof(*fileList));
-
-    XList* xlist = &(fileList->xlist);
-    if (!xlistInit(pattern, xlist)) {
-        free(fileList);
-        return 0;
-    }
-
-    int length = 0;
-    if (xlist->fileNamesLength != 0) {
-        qsort(xlist->fileNames, xlist->fileNamesLength, sizeof(*xlist->fileNames), _db_list_compare);
-
-        int fileNamesLength = xlist->fileNamesLength;
-        for (int index = 0; index < fileNamesLength - 1; index++) {
-            if (compat_stricmp(xlist->fileNames[index], xlist->fileNames[index + 1]) == 0) {
-                char* temp = xlist->fileNames[index + 1];
-                memmove(&(xlist->fileNames[index + 1]), &(xlist->fileNames[index + 2]), sizeof(*xlist->fileNames) * (xlist->fileNamesLength - index - 1));
-                xlist->fileNames[xlist->fileNamesLength - 1] = temp;
-
-                fileNamesLength--;
-                index--;
-            }
-        }
-
-        bool isWildcard = *pattern == '*';
-
-        for (int index = 0; index < fileNamesLength; index += 1) {
-            char* name = xlist->fileNames[index];
-            char dir[COMPAT_MAX_DIR];
-            char fileName[COMPAT_MAX_FNAME];
-            char extension[COMPAT_MAX_EXT];
-            compat_windows_path_to_native(name);
-            compat_splitpath(name, nullptr, dir, fileName, extension);
-
-            if (!isWildcard || *dir == '\0' || (strchr(dir, '\\') == nullptr && strchr(dir, '/') == nullptr)) {
-                // NOTE: Quick and dirty fix to buffer overflow. See RE to
-                // understand the problem.
-                char path[COMPAT_MAX_PATH];
-                snprintf(path, sizeof(path), "%s%s", fileName, extension);
-                free(xlist->fileNames[length]);
-                xlist->fileNames[length] = compat_strdup(path);
-                length++;
-            }
-        }
-    }
-
-    fileList->next = rust_g_get_file_list_head();
-    rust_g_set_file_list_head(fileList);
-
-    *fileNameListPtr = xlist->fileNames;
-
-    return length;
+    return rust_file_name_list_init(pattern, fileNameListPtr, a3, a4);
 }
 
 // 0x4C6868
@@ -452,12 +394,6 @@ void fileSetReadProgressHandler(FileReadProgressHandler* handler, int size)
         rust_set_g_file_read_progress_handler(nullptr);
         rust_set_g_file_read_progress_chunk_size(0);
     }
-}
-
-// 0x4C68E8
-int _db_list_compare(const void* p1, const void* p2)
-{
-    return rust_db_list_compare(p1, p2);
 }
 
 } // namespace fallout
