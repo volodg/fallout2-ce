@@ -207,12 +207,12 @@ pub unsafe extern "C" fn rust_xfile_open(
     } else {
         // [filePath] is a relative path. Loop thru open xbases and attempt to
         // open [filePath] from appropriate xbase.
-        let mut curr = get_g_xbase_head_rc();
+        let mut optional_curr = get_g_xbase_head_rc();
         let sformat_sformat = CString::new("%s\\%s").expect("valid string");
-        while curr.is_some() {
-            if curr.as_ref().expect("").read().is_dbase {
+        while let Some(curr) = optional_curr {
+            if curr.as_ref().read().is_dbase {
                 // Attempt to open dfile stream from dbase.
-                let dfile = rust_dfile_open(&curr.as_ref().expect("").read().dbase.as_ref().expect(""), file_path, mode);
+                let dfile = rust_dfile_open(&curr.as_ref().read().dbase.as_ref().expect(""), file_path, mode);
                 if dfile.is_some() {
                     (*stream).file = XFileType::DFile(dfile.expect(""));
                     snprintf(
@@ -229,7 +229,7 @@ pub unsafe extern "C" fn rust_xfile_open(
                     path.as_mut_ptr(),
                     mem::size_of_val(&path),
                     sformat_sformat.as_ptr(),
-                    curr.as_ref().expect("").read().get_path_cstr(),
+                    curr.as_ref().read().get_path_cstr(),
                     file_path,
                 );
 
@@ -240,7 +240,7 @@ pub unsafe extern "C" fn rust_xfile_open(
                     break;
                 }
             }
-            curr = curr.expect("").read().next.clone();
+            optional_curr = curr.read().next.clone();
         }
 
         match (*stream).file {
@@ -519,22 +519,22 @@ pub unsafe fn xbase_make_directory(file_path: *mut c_char) -> c_int {
         strcpy(path.as_mut_ptr(), file_path);
     } else {
         // Find first directory-based xbase.
-        let mut curr = get_g_xbase_head_rc();
-        while curr.is_some() {
-            if !curr.as_ref().expect("").read().is_dbase {
+        let mut optional_curr = get_g_xbase_head_rc();
+        while let Some(curr) = optional_curr.clone() {
+            if !curr.as_ref().read().is_dbase {
                 snprintf(
                     path.as_mut_ptr(),
                     mem::size_of_val(&path),
                     sformat_sformat.as_ptr(),
-                    curr.as_ref().expect("").read().get_path_cstr(),
+                    curr.as_ref().read().get_path_cstr(),
                     file_path,
                 );
                 break;
             }
-            curr = curr.expect("").read().next.clone();
+            optional_curr = curr.read().next.clone();
         }
 
-        if curr.is_none() {
+        if optional_curr.is_none() {
             // Either there are no directory-based xbase, or there are no open
             // xbases at all - resolve path against current working directory.
             snprintf(
@@ -591,23 +591,23 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
         set_g_xbase_exit_handler_registered(true);
     }
 
-    let mut curr = get_g_xbase_head_rc();
-    let mut prev = None;
-    while curr.is_some() {
-        if rust_compat_stricmp(path, curr.as_ref().expect("").read().get_path_cstr()) == 0 {
+    let mut optional_curr = get_g_xbase_head_rc();
+    let mut optional_prev = None;
+    while let Some(curr) = optional_curr.clone() {
+        if rust_compat_stricmp(path, curr.as_ref().read().get_path_cstr()) == 0 {
             break;
         }
 
-        prev = curr.clone();
-        curr = curr.expect("").read().next.clone();
+        optional_prev = optional_curr.clone();
+        optional_curr = curr.read().next.clone();
     }
 
-    if curr.is_some() {
-        if prev.is_some() {
+    if let Some(curr) = optional_curr {
+        if let Some(prev) = optional_prev {
             // Move found xbase to the top.
-            prev.as_mut().expect("").write().next = curr.as_ref().expect("").read().next.clone();
-            curr.as_mut().expect("").write().next = get_g_xbase_head_rc();
-            set_g_xbase_head(curr);
+            prev.write().next = curr.as_ref().read().next.clone();
+            curr.write().next = get_g_xbase_head_rc();
+            set_g_xbase_head(Some(curr));
         }
         return true;
     }
