@@ -2,8 +2,8 @@ use std::ffi::{c_uint, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicI32, AtomicPtr, Ordering};
-use libc::{c_char, c_int, c_long, c_short, c_uchar, size_t, strlen};
-use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, rust_xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string, rust_xfile_write_char};
+use libc::{c_char, c_int, c_long, c_short, c_uchar, c_ushort, size_t, strlen};
+use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string, xfile_write_char};
 
 type FileReadProgressHandler = unsafe extern "C" fn();
 
@@ -144,7 +144,7 @@ pub unsafe extern "C" fn rust_db_get_file_contents(file_path: *const c_char, ptr
         let mut chunk_size = get_g_file_read_progress_chunk_size() - get_g_file_read_progress_bytes_read();
 
         while remaining_size >= chunk_size as c_long {
-            let bytes_read = rust_xfile_read(byte_buffer, mem::size_of_val(&byte_buffer), chunk_size as size_t, stream);
+            let bytes_read = xfile_read(byte_buffer, mem::size_of_val(&byte_buffer), chunk_size as size_t, stream);
             byte_buffer = byte_buffer.offset(bytes_read as isize);
             remaining_size -= bytes_read as c_long;
 
@@ -156,11 +156,11 @@ pub unsafe extern "C" fn rust_db_get_file_contents(file_path: *const c_char, ptr
 
         if remaining_size != 0 {
             let file_read_progress_bytes_read = get_g_file_read_progress_bytes_read();
-            let read_size = rust_xfile_read(byte_buffer, mem::size_of_val(&byte_buffer), remaining_size as size_t, stream);
+            let read_size = xfile_read(byte_buffer, mem::size_of_val(&byte_buffer), remaining_size as size_t, stream);
             set_g_file_read_progress_bytes_read(file_read_progress_bytes_read + read_size as c_int);
         }
     } else {
-        rust_xfile_read(ptr, 1, size as size_t, stream);
+        xfile_read(ptr, 1, size as size_t, stream);
     }
 
     rust_xfile_close(stream);
@@ -214,7 +214,7 @@ pub unsafe extern "C" fn rust_file_read(ptr: *mut c_void, size: size_t, count: s
         let mut chunk_size = get_g_file_read_progress_chunk_size() - get_g_file_read_progress_bytes_read();
 
         while remaining_size >= chunk_size as size_t {
-            let bytes_read = rust_xfile_read(byte_buffer, 1, chunk_size as size_t, stream);
+            let bytes_read = xfile_read(byte_buffer, 1, chunk_size as size_t, stream);
             byte_buffer = byte_buffer.offset(bytes_read as isize);
             total_bytes_read += bytes_read;
             remaining_size -= bytes_read;
@@ -226,7 +226,7 @@ pub unsafe extern "C" fn rust_file_read(ptr: *mut c_void, size: size_t, count: s
         }
 
         if remaining_size != 0 {
-            let bytes_read = rust_xfile_read(byte_buffer, 1, remaining_size, stream);
+            let bytes_read = xfile_read(byte_buffer, 1, remaining_size, stream);
             set_g_file_read_progress_bytes_read(get_g_file_read_progress_bytes_read() + bytes_read as c_int);
             total_bytes_read += bytes_read;
         }
@@ -234,7 +234,7 @@ pub unsafe extern "C" fn rust_file_read(ptr: *mut c_void, size: size_t, count: s
         return total_bytes_read / size;
     }
 
-    rust_xfile_read(ptr, size, count, stream)
+    xfile_read(ptr, size, count, stream)
 }
 
 #[no_mangle]
@@ -272,7 +272,7 @@ pub unsafe extern "C" fn rust_file_read_int16(stream: *const XFile, value_ptr: *
 pub unsafe extern "C" fn rust_file_read_int32(stream: *const XFile, value_ptr: *mut c_int) -> c_int {
     let mut value = [0 as c_int; 1];
 
-    if rust_xfile_read(value.as_mut_ptr() as *mut c_void, mem::size_of_val(&value), 1, stream) == 0 {
+    if xfile_read(value.as_mut_ptr() as *mut c_void, mem::size_of_val(&value), 1, stream) == 0 {
         return -1;
     }
 
@@ -299,31 +299,45 @@ pub unsafe extern "C" fn rust_file_read_bool(stream: *const XFile, value_ptr: *m
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_file_write_uint8(stream: *const XFile, value: c_short) -> c_int {
-    rust_xfile_write_char(value as c_int, stream)
+    xfile_write_char(value as c_int, stream)
 }
 
-/*
 #[no_mangle]
 pub unsafe extern "C" fn rust_file_write_int16(stream: *const XFile, value: c_short) -> c_int {
     // NOTE: Uninline.
-    if file_write_uint8(stream, (value >> 8) & 0xFF) == -1 {
+    if rust_file_write_uint8(stream, (value >> 8) & 0xFF) == -1 {
         return -1;
     }
 
     // NOTE: Uninline.
-    if file_write_uint8(stream, value & 0xFF) == -1 {
+    if rust_file_write_uint8(stream, value & 0xFF) == -1 {
         return -1;
     }
-
-    *value_ptr = value != 0;
 
     0
 }
 
-int fileWriteInt16(File* stream, short value)
+// NOTE: Can either be signed vs. unsigned variant of [fileWriteInt32],
+// or int vs. long.
+//
+// 0x4C6244
+#[no_mangle]
+pub unsafe extern "C" fn rust_db_fwrite_long(stream: *const XFile, value: c_int) -> c_int {
+    if rust_file_write_int16(stream, ((value >> 16) as c_ushort & 0xFFFF) as c_short) == -1 {
+        return -1;
+    }
+
+    if rust_file_write_int16(stream, ((value as c_ushort) & 0xFFFF) as c_short) == -1 {
+        return -1;
+    }
+
+    0
+}
+
+/*
+int _db_fwriteLong(File* stream, int value)
 {
 
-    return 0;
 }
  */
 

@@ -337,8 +337,7 @@ pub unsafe fn xfile_read_string(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_xfile_write_char(ch: c_int, stream: *const XFile) -> c_int {
+pub unsafe fn xfile_write_char(ch: c_int, stream: *const XFile) -> c_int {
     assert_ne!(stream, null()); // "stream", "xfile.c", 399
 
     match &(*stream).file {
@@ -363,8 +362,7 @@ pub unsafe extern "C" fn rust_xfile_write_string(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_xfile_read(
+pub unsafe fn xfile_read(
     ptr: *mut c_void,
     size: size_t,
     count: size_t,

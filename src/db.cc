@@ -30,6 +30,8 @@ extern "C" {
     int rust_file_read_int32(fallout::File* stream, int* valuePtr);
     int rust_file_read_bool(fallout::File* stream, bool* valuePtr);
     int rust_file_write_uint8(fallout::File* stream, unsigned char value);
+    int rust_file_write_int16(fallout::File* stream, short value);
+    int rust_db_fwrite_long(fallout::File* stream, int value);
     // rust_file_read_uint8
 }
 
@@ -224,17 +226,7 @@ int fileWriteUInt8(File* stream, unsigned char value)
 // 0x4C61C8
 int fileWriteInt16(File* stream, short value)
 {
-    // NOTE: Uninline.
-    if (fileWriteUInt8(stream, (value >> 8) & 0xFF) == -1) {
-        return -1;
-    }
-
-    // NOTE: Uninline.
-    if (fileWriteUInt8(stream, value & 0xFF) == -1) {
-        return -1;
-    }
-
-    return 0;
+    return rust_file_write_int16(stream, value);
 }
 
 // NOTE: Not sure about signness and int vs. long.
@@ -252,15 +244,7 @@ int fileWriteInt32(File* stream, int value)
 // 0x4C6244
 int _db_fwriteLong(File* stream, int value)
 {
-    if (fileWriteInt16(stream, (value >> 16) & 0xFFFF) == -1) {
-        return -1;
-    }
-
-    if (fileWriteInt16(stream, value & 0xFFFF) == -1) {
-        return -1;
-    }
-
-    return 0;
+    return rust_db_fwrite_long(stream, value);
 }
 
 // NOTE: Probably uncollapsed 0x4C6214 or 0x4C6244.
