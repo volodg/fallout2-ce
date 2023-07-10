@@ -1,6 +1,9 @@
 #ifndef PIPBOY_H
 #define PIPBOY_H
 
+// TODO Migrate
+
+// Migrated
 #include "db.h"
 
 namespace fallout {

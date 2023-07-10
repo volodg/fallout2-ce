@@ -1,9 +1,11 @@
 #ifndef PERK_H
 #define PERK_H
 
-#include "db.h"
 #include "obj_types.h"
 #include "perk_defs.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

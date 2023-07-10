@@ -2,9 +2,11 @@
 #define SCRIPTS_H
 
 #include "combat_defs.h"
-#include "db.h"
 #include "interpreter.h"
 #include "obj_types.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

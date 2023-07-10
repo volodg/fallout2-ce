@@ -3,7 +3,6 @@
 #include <cstring>
 
 #include "datafile.h"
-#include "db.h"
 #include "debug.h"
 #include "input.h"
 #include "memory_manager.h"
@@ -11,6 +10,7 @@
 #include "svga.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

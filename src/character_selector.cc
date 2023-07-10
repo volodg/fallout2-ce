@@ -10,7 +10,6 @@
 #include "character_editor.h"
 #include "color.h"
 #include "critter.h"
-#include "db.h"
 #include "debug.h"
 #include "draw.h"
 #include "game.h"
@@ -34,6 +33,7 @@
 #include "window_manager.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

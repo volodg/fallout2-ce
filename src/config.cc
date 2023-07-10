@@ -6,10 +6,10 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "db.h"
 #include "memory.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

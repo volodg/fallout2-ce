@@ -4,10 +4,10 @@
 #include <cstring>
 
 #include "color.h"
-#include "db.h"
 #include "memory.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

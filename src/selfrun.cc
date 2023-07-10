@@ -1,6 +1,5 @@
 #include "selfrun.h"
 
-#include "db.h"
 #include "game.h"
 #include "input.h"
 #include "kb.h"
@@ -10,6 +9,7 @@
 #include "vcr.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

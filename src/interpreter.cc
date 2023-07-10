@@ -7,7 +7,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "db.h"
 #include "debug.h"
 #include "export.h"
 #include "input.h"
@@ -16,6 +15,7 @@
 #include "sfall_global_scripts.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

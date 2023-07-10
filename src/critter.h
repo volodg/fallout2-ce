@@ -1,9 +1,11 @@
 #ifndef CRITTER_H
 #define CRITTER_H
 
-#include "db.h"
 #include "obj_types.h"
 #include "proto_types.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

@@ -4,7 +4,6 @@
 #include <cstring>
 
 #include "audio.h"
-#include "db.h"
 #include "debug.h"
 #include "game_sound.h"
 #include "input.h"
@@ -12,6 +11,7 @@
 #include "sound.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

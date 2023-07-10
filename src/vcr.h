@@ -1,6 +1,9 @@
 #ifndef FALLOUT_VCR_H_
 #define FALLOUT_VCR_H_
 
+// TODO Migrate
+
+// Migrated
 #include "db.h"
 
 namespace fallout {

@@ -7,7 +7,6 @@
 #include "art.h"
 #include "color.h"
 #include "cycle.h"
-#include "db.h"
 #include "draw.h"
 #include "game_mouse.h"
 #include "input.h"
@@ -21,6 +20,7 @@
 #include "window_manager.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

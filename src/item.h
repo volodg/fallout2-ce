@@ -1,8 +1,10 @@
 #ifndef ITEM_H
 #define ITEM_H
 
-#include "db.h"
 #include "obj_types.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

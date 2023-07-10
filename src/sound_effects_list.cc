@@ -5,12 +5,12 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "db.h"
 #include "debug.h"
 #include "memory.h"
 #include "sound_decoder.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

@@ -1,8 +1,10 @@
 #ifndef TRAIT_H
 #define TRAIT_H
 
-#include "db.h"
 #include "trait_defs.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

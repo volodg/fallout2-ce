@@ -16,7 +16,6 @@
 #include "combat_ai.h"
 #include "critter.h"
 #include "cycle.h"
-#include "db.h"
 #include "dbox.h"
 #include "debug.h"
 #include "display_monitor.h"
@@ -49,6 +48,9 @@
 #include "text_font.h"
 #include "tile.h"
 #include "window_manager.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

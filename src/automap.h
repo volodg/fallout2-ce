@@ -1,8 +1,10 @@
 #ifndef AUTOMAP_H
 #define AUTOMAP_H
 
-#include "db.h"
 #include "map_defs.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

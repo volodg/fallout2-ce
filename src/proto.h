@@ -1,12 +1,12 @@
 #ifndef PROTO_H
 #define PROTO_H
 
-#include "db.h"
 #include "message.h"
 #include "obj_types.h"
 #include "proto_types.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

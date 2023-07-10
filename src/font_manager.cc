@@ -4,8 +4,10 @@
 #include <cstring>
 
 #include "color.h"
-#include "db.h"
 #include "memory_manager.h"
+
+// Migrated
+#include "db.h"
 
 // The maximum number of interface fonts.
 #define INTERFACE_FONT_MAX (16)

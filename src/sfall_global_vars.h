@@ -1,6 +1,9 @@
 #ifndef FALLOUT_SFALL_GLOBAL_VARS_H_
 #define FALLOUT_SFALL_GLOBAL_VARS_H_
 
+// TODO Migrate
+
+// Migrated
 #include "db.h"
 
 namespace fallout {

@@ -5,7 +5,6 @@
 #include <SDL.h>
 
 #include "color.h"
-#include "db.h"
 #include "debug.h"
 #include "draw.h"
 #include "geometry.h"
@@ -20,6 +19,7 @@
 #include "window_manager.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

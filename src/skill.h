@@ -1,10 +1,12 @@
 #ifndef SKILL_H
 #define SKILL_H
 
-#include "db.h"
 #include "obj_types.h"
 #include "proto_types.h"
 #include "skill_defs.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

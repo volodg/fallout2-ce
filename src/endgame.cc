@@ -10,7 +10,6 @@
 #include "color.h"
 #include "credits.h"
 #include "cycle.h"
-#include "db.h"
 #include "dbox.h"
 #include "debug.h"
 #include "draw.h"
@@ -34,6 +33,7 @@
 #include "worldmap.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

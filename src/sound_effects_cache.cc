@@ -7,11 +7,13 @@
 #include <cstring>
 
 #include "cache.h"
-#include "db.h"
 #include "memory.h"
 #include "settings.h"
 #include "sound_decoder.h"
 #include "sound_effects_list.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

@@ -1,6 +1,9 @@
 #ifndef FALLOUT_PREFERENCES_H_
 #define FALLOUT_PREFERENCES_H_
 
+// TODO Migrate
+
+// Migrated
 #include "db.h"
 
 namespace fallout {

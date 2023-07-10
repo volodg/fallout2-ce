@@ -3,6 +3,9 @@
 #include <cstdlib>
 #include <cstring>
 
+// TODO Migrate
+
+// Migrated
 #include "db.h"
 
 namespace fallout {

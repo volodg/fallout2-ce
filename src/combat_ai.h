@@ -3,8 +3,10 @@
 
 #include "combat_ai_defs.h"
 #include "combat_defs.h"
-#include "db.h"
 #include "obj_types.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

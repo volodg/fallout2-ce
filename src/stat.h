@@ -1,10 +1,12 @@
 #ifndef STAT_H
 #define STAT_H
 
-#include "db.h"
 #include "obj_types.h"
 #include "proto_types.h"
 #include "stat_defs.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

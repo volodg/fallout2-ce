@@ -6,7 +6,6 @@
 
 #include "color.h"
 #include "datafile.h"
-#include "db.h"
 #include "draw.h"
 #include "interpreter_lib.h"
 #include "memory_manager.h"
@@ -19,6 +18,7 @@
 #include "window_manager.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

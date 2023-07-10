@@ -15,7 +15,6 @@
 #include "combat_ai.h"
 #include "critter.h"
 #include "cycle.h"
-#include "db.h"
 #include "dbox.h"
 #include "debug.h"
 #include "display_monitor.h"
@@ -56,6 +55,7 @@
 #include "worldmap.h"
 
 // Migrated
+#include "db.h"
 #include "file_utils.h"
 #include "platform_compat.h"
 

@@ -2,13 +2,13 @@
 #define MAP_H
 
 #include "combat_defs.h"
-#include "db.h"
 #include "geometry.h"
 #include "interpreter.h"
 #include "map_defs.h"
 #include "message.h"
 
 // Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

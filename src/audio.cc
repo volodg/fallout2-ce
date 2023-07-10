@@ -4,11 +4,13 @@
 #include <cstdio>
 #include <cstring>
 
-#include "db.h"
 #include "debug.h"
 #include "memory_manager.h"
 #include "sound.h"
 #include "sound_decoder.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

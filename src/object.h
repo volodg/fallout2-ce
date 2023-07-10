@@ -1,11 +1,13 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#include "db.h"
 #include "geometry.h"
 #include "inventory.h"
 #include "map_defs.h"
 #include "obj_types.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 
