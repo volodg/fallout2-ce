@@ -34,6 +34,7 @@ extern "C" {
     int rust_db_fwrite_long(fallout::File* stream, int value);
     int rust_file_read_uint8_list(fallout::File* stream, unsigned char* arr, int count);
     int rust_file_read_int16_list(fallout::File* stream, short* arr, int count);
+    int rust_file_read_int32_list(fallout::File* stream, int* arr, int count);
     // rust_file_read_uint8
 }
 
@@ -293,20 +294,7 @@ int fileReadInt16List(File* stream, short* arr, int count)
 // 0x4C63BC
 int fileReadInt32List(File* stream, int* arr, int count)
 {
-    if (count == 0) {
-        return 0;
-    }
-
-    if (fileRead(arr, sizeof(*arr) * count, 1, stream) < 1) {
-        return -1;
-    }
-
-    for (int index = 0; index < count; index++) {
-        int value = arr[index];
-        arr[index] = ((value & 0xFF000000) >> 24) | ((value & 0xFF0000) >> 8) | ((value & 0xFF00) << 8) | ((value & 0xFF) << 24);
-    }
-
-    return 0;
+    return rust_file_read_int32_list(stream, arr, count);
 }
 
 // NOTE: Uncollapsed 0x4C63BC. The opposite of [_db_fwriteLongCount].

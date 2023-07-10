@@ -363,9 +363,34 @@ pub unsafe extern "C" fn rust_file_read_int16_list(stream: *const XFile, arr: *m
 
     0
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_read_int32_list(stream: *const XFile, arr: *mut c_int, count: c_int) -> c_int {
+    if count == 0 {
+        return 0
+    }
+
+    if rust_file_read(arr as *mut c_void, mem::size_of_val(&*arr) * count as size_t, 1, stream) < 1 {
+        return -1
+    }
+
+    for index in 0..count {
+        let value = *arr.offset(index as isize);
+        let part1 = (value as c_uint & 0xFF000000) >> 24;
+        let part2 = (value as c_uint & 0xFF0000) >> 8;
+        let part3 = (value as c_uint & 0xFF00) << 8;
+        let part4 = (value as c_uint & 0xFF) << 24;
+        *arr.offset(index as isize) = (part1 | part2 | part3 | part4) as c_int;
+    }
+
+    0
+}
+
 /*
-int fileReadInt16List(File* stream, short* arr, int count)
+int fileReadInt32List(File* stream, int* arr, int count)
 {
+
+    return 0;
 }
  */
 
