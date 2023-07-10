@@ -14,6 +14,8 @@
 extern "C" {
     int rust_db_open(const char* filePath1, int a2, const char* filePath2, int a4);
     int rust_db_get_file_size(const char* filePath, int* sizePtr);
+    fallout::FileReadProgressHandler* rust_get_g_file_read_progress_handler();
+    void rust_set_g_file_read_progress_handler(fallout::FileReadProgressHandler*);
     // rust_db_get_file_size
 }
 
@@ -25,11 +27,6 @@ typedef struct FileList {
 } FileList;
 
 static int _db_list_compare(const void* p1, const void* p2);
-
-// Generic file progress report handler.
-//
-// 0x51DEEC
-static FileReadProgressHandler* gFileReadProgressHandler = nullptr;
 
 // Bytes read so far while tracking progress.
 //
@@ -95,7 +92,7 @@ int dbGetFileContents(const char* filePath, void* ptr)
     }
 
     long size = xfileGetSize(stream);
-    if (gFileReadProgressHandler != nullptr) {
+    if (rust_get_g_file_read_progress_handler() != nullptr) {
         unsigned char* byteBuffer = (unsigned char*)ptr;
 
         long remainingSize = size;
@@ -107,7 +104,7 @@ int dbGetFileContents(const char* filePath, void* ptr)
             remainingSize -= bytesRead;
 
             gFileReadProgressBytesRead = 0;
-            gFileReadProgressHandler();
+            rust_get_g_file_read_progress_handler()();
 
             chunkSize = gFileReadProgressChunkSize;
         }
@@ -154,12 +151,12 @@ int filePrintFormatted(File* stream, const char* format, ...)
 // 0x4C5F24
 int fileReadChar(File* stream)
 {
-    if (gFileReadProgressHandler != nullptr) {
+    if (rust_get_g_file_read_progress_handler() != nullptr) {
         int ch = xfileReadChar(stream);
 
         gFileReadProgressBytesRead++;
         if (gFileReadProgressBytesRead >= gFileReadProgressChunkSize) {
-            gFileReadProgressHandler();
+            rust_get_g_file_read_progress_handler()();
             gFileReadProgressBytesRead = 0;
         }
 
@@ -172,14 +169,14 @@ int fileReadChar(File* stream)
 // 0x4C5F70
 char* fileReadString(char* string, size_t size, File* stream)
 {
-    if (gFileReadProgressHandler != nullptr) {
+    if (rust_get_g_file_read_progress_handler() != nullptr) {
         if (xfileReadString(string, size, stream) == nullptr) {
             return nullptr;
         }
 
         gFileReadProgressBytesRead += strlen(string);
         while (gFileReadProgressBytesRead >= gFileReadProgressChunkSize) {
-            gFileReadProgressHandler();
+            rust_get_g_file_read_progress_handler()();
             gFileReadProgressBytesRead -= gFileReadProgressChunkSize;
         }
 
@@ -198,7 +195,7 @@ int fileWriteString(const char* string, File* stream)
 // 0x4C5FFC
 size_t fileRead(void* ptr, size_t size, size_t count, File* stream)
 {
-    if (gFileReadProgressHandler != nullptr) {
+    if (rust_get_g_file_read_progress_handler() != nullptr) {
         unsigned char* byteBuffer = (unsigned char*)ptr;
 
         size_t totalBytesRead = 0;
@@ -212,7 +209,7 @@ size_t fileRead(void* ptr, size_t size, size_t count, File* stream)
             remainingSize -= bytesRead;
 
             gFileReadProgressBytesRead = 0;
-            gFileReadProgressHandler();
+            rust_get_g_file_read_progress_handler()();
 
             chunkSize = gFileReadProgressChunkSize;
         }
@@ -649,10 +646,10 @@ int fileGetSize(File* stream)
 void fileSetReadProgressHandler(FileReadProgressHandler* handler, int size)
 {
     if (handler != nullptr && size != 0) {
-        gFileReadProgressHandler = handler;
+        rust_set_g_file_read_progress_handler(handler);
         gFileReadProgressChunkSize = size;
     } else {
-        gFileReadProgressHandler = nullptr;
+        rust_set_g_file_read_progress_handler(nullptr);
         gFileReadProgressChunkSize = 0;
     }
 }
