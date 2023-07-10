@@ -872,8 +872,7 @@ unsafe fn xlist_enumerate(
     file_find_close(&directory_file_find_data)
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_xlist_free(xlist: *mut XList) {
+pub unsafe fn xlist_free(xlist: *mut XList) {
     assert_ne!(xlist, null_mut()); // "list", "xfile.c", 949
 
     let file_names = (*xlist).file_names;
@@ -901,7 +900,7 @@ unsafe extern "C" fn enumerate_handler(context: *const XListEnumerationContext) 
         mem::size_of_val(&*(*xlist).file_names) * ((*xlist).file_names_length + 1) as usize,
     ) as *mut *mut c_char;
     if file_names == null_mut() {
-        rust_xlist_free(xlist);
+        xlist_free(xlist);
         (*xlist).file_names_length = -1;
         return false;
     }
@@ -911,7 +910,7 @@ unsafe extern "C" fn enumerate_handler(context: *const XListEnumerationContext) 
     *file_names.offset((*xlist).file_names_length as isize) =
         rust_compat_strdup((*context).name.as_ptr());
     if *file_names.offset((*xlist).file_names_length as isize) == null_mut() {
-        rust_xlist_free(xlist);
+        xlist_free(xlist);
         (*xlist).file_names_length = -1;
         return false;
     }

@@ -10,7 +10,7 @@ struct XFile;
 
 typedef struct XList {
     int _fileNamesLength;
-    char** fileNames;
+    char** _fileNames;
 } XList;
 
 int xfileClose(XFile* stream);
@@ -24,7 +24,6 @@ void xfileRewind(XFile* stream);
 int xfileEof(XFile* stream);
 long xfileGetSize(XFile* stream);
 bool xbaseReopenAll(char* paths);
-void xlistFree(XList* xlist);
 
 } // namespace fallout
 

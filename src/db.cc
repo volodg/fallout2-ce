@@ -1,7 +1,6 @@
 #include "db.h"
 
 #include <cassert>
-#include <cstdlib>
 
 // TODO Migrate
 
@@ -17,8 +16,6 @@ extern "C" {
     int rust_db_get_file_size(const char* filePath, int* sizePtr);
     void rust_set_g_file_read_progress_handler(fallout::FileReadProgressHandler*);
     void rust_set_g_file_read_progress_chunk_size(int);
-    fallout::FileList* rust_g_get_file_list_head();
-    void rust_g_set_file_list_head(fallout::FileList*);
     int rust_db_get_file_contents(const char* filePath, void* ptr);
     int rust_file_read_char(fallout::File* stream);
     char* rust_file_read_string(char* string, size_t size, fallout::File* stream);
@@ -38,13 +35,14 @@ extern "C" {
     int rust_file_write_int32_list(fallout::File* stream, int* arr, int count);
     int rust_db_fwrite_long_count(fallout::File* stream, int* arr, int count);
     int rust_file_name_list_init(const char* pattern, char*** fileNameListPtr, int a3, int a4);
+    void rust_file_name_list_free(char*** fileNameListPtr, int a2);
     // rust_file_read_uint8
 }
 
 namespace fallout {
 
 typedef struct FileList {
-    XList xlist;
+    XList _xlist;
     struct FileList* next;
 } FileList;
 
@@ -345,32 +343,9 @@ int fileNameListInit(const char* pattern, char*** fileNameListPtr, int a3, int a
 }
 
 // 0x4C6868
-// ???
 void fileNameListFree(char*** fileNameListPtr, int a2)
 {
-    if (rust_g_get_file_list_head() == nullptr) {
-        return;
-    }
-
-    FileList* currentFileList = rust_g_get_file_list_head();
-    FileList* previousFileList = rust_g_get_file_list_head();
-    while (*fileNameListPtr != currentFileList->xlist.fileNames) {
-        previousFileList = currentFileList;
-        currentFileList = currentFileList->next;
-        if (currentFileList == nullptr) {
-            return;
-        }
-    }
-
-    if (previousFileList == rust_g_get_file_list_head()) {
-        rust_g_set_file_list_head(currentFileList->next);
-    } else {
-        previousFileList->next = currentFileList->next;
-    }
-
-    xlistFree(&(currentFileList->xlist));
-
-    free(currentFileList);
+    rust_file_name_list_free(fileNameListPtr, a2);
 }
 
 // TODO: Return type should be long.

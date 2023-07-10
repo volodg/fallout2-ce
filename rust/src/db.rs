@@ -4,7 +4,7 @@ use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicI32, AtomicPtr, Ordering};
 use libc::{c_char, c_int, c_long, c_short, c_uchar, c_ushort, free, malloc, memmove, memset, qsort, size_t, snprintf, strchr, strlen};
 use crate::platform_compat::{COMPAT_MAX_DIR, COMPAT_MAX_EXT, COMPAT_MAX_FNAME, COMPAT_MAX_PATH, rust_compat_splitpath, rust_compat_strdup, rust_compat_stricmp, compat_windows_path_to_native};
-use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string, xfile_write_char, xlist_init};
+use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string, xfile_write_char, xlist_init, xlist_free};
 
 type FileReadProgressHandler = unsafe extern "C" fn();
 
@@ -56,13 +56,11 @@ pub unsafe extern "C" fn rust_set_g_file_read_progress_chunk_size(value: c_int) 
 // 0x673044
 static G_FILE_LIST_HEAD: AtomicPtr<FileList> = AtomicPtr::new(null_mut());
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_g_get_file_list_head() -> *mut FileList {
+fn g_get_file_list_head() -> *mut FileList {
     G_FILE_LIST_HEAD.load(Ordering::Relaxed)
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_g_set_file_list_head(value: *mut FileList) {
+fn g_set_file_list_head(value: *mut FileList) {
     G_FILE_LIST_HEAD.store(value, Ordering::Relaxed)
 }
 
@@ -89,7 +87,7 @@ static FileList* gFileListHead;
 #[allow(dead_code)]
 pub struct FileList {
     xlist: XList,
-    next: *const FileList,
+    next: *mut FileList,
 }
 
 #[no_mangle]
@@ -511,17 +509,45 @@ pub unsafe extern "C" fn rust_file_name_list_init(pattern: *const c_char, file_n
         }
     }
 
-    (*file_list).next = rust_g_get_file_list_head();
-    rust_g_set_file_list_head(file_list);
+    (*file_list).next = g_get_file_list_head();
+    g_set_file_list_head(file_list);
 
     *file_name_list_ptr = (*xlist).file_names;
 
     length
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_name_list_free(file_name_list_ptr: *mut *mut *mut c_char, _a2: c_int) {
+    if g_get_file_list_head() == null_mut() {
+        return;
+    }
+
+    let mut current_file_list = g_get_file_list_head();
+    let mut previous_file_list = g_get_file_list_head();
+    while *file_name_list_ptr != (*current_file_list).xlist.file_names {
+        previous_file_list = current_file_list;
+        current_file_list = (*current_file_list).next;
+        if current_file_list == null_mut() {
+            return;
+        }
+    }
+
+    if previous_file_list == g_get_file_list_head() {
+        g_set_file_list_head((*current_file_list).next);
+    } else {
+        (*previous_file_list).next = (*current_file_list).next;
+    }
+
+    xlist_free(&mut (*current_file_list).xlist);
+
+    free(current_file_list as *mut c_void);
+}
+
 /*
-int fileNameListInit(const char* pattern, char*** fileNameListPtr, int a3, int a4)
+void fileNameListFree(char*** fileNameListPtr, int a2)
 {
-    return length;
+
 }
  */
 
