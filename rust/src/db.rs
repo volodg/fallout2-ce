@@ -348,8 +348,23 @@ pub unsafe extern "C" fn rust_file_read_uint8_list(stream: *const XFile, arr: *m
 
     0
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_read_int16_list(stream: *const XFile, arr: *mut c_short, count: c_int) -> c_int {
+    for index in 0..count {
+        let mut ch = 0;
+        // NOTE: Uninline.
+        if rust_file_read_int16(stream, &mut ch) == -1 {
+            return -1;
+        }
+
+        *arr.offset(index as isize) = ch;
+    }
+
+    0
+}
 /*
-int fileReadUInt8List(File* stream, unsigned char* arr, int count)
+int fileReadInt16List(File* stream, short* arr, int count)
 {
 }
  */

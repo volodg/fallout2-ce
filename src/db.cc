@@ -33,6 +33,7 @@ extern "C" {
     int rust_file_write_int16(fallout::File* stream, short value);
     int rust_db_fwrite_long(fallout::File* stream, int value);
     int rust_file_read_uint8_list(fallout::File* stream, unsigned char* arr, int count);
+    int rust_file_read_int16_list(fallout::File* stream, short* arr, int count);
     // rust_file_read_uint8
 }
 
@@ -284,17 +285,7 @@ int fileReadFixedLengthString(File* stream, char* string, int length)
 // 0x4C6330
 int fileReadInt16List(File* stream, short* arr, int count)
 {
-    for (int index = 0; index < count; index++) {
-        short value;
-        // NOTE: Uninline.
-        if (fileReadInt16(stream, &value) == -1) {
-            return -1;
-        }
-
-        arr[index] = value;
-    }
-
-    return 0;
+    return rust_file_read_int16_list(stream, arr, count);
 }
 
 // NOTE: Not sure about signed/unsigned int/long.
