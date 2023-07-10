@@ -16,7 +16,6 @@ void movieLibSetVolume(int volume);
 void _MVE_sfSVGA(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9);
 void _MVE_sfCallbacks(MovieShowFrameProc* proc);
 void movieLibSetPaletteEntriesProc(void (*fn)(unsigned char*, int, int));
-void _MVE_rmCallbacks(int (*fn)());
 void _sub_4F4BB(int a1);
 void _MVE_rmFrameCounts(int* a1, int* a2);
 int _MVE_rmPrepMovie(int fileHandle, int a2, int a3, char a4);

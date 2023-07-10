@@ -844,7 +844,6 @@ static int _movieStart(int win, char* filePath, int (*a3)())
         debugPrint("Direct ");
         windowGetRect(gMovieWindow, &gMovieWindowRect);
         debugPrint("Playing at (%d, %d)  ", _movieX + gMovieWindowRect.left, _movieY + gMovieWindowRect.top);
-        _MVE_rmCallbacks(a3);
         _MVE_sfCallbacks(movieDirectImpl);
 
         v17 = 0;
@@ -852,7 +851,6 @@ static int _movieStart(int win, char* filePath, int (*a3)())
         v15 = _movieX + gMovieWindowRect.left;
     } else {
         debugPrint("Buffered ");
-        _MVE_rmCallbacks(a3);
         _MVE_sfCallbacks(movieBufferedImpl);
         v17 = 0;
         v16 = 0;

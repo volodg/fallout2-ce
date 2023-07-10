@@ -75,8 +75,8 @@ typedef struct MenuBar {
     Rect rect;
     int pulldownsLength;
     MenuPulldown pulldowns[15];
-    int foregroundColor;
-    int backgroundColor;
+    int _foregroundColor;
+    int _backgroundColor;
 } MenuBar;
 
 typedef void WindowBlitProc(unsigned char* src, int width, int height, int srcPitch, unsigned char* dest, int destPitch);
