@@ -1,6 +1,6 @@
 use crate::fpattern::fpattern_match;
 use crate::platform_compat::{
-    compat_stricmp, rust_compat_fopen, rust_compat_strdup, rust_get_file_size, COMPAT_MAX_PATH,
+    compat_stricmp_ord, rust_compat_fopen, rust_compat_strdup, rust_get_file_size, COMPAT_MAX_PATH,
 };
 use libc::{
     c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, fread, free, fseek, malloc, size_t,
@@ -266,7 +266,7 @@ pub unsafe fn rust_dfile_open(
 
     let entries = (*dbase).entries.as_mut().expect("");
     let optional_entry = entries
-        .binary_search_by(|a| compat_stricmp(a.get_path_cstr(), file_path))
+        .binary_search_by(|a| compat_stricmp_ord(a.get_path_cstr(), file_path))
         .map(|i| &mut entries[i]);
 
     if optional_entry.is_err() {

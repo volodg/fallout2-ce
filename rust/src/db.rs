@@ -2,8 +2,8 @@ use std::ffi::{c_uint, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicI32, AtomicPtr, Ordering};
-use libc::{c_char, c_int, c_long, c_short, c_uchar, c_ushort, free, malloc, memset, qsort, size_t, strlen};
-use crate::platform_compat::{compat_stricmp, rust_compat_stricmp};
+use libc::{c_char, c_int, c_long, c_short, c_uchar, c_ushort, free, malloc, memmove, memset, qsort, size_t, strlen};
+use crate::platform_compat::rust_compat_stricmp;
 use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string, xfile_write_char, rust_xlist_init};
 
 type FileReadProgressHandler = unsafe extern "C" fn();
@@ -473,22 +473,26 @@ pub unsafe extern "C" fn rust_file_name_list_init(pattern: *const c_char, file_n
     if (*xlist).file_names_length != 0 {
         qsort((*xlist).file_names as *mut c_void, (*xlist).file_names_length as size_t, mem::size_of_val(&*(*xlist).file_names), Some(rust_db_list_compare));
 
-        /*int fileNamesLength = xlist->fileNamesLength;
-        for (int index = 0; index < fileNamesLength - 1; index++) {
-            if (compat_stricmp(xlist->fileNames[index], xlist->fileNames[index + 1]) == 0) {
-                char* temp = xlist->fileNames[index + 1];
-                memmove(&(xlist->fileNames[index + 1]), &(xlist->fileNames[index + 2]), sizeof(*xlist->fileNames) * (xlist->fileNamesLength - index - 1));
-                xlist->fileNames[xlist->fileNamesLength - 1] = temp;
+        let mut file_names_length = (*xlist).file_names_length;
+        let mut index = 0;
+        while index < file_names_length - 1 {
+            if rust_compat_stricmp((*xlist).file_names.offset(index as isize) as *const c_char, (*xlist).file_names.offset(index as isize + 1) as *const c_char) == 0 {
+                let temp = *(*xlist).file_names.offset(index as isize + 1);
+                memmove((*xlist).file_names.offset(index as isize + 1) as *mut c_void,
+                        (*xlist).file_names.offset(index as isize + 2) as *mut c_void,
+                        mem::size_of_val(&*(*xlist).file_names) * ((*xlist).file_names_length - index - 1) as usize);
+                *(*xlist).file_names.offset((*xlist).file_names_length as isize - 1) = temp;
 
-                fileNamesLength--;
-                index--;
+                file_names_length -= 1;
+            } else {
+                index += 1;
             }
         }
 
-        bool isWildcard = *pattern == '*';
+        /*bool isWildcard = *pattern == '*';
 
-        for (int index = 0; index < fileNamesLength; index += 1) {
-            char* name = xlist->fileNames[index];
+        for (int index = 0; index < file_names_length; index += 1) {
+            char* name = (*xlist).fileNames[index];
             char dir[COMPAT_MAX_DIR];
             char fileName[COMPAT_MAX_FNAME];
             char extension[COMPAT_MAX_EXT];
@@ -500,8 +504,8 @@ pub unsafe extern "C" fn rust_file_name_list_init(pattern: *const c_char, file_n
                 // understand the problem.
                 char path[COMPAT_MAX_PATH];
                 snprintf(path, sizeof(path), "%s%s", fileName, extension);
-                free(xlist->fileNames[length]);
-                xlist->fileNames[length] = compat_strdup(path);
+                free((*xlist).file_names[length]);
+                (*xlist).file_names[length] = compat_strdup(path);
                 length++;
             }
         }*/

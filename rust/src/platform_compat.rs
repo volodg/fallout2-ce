@@ -28,7 +28,7 @@ pub extern "C" fn rust_compat_stricmp(string1: *const c_char, string2: *const c_
     unsafe { SDL_strcasecmp(string1, string2) }
 }
 
-pub fn compat_stricmp(string1: *const c_char, string2: *const c_char) -> Ordering {
+pub fn compat_stricmp_ord(string1: *const c_char, string2: *const c_char) -> Ordering {
     let result = rust_compat_stricmp(string1, string2);
     if result < 0 {
         Ordering::Less
