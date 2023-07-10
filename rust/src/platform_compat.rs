@@ -92,83 +92,71 @@ pub extern "C" fn rust_compat_makepath(
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
-pub extern "C" fn rust_compat_makepath(
+pub unsafe extern "C" fn rust_compat_makepath(
     mut path: *mut c_char,
     drive: *const c_char,
     dir: *const c_char,
     fname: *const c_char,
     ext: *const c_char,
 ) {
-    unsafe {
-        *path = '\0' as c_char;
-    }
+    *path = '\0' as c_char;
 
     if drive != null_mut() {
-        unsafe {
-            if *drive != '\0' as c_char {
-                strcpy(path, drive);
-                path = strchr(path, '\0' as c_int);
+        if *drive != '\0' as c_char {
+            strcpy(path, drive);
+            path = strchr(path, '\0' as c_int);
 
-                if *path.offset(-1) == '/' as c_char {
-                    path = path.offset(-1);
-                } else {
-                    *path = '/' as c_char;
-                }
+            if *path.offset(-1) == '/' as c_char {
+                path = path.offset(-1);
+            } else {
+                *path = '/' as c_char;
             }
         }
     }
 
     if dir != null_mut() {
-        unsafe {
-            if *dir != '\0' as c_char {
-                if *dir != '/' as c_char && *path == '/' as c_char {
-                    path = path.offset(1);
-                }
+        if *dir != '\0' as c_char {
+            if *dir != '/' as c_char && *path == '/' as c_char {
+                path = path.offset(1);
+            }
 
-                strcpy(path, dir);
-                path = strchr(path, '\0' as c_int);
+            strcpy(path, dir);
+            path = strchr(path, '\0' as c_int);
 
-                if *path.offset(-1) == '/' as c_char {
-                    path = path.offset(-1);
-                } else {
-                    *path = '/' as c_char;
-                }
+            if *path.offset(-1) == '/' as c_char {
+                path = path.offset(-1);
+            } else {
+                *path = '/' as c_char;
             }
         }
     }
 
-    unsafe {
-        if fname != null_mut() && *fname != '\0' as c_char {
-            if *fname != '/' as c_char && *path == '/' as c_char {
-                path = path.offset(1);
-            }
+    if fname != null_mut() && *fname != '\0' as c_char {
+        if *fname != '/' as c_char && *path == '/' as c_char {
+            path = path.offset(1);
+        }
 
-            strcpy(path, fname);
-            path = strchr(path, '\0' as c_int);
-        } else {
-            if *path == '/' as c_char {
-                path = path.offset(1);
-            }
+        strcpy(path, fname);
+        path = strchr(path, '\0' as c_int);
+    } else {
+        if *path == '/' as c_char {
+            path = path.offset(1);
         }
     }
 
     if ext != null_mut() {
-        unsafe {
-            if *ext != '\0' as c_char {
-                if *ext != '.' as c_char {
-                    *path = '.' as c_char;
-                    path = path.offset(1);
-                }
-
-                strcpy(path, ext);
-                path = strchr(path, '\0' as c_int);
+        if *ext != '\0' as c_char {
+            if *ext != '.' as c_char {
+                *path = '.' as c_char;
+                path = path.offset(1);
             }
+
+            strcpy(path, ext);
+            path = strchr(path, '\0' as c_int);
         }
     }
 
-    unsafe {
-        *path = '\0' as c_char;
-    }
+    *path = '\0' as c_char;
 }
 
 #[cfg(target_family = "windows")]
@@ -196,7 +184,7 @@ pub extern "C" fn rust_compat_splitpath(
 
 #[no_mangle]
 #[cfg(not(target_family = "windows"))]
-pub extern "C" fn rust_compat_splitpath(
+pub unsafe extern "C" fn rust_compat_splitpath(
     mut path: *const c_char,
     drive: *mut c_char,
     dir: *mut c_char,
@@ -205,17 +193,15 @@ pub extern "C" fn rust_compat_splitpath(
 ) {
     let drive_start = path;
 
-    unsafe {
-        if *path == '/' as c_char && *path.offset(1) == '/' as c_char {
-            path = path.offset(2);
-            let curr = *path;
-            while curr != '\0' as c_char && curr != '/' as c_char && curr != '.' as c_char {
-                path = path.offset(1);
-            }
+    if *path == '/' as c_char && *path.offset(1) == '/' as c_char {
+        path = path.offset(2);
+        let curr = *path;
+        while curr != '\0' as c_char && curr != '/' as c_char && curr != '.' as c_char {
+            path = path.offset(1);
         }
     }
 
-    fn set_component(component: *mut c_char, start: *const c_char, end: *const c_char, max: usize) {
+    unsafe fn set_component(component: *mut c_char, start: *const c_char, end: *const c_char, max: usize) {
         if component == null_mut() {
             return;
         }
@@ -224,10 +210,8 @@ pub extern "C" fn rust_compat_splitpath(
         if dir_size > (max - 1) as isize {
             dir_size = (max - 1) as isize;
         }
-        unsafe {
-            strncpy(component, start, dir_size as usize);
-            *component.offset(dir_size) = '\0' as c_char;
-        }
+        strncpy(component, start, dir_size as usize);
+        *component.offset(dir_size) = '\0' as c_char;
     }
 
     set_component(drive, drive_start, path, COMPAT_MAX_DRIVE.into());
@@ -237,15 +221,13 @@ pub extern "C" fn rust_compat_splitpath(
     let mut ext_start: *const c_char = null_mut();
 
     let mut end = path;
-    unsafe {
-        while *end != '\0' as c_char {
-            if *end == '/' as c_char {
-                fname_start = end.offset(1);
-            } else if *end == '.' as c_char {
-                ext_start = end;
-            }
-            end = end.offset(1);
+    while *end != '\0' as c_char {
+        if *end == '/' as c_char {
+            fname_start = end.offset(1);
+        } else if *end == '.' as c_char {
+            ext_start = end;
         }
+        end = end.offset(1);
     }
 
     if ext_start == null_mut() {
@@ -378,7 +360,7 @@ pub unsafe extern "C" fn rust_compat_fopen(path: *const c_char, mode: *const c_c
     strcpy(native_path.as_mut_ptr(), path);
     rust_compat_windows_path_to_native(native_path.as_mut_ptr());
     compat_resolve_path(native_path.as_mut_ptr());
-    return fopen(native_path.as_ptr(), mode);
+    fopen(native_path.as_ptr(), mode)
 }
 
 pub unsafe fn compat_gzopen(path: *const c_char, mode: *const c_char) -> gzFile {
@@ -386,7 +368,7 @@ pub unsafe fn compat_gzopen(path: *const c_char, mode: *const c_char) -> gzFile 
     strcpy(native_path.as_mut_ptr(), path);
     rust_compat_windows_path_to_native(native_path.as_mut_ptr());
     compat_resolve_path(native_path.as_mut_ptr());
-    return gzopen(native_path.as_ptr(), mode);
+    gzopen(native_path.as_ptr(), mode)
 }
 
 unsafe fn adjust_new_line(buffer: *mut c_char) {
@@ -548,13 +530,15 @@ mod tests {
         let filename = CString::new("filename").expect("");
         let extension = CString::new(".txt").expect("");
 
-        rust_compat_makepath(
-            path.as_mut_ptr() as *mut c_char,
-            drive.as_ptr(),
-            dir.as_ptr(),
-            filename.as_ptr(),
-            extension.as_ptr(),
-        );
+        unsafe {
+            rust_compat_makepath(
+                path.as_mut_ptr() as *mut c_char,
+                drive.as_ptr(),
+                dir.as_ptr(),
+                filename.as_ptr(),
+                extension.as_ptr(),
+            );
+        }
 
         assert_eq!(
             "media/tmp1/tmp2/filename.txt",
@@ -573,13 +557,15 @@ mod tests {
         let mut fname = [0 as u8; 10];
         let mut ext = [0 as u8; 10];
 
-        rust_compat_splitpath(
-            path,
-            drive.as_mut_ptr() as *mut c_char,
-            dir.as_mut_ptr() as *mut c_char,
-            fname.as_mut_ptr() as *mut c_char,
-            ext.as_mut_ptr() as *mut c_char,
-        );
+        unsafe {
+            rust_compat_splitpath(
+                path,
+                drive.as_mut_ptr() as *mut c_char,
+                dir.as_mut_ptr() as *mut c_char,
+                fname.as_mut_ptr() as *mut c_char,
+                ext.as_mut_ptr() as *mut c_char,
+            );
+        }
 
         assert_eq!("", to_string(drive.as_mut_slice()));
         assert_eq!("MAPS/", to_string(dir.as_mut_slice()));
@@ -598,13 +584,15 @@ mod tests {
         let mut fname = [0 as u8; 10];
         let mut ext = [0 as u8; 10];
 
-        rust_compat_splitpath(
-            path,
-            drive.as_mut_ptr() as *mut c_char,
-            dir.as_mut_ptr() as *mut c_char,
-            fname.as_mut_ptr() as *mut c_char,
-            ext.as_mut_ptr() as *mut c_char,
-        );
+        unsafe {
+            rust_compat_splitpath(
+                path,
+                drive.as_mut_ptr() as *mut c_char,
+                dir.as_mut_ptr() as *mut c_char,
+                fname.as_mut_ptr() as *mut c_char,
+                ext.as_mut_ptr() as *mut c_char,
+            );
+        }
 
         assert_eq!("", to_string(drive.as_mut_slice()));
         assert_eq!("proto/critters/", to_string(dir.as_mut_slice()));
