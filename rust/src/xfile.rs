@@ -1,9 +1,8 @@
-use std::cell::RefCell;
 use crate::dfile::{
-    dbase_find_close, dbase_find_first_entry, dbase_find_next_entry, dbase_open,
-    dfile_remove_node, dfile_eof, dfile_get_size, dfile_print_formatted_args, dfile_read,
-    dfile_read_char, dfile_read_string, dfile_rewind, dfile_seek, dfile_tell, dfile_write,
-    dfile_write_char, dfile_write_string, rust_dfile_open, DBase, DFile, DFileFindData,
+    dbase_find_close, dbase_find_first_entry, dbase_find_next_entry, dbase_open, dfile_eof,
+    dfile_get_size, dfile_print_formatted_args, dfile_read, dfile_read_char, dfile_read_string,
+    dfile_remove_node, dfile_rewind, dfile_seek, dfile_tell, dfile_write, dfile_write_char,
+    dfile_write_string, rust_dfile_open, DBase, DFile, DFileFindData,
 };
 use crate::file_find::{
     file_find_close, file_find_first, file_find_get_name, file_find_is_directory, file_find_next,
@@ -25,13 +24,14 @@ use libz_sys::{
     gzFile, gzclose, gzeof, gzgetc, gzputc, gzputs, gzread, gzrewind, gzseek, gztell, gzwrite,
     voidp, voidpc, z_off_t,
 };
+use spin::RwLock;
+use std::cell::RefCell;
 use std::ffi::{c_int, c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use spin::RwLock;
+use std::sync::Arc;
 use vsprintf::vsprintf;
 
 enum XFileType {
@@ -47,7 +47,7 @@ pub struct XFile {
 impl Default for XFile {
     fn default() -> Self {
         Self {
-            file: XFileType::File(null_mut())
+            file: XFileType::File(null_mut()),
         }
     }
 }
@@ -213,7 +213,8 @@ pub unsafe extern "C" fn rust_xfile_open(
             let curr = curr.read();
             if curr.is_dbase {
                 // Attempt to open dfile stream from dbase.
-                let optional_dfile = rust_dfile_open(&curr.dbase.as_ref().expect(""), file_path, mode);
+                let optional_dfile =
+                    rust_dfile_open(&curr.dbase.as_ref().expect(""), file_path, mode);
                 if let Some(dfile) = optional_dfile {
                     (*stream).file = XFileType::DFile(dfile);
                     snprintf(
@@ -260,8 +261,8 @@ pub unsafe extern "C" fn rust_xfile_open(
                     sformat.as_ptr(),
                     file_path,
                 );
-            },
-            _ => ()
+            }
+            _ => (),
         }
     }
 
@@ -281,8 +282,8 @@ pub unsafe extern "C" fn rust_xfile_open(
                 // File is not gzipped.
                 rewind(file);
             }
-        },
-        _ => ()
+        }
+        _ => (),
     }
 
     Box::into_raw(stream)
@@ -298,26 +299,15 @@ pub unsafe extern "C" fn rust_xfile_print_formatted_args(
     assert_ne!(format, null()); // "format", "xfile.c", 333
 
     match &(*stream).file {
-        XFileType::DFile(file) => {
-            dfile_print_formatted_args(&file.borrow(), format, args)
-        },
+        XFileType::DFile(file) => dfile_print_formatted_args(&file.borrow(), format, args),
         XFileType::GZFile(file) => {
             let str = vsprintf(format, args).expect("valid");
-            gzwrite(
-                file.clone(),
-                str.as_ptr() as voidpc,
-                str.len() as c_uint,
-            )
-        },
+            gzwrite(file.clone(), str.as_ptr() as voidpc, str.len() as c_uint)
+        }
         XFileType::File(file) => {
             let str = vsprintf(format, args).expect("valid");
-            fwrite(
-                str.as_ptr() as *const c_void,
-                str.len() as size_t,
-                1,
-                *file,
-            ) as c_int
-        },
+            fwrite(str.as_ptr() as *const c_void, str.len() as size_t, 1, *file) as c_int
+        }
     }
 }
 
@@ -388,12 +378,8 @@ pub unsafe extern "C" fn rust_xfile_read(
     match &(*stream).file {
         XFileType::DFile(file) => dfile_read(ptr, size, count, &mut file.borrow_mut()),
         XFileType::GZFile(file) => {
-            gzread(
-                file.clone(),
-                ptr as voidp,
-                (size * count) as c_uint,
-            ) as size_t
-        },
+            gzread(file.clone(), ptr as voidp, (size * count) as c_uint) as size_t
+        }
         XFileType::File(file) => fread(ptr, size, count, *file),
     }
 }
@@ -449,7 +435,7 @@ pub unsafe extern "C" fn rust_xfile_rewind(stream: *const XFile) {
         XFileType::DFile(file) => dfile_rewind(&mut file.borrow_mut()),
         XFileType::GZFile(file) => {
             gzrewind(file.clone());
-        },
+        }
         XFileType::File(file) => rewind(*file),
     }
 }

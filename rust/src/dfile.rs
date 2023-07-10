@@ -1,18 +1,20 @@
-use std::cell::RefCell;
 use crate::fpattern::fpattern_match;
-use crate::platform_compat::{rust_compat_fopen, rust_compat_strdup, rust_get_file_size, COMPAT_MAX_PATH, compat_stricmp};
+use crate::platform_compat::{
+    compat_stricmp, rust_compat_fopen, rust_compat_strdup, rust_get_file_size, COMPAT_MAX_PATH,
+};
 use libc::{
-    c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, fread, free, fseek, malloc,
-    size_t, strcpy, ungetc, FILE, SEEK_CUR, SEEK_END, SEEK_SET,
+    c_char, c_int, c_long, c_uchar, c_uint, fclose, fgetc, fread, free, fseek, malloc, size_t,
+    strcpy, ungetc, FILE, SEEK_CUR, SEEK_END, SEEK_SET,
 };
 use libz_sys::{
     alloc_func, free_func, inflate, inflateEnd, inflateInit_, voidpf, z_stream, z_streamp, Bytef,
     Z_NO_FLUSH, Z_OK,
 };
+use std::cell::RefCell;
 use std::ffi::{c_void, CString};
-use std::{mem, ptr};
 use std::ptr::{null, null_mut};
 use std::rc::{Rc, Weak};
+use std::{mem, ptr};
 
 // The size of decompression buffer for reading compressed [DFile]s.
 const DFILE_DECOMPRESSION_BUFFER_SIZE: u32 = 0x400;
@@ -263,9 +265,9 @@ pub unsafe fn rust_dfile_open(
     let dbase = &mut dbase_rc.as_ref().borrow_mut();
 
     let entries = (*dbase).entries.as_mut().expect("");
-    let optional_entry = entries.binary_search_by(|a| {
-        compat_stricmp(a.get_path_cstr(), file_path)
-    }).map(|i| &mut entries[i]);
+    let optional_entry = entries
+        .binary_search_by(|a| compat_stricmp(a.get_path_cstr(), file_path))
+        .map(|i| &mut entries[i]);
 
     if optional_entry.is_err() {
         return None;
@@ -314,8 +316,7 @@ pub unsafe fn rust_dfile_open(
             }
         }
 
-        (*dfile.decompression_stream).zalloc =
-            mem::transmute::<*const c_void, alloc_func>(null());
+        (*dfile.decompression_stream).zalloc = mem::transmute::<*const c_void, alloc_func>(null());
         (*dfile.decompression_stream).zfree = mem::transmute::<*const c_void, free_func>(null());
         (*dfile.decompression_stream).opaque = mem::transmute::<*const c_void, voidpf>(null());
         (*dfile.decompression_stream).next_in = dfile.decompression_buffer;
@@ -583,7 +584,10 @@ pub unsafe fn dbase_open(file_path: *const c_char) -> Option<Rc<RefCell<DBase>>>
         return None;
     }
 
-    let entries = Box::new(vec![DBaseEntry::default(); dbase.entries_length[0] as usize]);
+    let entries = Box::new(vec![
+        DBaseEntry::default();
+        dbase.entries_length[0] as usize
+    ]);
     dbase.entries = Some(*entries);
     if dbase.entries.is_none() {
         close_on_error(stream);
@@ -700,10 +704,7 @@ pub unsafe fn dbase_find_first_entry(
     false
 }
 
-pub unsafe fn dbase_find_next_entry(
-    dbase: &DBase,
-    find_file_data: *mut DFileFindData,
-) -> bool {
+pub unsafe fn dbase_find_next_entry(dbase: &DBase, find_file_data: *mut DFileFindData) -> bool {
     for index in ((*find_file_data).index + 1)..(*dbase).entries_length[0] {
         let entry = &(*dbase).entries.as_ref().expect("")[index as usize];
         if fpattern_match(
@@ -750,7 +751,7 @@ pub unsafe fn dfile_read_string(
 ) -> *const c_char {
     assert_ne!(string, null_mut()); // "s", "dfile.c", 407
     assert_ne!(size, 0); // "n", "dfile.c", 408
-    // assert_ne!(stream, null_mut()); // "stream", "dfile.c", 409
+                         // assert_ne!(stream, null_mut()); // "stream", "dfile.c", 409
 
     if ((*stream).flags & DFILE_EOF as c_int) != 0 || ((*stream).flags & DFILE_ERROR as c_int) != 0
     {
@@ -799,7 +800,7 @@ pub unsafe fn dfile_read(
     stream: &mut DFile,
 ) -> size_t {
     assert_ne!(ptr, null_mut()); // "ptr", "dfile.c", 499
-    // assert_ne!(stream, null_mut()); // "stream", dfile.c, 500
+                                 // assert_ne!(stream, null_mut()); // "stream", dfile.c, 500
 
     if ((*stream).flags & DFILE_EOF as c_int) != 0 || ((*stream).flags & DFILE_ERROR as c_int) != 0
     {
@@ -923,7 +924,8 @@ pub unsafe fn dfile_seek(stream: &mut DFile, offset: c_long, origin: c_int) -> c
 
     if fseek(
         (*stream).stream,
-        ((*(*stream).dbase.upgrade().expect("")).borrow().data_offset + (*(*stream).entry).data_offset[0]) as c_long,
+        ((*(*stream).dbase.upgrade().expect("")).borrow().data_offset
+            + (*(*stream).entry).data_offset[0]) as c_long,
         SEEK_SET,
     ) != 0
     {
@@ -986,7 +988,7 @@ pub unsafe fn dfile_write_char(_ch: c_int, _stream: &DFile) -> c_int {
 
 pub unsafe fn dfile_write_string(string: *const c_char, _stream: &DFile) -> c_int {
     assert_ne!(string, null()); // "s", "dfile.c", 448
-    // assert_ne!(stream, null()); // "stream", "dfile.c", 449
+                                // assert_ne!(stream, null()); // "stream", "dfile.c", 449
 
     -1
 }
@@ -1007,9 +1009,6 @@ pub unsafe fn dfile_get_size(stream: &DFile) -> c_long {
     (*(*stream).entry).uncompressed_size[0] as c_long
 }
 
-pub unsafe fn dbase_find_close(
-    _dbase: &DBase,
-    _find_file_data: *const DFileFindData,
-) -> bool {
+pub unsafe fn dbase_find_close(_dbase: &DBase, _find_file_data: *const DFileFindData) -> bool {
     true
 }

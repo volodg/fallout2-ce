@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use libc::{
     access, c_char, c_int, c_long, c_uint, c_ulong, fgets, fopen, fseek, ftell, lseek, remove,
     rename, strcpy, strlen, FILE, SEEK_CUR, SEEK_END, SEEK_SET,
@@ -7,6 +6,7 @@ use libc::{
 use libc::{closedir, opendir, readdir, strchr, strncpy};
 use libz_sys::{gzFile, gzgets, gzopen};
 use sdl2_sys::{SDL_itoa, SDL_strcasecmp, SDL_strdup, SDL_strlwr, SDL_strncasecmp, SDL_strupr};
+use std::cmp::Ordering;
 #[cfg(not(target_family = "windows"))]
 use std::ffi::CString;
 use std::ptr::null_mut;
