@@ -321,8 +321,7 @@ pub unsafe fn xfile_read_char(stream: *const XFile) -> c_int {
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_xfile_read_string(
+pub unsafe fn xfile_read_string(
     string: *mut c_char,
     size: c_int,
     stream: *const XFile,

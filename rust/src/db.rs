@@ -2,8 +2,8 @@ use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicI32, AtomicPtr, Ordering};
-use libc::{c_char, c_int, c_long, size_t};
-use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, rust_xfile_read, xfile_read_char, xbase_open, XFile, XList};
+use libc::{c_char, c_int, c_long, size_t, strlen};
+use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, rust_xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string};
 
 type FileReadProgressHandler = unsafe extern "C" fn();
 
@@ -186,8 +186,28 @@ pub unsafe extern "C" fn rust_file_read_char(stream: *const XFile) -> c_int {
 
     xfile_read_char(stream)
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_read_string(string: *mut c_char, size: size_t, stream: *const XFile) -> *const c_char {
+    if mem::transmute::<unsafe extern "C" fn(), *const c_void>(rust_get_g_file_read_progress_handler()) != null() {
+        if xfile_read_string(string, size as c_int, stream) == null() {
+            return null();
+        }
+
+        rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() + strlen(string) as c_int);
+        while rust_get_g_file_read_progress_bytes_read() >= rust_get_g_file_read_progress_chunk_size() {
+            rust_get_g_file_read_progress_handler()();
+            rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() - rust_get_g_file_read_progress_chunk_size());
+        }
+
+        return string;
+    }
+
+    xfile_read_string(string, size as c_int, stream)
+}
+
 /*
-int fileReadChar(File* stream)
+char* fileReadString(char* string, size_t size, File* stream)
 {
 
 }
