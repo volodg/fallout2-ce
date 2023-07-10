@@ -35,6 +35,7 @@ extern "C" {
     int rust_file_read_uint8_list(fallout::File* stream, unsigned char* arr, int count);
     int rust_file_read_int16_list(fallout::File* stream, short* arr, int count);
     int rust_file_read_int32_list(fallout::File* stream, int* arr, int count);
+    int rust_file_write_uint8_list(fallout::File* stream, unsigned char* arr, int count);
     // rust_file_read_uint8
 }
 
@@ -306,14 +307,7 @@ int _db_freadIntCount(File* stream, int* arr, int count)
 // 0x4C6464
 int fileWriteUInt8List(File* stream, unsigned char* arr, int count)
 {
-    for (int index = 0; index < count; index++) {
-        // NOTE: Uninline.
-        if (fileWriteUInt8(stream, arr[index]) == -1) {
-            return -1;
-        }
-    }
-
-    return 0;
+    return rust_file_write_uint8_list(stream, arr, count);
 }
 
 // NOTE: Probably uncollapsed 0x4C6464. See [fileReadFixedLengthString].

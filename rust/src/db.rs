@@ -386,11 +386,20 @@ pub unsafe extern "C" fn rust_file_read_int32_list(stream: *const XFile, arr: *m
     0
 }
 
-/*
-int fileReadInt32List(File* stream, int* arr, int count)
-{
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_write_uint8_list(stream: *const XFile, arr: *mut c_uchar, count: c_int) -> c_int {
+    for index in 0..count {
+        // NOTE: Uninline.
+        if rust_file_write_uint8(stream, *arr.offset(index as isize) as c_short) == -1 {
+            return -1;
+        }
+    }
 
-    return 0;
+    0
+}
+/*
+int fileWriteUInt8List(File* stream, unsigned char* arr, int count)
+{
 }
  */
 
