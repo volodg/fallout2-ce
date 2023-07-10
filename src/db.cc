@@ -26,6 +26,7 @@ extern "C" {
     char* rust_file_read_string(char* string, size_t size, fallout::File* stream);
     size_t rust_file_read(void* ptr, size_t size, size_t count, fallout::File* stream);
     int rust_file_read_uint8(fallout::File* stream, unsigned char* valuePtr);
+    int rust_file_read_int16(fallout::File* stream, short* valuePtr);
     // rust_file_read_uint8
 }
 
@@ -174,21 +175,7 @@ int fileReadUInt8(File* stream, unsigned char* valuePtr)
 // 0x4C60F4
 int fileReadInt16(File* stream, short* valuePtr)
 {
-    unsigned char high;
-    // NOTE: Uninline.
-    if (fileReadUInt8(stream, &high) == -1) {
-        return -1;
-    }
-
-    unsigned char low;
-    // NOTE: Uninline.
-    if (fileReadUInt8(stream, &low) == -1) {
-        return -1;
-    }
-
-    *valuePtr = (high << 8) | low;
-
-    return 0;
+    return rust_file_read_int16(stream, valuePtr);
 }
 
 // 0x4C614C
@@ -443,6 +430,7 @@ int _db_fwriteLongCount(File* stream, int* arr, int count)
 }
 
 // 0x4C6628
+// ???
 int fileNameListInit(const char* pattern, char*** fileNameListPtr, int a3, int a4)
 {
     FileList* fileList = (FileList*)malloc(sizeof(*fileList));
@@ -505,6 +493,7 @@ int fileNameListInit(const char* pattern, char*** fileNameListPtr, int a3, int a
 }
 
 // 0x4C6868
+// ???
 void fileNameListFree(char*** fileNameListPtr, int a2)
 {
     if (rust_g_get_file_list_head() == nullptr) {
