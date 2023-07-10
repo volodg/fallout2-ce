@@ -154,7 +154,7 @@ pub unsafe extern "C" fn rust_xfile_close(stream: *mut XFile) -> c_int {
     let stream = Box::from_raw(stream);
 
     let rc = match (*stream).file {
-        XFileType::DFile(file) => dfile_remove_node(&file.as_ref().borrow()),
+        XFileType::DFile(file) => dfile_remove_node(&file.borrow()),
         XFileType::GZFile(file) => gzclose(file),
         XFileType::File(file) => fclose(file),
     };
@@ -210,11 +210,11 @@ pub unsafe extern "C" fn rust_xfile_open(
         let mut optional_curr = get_g_xbase_head_rc();
         let sformat_sformat = CString::new("%s\\%s").expect("valid string");
         while let Some(curr) = optional_curr {
-            if curr.as_ref().read().is_dbase {
+            if curr.read().is_dbase {
                 // Attempt to open dfile stream from dbase.
-                let dfile = rust_dfile_open(&curr.as_ref().read().dbase.as_ref().expect(""), file_path, mode);
-                if dfile.is_some() {
-                    (*stream).file = XFileType::DFile(dfile.expect(""));
+                let optional_dfile = rust_dfile_open(&curr.read().dbase.as_ref().expect(""), file_path, mode);
+                if let Some(dfile) = optional_dfile {
+                    (*stream).file = XFileType::DFile(dfile);
                     snprintf(
                         path.as_mut_ptr(),
                         mem::size_of_val(&path),
@@ -229,7 +229,7 @@ pub unsafe extern "C" fn rust_xfile_open(
                     path.as_mut_ptr(),
                     mem::size_of_val(&path),
                     sformat_sformat.as_ptr(),
-                    curr.as_ref().read().get_path_cstr(),
+                    curr.read().get_path_cstr(),
                     file_path,
                 );
 
@@ -521,12 +521,12 @@ pub unsafe fn xbase_make_directory(file_path: *mut c_char) -> c_int {
         // Find first directory-based xbase.
         let mut optional_curr = get_g_xbase_head_rc();
         while let Some(curr) = optional_curr.clone() {
-            if !curr.as_ref().read().is_dbase {
+            if !curr.read().is_dbase {
                 snprintf(
                     path.as_mut_ptr(),
                     mem::size_of_val(&path),
                     sformat_sformat.as_ptr(),
-                    curr.as_ref().read().get_path_cstr(),
+                    curr.read().get_path_cstr(),
                     file_path,
                 );
                 break;
@@ -594,7 +594,7 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
     let mut optional_curr = get_g_xbase_head_rc();
     let mut optional_prev = None;
     while let Some(curr) = optional_curr.clone() {
-        if rust_compat_stricmp(path, curr.as_ref().read().get_path_cstr()) == 0 {
+        if rust_compat_stricmp(path, curr.read().get_path_cstr()) == 0 {
             break;
         }
 
@@ -605,7 +605,7 @@ pub unsafe extern "C" fn rust_xbase_open(path: *mut c_char) -> bool {
     if let Some(curr) = optional_curr {
         if let Some(prev) = optional_prev {
             // Move found xbase to the top.
-            prev.write().next = curr.as_ref().read().next.clone();
+            prev.write().next = curr.read().next.clone();
             curr.write().next = get_g_xbase_head_rc();
             set_g_xbase_head(Some(curr));
         }
@@ -763,11 +763,11 @@ unsafe fn xlist_enumerate(
         return file_find_close(&mut directory_file_find_data);
     }
 
-    let mut xbase = get_g_xbase_head_rc();
-    while xbase.is_some() {
-        if xbase.as_ref().expect("").read().is_dbase {
+    let mut optional_xbase = get_g_xbase_head_rc();
+    while let Some(xbase) = optional_xbase {
+        if xbase.read().is_dbase {
             let mut dbase_find_data = DFileFindData::default();
-            let dbase_read = xbase.as_ref().expect("").read();
+            let dbase_read = xbase.read();
             let dbase = &dbase_read.dbase.as_ref().expect("").borrow();
             if dbase_find_first_entry(dbase, &mut dbase_find_data, pattern) {
                 context._type = XFileEnumerationEntryType::XfileEnumerationEntryTypeDfile;
@@ -794,7 +794,7 @@ unsafe fn xlist_enumerate(
                 path.as_mut_ptr(),
                 mem::size_of_val(&path),
                 sformat_sformat.as_ptr(),
-                xbase.as_ref().expect("").read().get_path_cstr(),
+                xbase.read().get_path_cstr(),
                 pattern,
             );
             rust_compat_windows_path_to_native(path.as_mut_ptr());
@@ -838,7 +838,7 @@ unsafe fn xlist_enumerate(
             }
             file_find_close(&directory_file_find_data);
         }
-        xbase = xbase.expect("").read().next.clone();
+        optional_xbase = xbase.read().next.clone();
     }
 
     rust_compat_splitpath(
