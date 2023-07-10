@@ -30,7 +30,7 @@ extern "C" {
     char* rust_file_read_string(char* string, size_t size, fallout::File* stream);
     size_t rust_file_read(void* ptr, size_t size, size_t count, fallout::File* stream,
         size_t (*)(int* totalBytesToRead, unsigned char** byteBuffer, size_t* remainingSize, int* chunkSize, size_t, fallout::File*),
-        void (*)(int* totalBytesToRead, unsigned char** byteBuffer, size_t* remainingSize, int* chunkSize, fallout::File*)
+        void (*)(size_t bytesRead, int* totalBytesToRead, unsigned char** byteBuffer, size_t* remainingSize, int* chunkSize, fallout::File*)
         );
 // rust_file_read
 }
@@ -131,11 +131,10 @@ int fileWriteString(const char* string, File* stream)
     return xfileWriteString(string, stream);
 }
 
-static void fileRead3(int* totalBytesRead, unsigned char** byteBuffer, size_t* remainingSize, int* chunkSize, File* stream);
+static void fileRead3(size_t bytesRead, int* totalBytesRead, unsigned char** byteBuffer, size_t* remainingSize, int* chunkSize, File* stream);
 
-static void fileRead3(int* totalBytesRead, unsigned char** byteBuffer, size_t* remainingSize, int* chunkSize, File* stream)
+static void fileRead3(size_t bytesRead, int* totalBytesRead, unsigned char** byteBuffer, size_t* remainingSize, int* chunkSize, File* stream)
 {
-    size_t bytesRead = xfileRead(*byteBuffer, sizeof(**byteBuffer), *chunkSize, stream);
     *byteBuffer += bytesRead;
     *totalBytesRead += bytesRead;
     *remainingSize -= bytesRead;
@@ -150,18 +149,6 @@ static size_t fileRead2(int* totalBytesRead, unsigned char** byteBuffer, size_t*
 
 static size_t fileRead2(int* totalBytesRead, unsigned char** byteBuffer, size_t* remainingSize, int* chunkSize, size_t size, File* stream)
 {
-//    while (*remainingSize >= *chunkSize) {
-//        size_t bytesRead = xfileRead(*byteBuffer, sizeof(**byteBuffer), *chunkSize, stream);
-//        *byteBuffer += bytesRead;
-//        *totalBytesRead += bytesRead;
-//        *remainingSize -= bytesRead;
-//
-//        rust_set_g_file_read_progress_bytes_read(0);
-//        rust_get_g_file_read_progress_handler()();
-//
-//        *chunkSize = rust_get_g_file_read_progress_chunk_size();
-//    }
-
     if (remainingSize != 0) {
         size_t bytesRead = xfileRead(*byteBuffer, sizeof(**byteBuffer), *remainingSize, stream);
         rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() + bytesRead);
