@@ -210,17 +210,17 @@ pub unsafe extern "C" fn rust_file_read_string(string: *mut c_char, size: size_t
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_file_read(ptr: *mut c_void, size: size_t, count: size_t, stream: *const XFile,
-callback: unsafe extern "C" fn(ptr: *mut c_void, size: size_t, count: size_t, stream: *const XFile) -> size_t
+callback: unsafe extern "C" fn(c_int, ptr: *mut c_void, size_t, c_int, size: size_t, stream: *const XFile) -> size_t
 ) -> size_t {
     if mem::transmute::<unsafe extern "C" fn(), *const c_void>(rust_get_g_file_read_progress_handler()) != null() {
-        return callback(ptr, size, count, stream);
-        /*
         let mut byte_buffer = ptr;
 
         let mut total_bytes_read = 0;
         let mut remaining_size = size * count;
         let mut chunk_size = rust_get_g_file_read_progress_chunk_size() - rust_get_g_file_read_progress_bytes_read();
 
+        return callback(total_bytes_read, byte_buffer, remaining_size, chunk_size, size, stream);
+        /*
         while remaining_size >= chunk_size as size_t {
             let bytes_read = rust_xfile_read(byte_buffer, mem::size_of_val(&byte_buffer), chunk_size as size_t, stream);
             byte_buffer = byte_buffer.offset(bytes_read as isize);
