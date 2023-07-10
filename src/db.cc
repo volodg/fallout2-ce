@@ -36,6 +36,7 @@ extern "C" {
     int rust_file_read_int16_list(fallout::File* stream, short* arr, int count);
     int rust_file_read_int32_list(fallout::File* stream, int* arr, int count);
     int rust_file_write_uint8_list(fallout::File* stream, unsigned char* arr, int count);
+    int rust_file_write_int16_list(fallout::File* stream, short* arr, int count);
     // rust_file_read_uint8
 }
 
@@ -319,14 +320,7 @@ int fileWriteFixedLengthString(File* stream, char* string, int length)
 // 0x4C6490
 int fileWriteInt16List(File* stream, short* arr, int count)
 {
-    for (int index = 0; index < count; index++) {
-        // NOTE: Uninline.
-        if (fileWriteInt16(stream, arr[index]) == -1) {
-            return -1;
-        }
-    }
-
-    return 0;
+    return rust_file_write_int16_list(stream, arr, count);
 }
 
 // NOTE: Can be either signed/unsigned + int/long variant.

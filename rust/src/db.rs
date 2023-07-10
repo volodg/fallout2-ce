@@ -397,10 +397,20 @@ pub unsafe extern "C" fn rust_file_write_uint8_list(stream: *const XFile, arr: *
 
     0
 }
-/*
-int fileWriteUInt8List(File* stream, unsigned char* arr, int count)
-{
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_write_int16_list(stream: *const XFile, arr: *mut c_short, count: c_int) -> c_int {
+    for index in 0..count {
+        // NOTE: Uninline.
+        if rust_file_write_int16(stream, *arr.offset(index as isize) as c_short) == -1 {
+            return -1;
+        }
+    }
+
+    0
 }
+
+/*
  */
 
 #[cfg(test)]
