@@ -2,7 +2,7 @@ use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicI32, AtomicPtr, Ordering};
-use libc::{c_char, c_int, c_long, c_uchar, c_uint, size_t, strlen};
+use libc::{c_char, c_int, c_long, c_uchar, size_t, strlen};
 use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, rust_xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string};
 
 type FileReadProgressHandler = unsafe extern "C" fn();
@@ -205,9 +205,7 @@ pub unsafe extern "C" fn rust_file_read_string(string: *mut c_char, size: size_t
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_file_read(ptr: *mut c_void, size: size_t, count: size_t, stream: *const XFile,
-// callback: unsafe extern "C" fn(*mut c_int, ptr: *mut *mut c_void, *mut size_t, *mut c_int, size: size_t, stream: *const XFile) -> size_t
-) -> size_t {
+pub unsafe extern "C" fn rust_file_read(ptr: *mut c_void, size: size_t, count: size_t, stream: *const XFile) -> size_t {
     if mem::transmute::<unsafe extern "C" fn(), *const c_void>(get_g_file_read_progress_handler()) != null() {
         let mut byte_buffer = ptr;
 
