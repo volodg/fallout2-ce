@@ -10,7 +10,6 @@
 #include "xfile.h"
 #include "platform_compat.h"
 
-// rust_db_open
 extern "C" {
     int rust_db_open(const char* filePath1, int a2, const char* filePath2, int a4);
     int rust_db_get_file_size(const char* filePath, int* sizePtr);
@@ -18,6 +17,8 @@ extern "C" {
     void rust_set_g_file_read_progress_handler(fallout::FileReadProgressHandler*);
     int rust_get_g_file_read_progress_bytes_read();
     void rust_set_g_file_read_progress_bytes_read(int);
+    int rust_get_g_file_read_progress_chunk_size();
+    void rust_set_g_file_read_progress_chunk_size(int);
     // rust_db_get_file_size
 }
 
@@ -29,11 +30,6 @@ typedef struct FileList {
 } FileList;
 
 static int _db_list_compare(const void* p1, const void* p2);
-
-// The number of bytes to read between calls to progress handler.
-//
-// 0x673040
-static int gFileReadProgressChunkSize;
 
 // 0x673044
 static FileList* gFileListHead;
@@ -90,7 +86,7 @@ int dbGetFileContents(const char* filePath, void* ptr)
         unsigned char* byteBuffer = (unsigned char*)ptr;
 
         long remainingSize = size;
-        long chunkSize = gFileReadProgressChunkSize - rust_get_g_file_read_progress_bytes_read();
+        long chunkSize = rust_get_g_file_read_progress_chunk_size() - rust_get_g_file_read_progress_bytes_read();
 
         while (remainingSize >= chunkSize) {
             size_t bytesRead = xfileRead(byteBuffer, sizeof(*byteBuffer), chunkSize, stream);
@@ -100,7 +96,7 @@ int dbGetFileContents(const char* filePath, void* ptr)
             rust_set_g_file_read_progress_bytes_read(0);
             rust_get_g_file_read_progress_handler()();
 
-            chunkSize = gFileReadProgressChunkSize;
+            chunkSize = rust_get_g_file_read_progress_chunk_size();
         }
 
         if (remainingSize != 0) {
@@ -149,7 +145,7 @@ int fileReadChar(File* stream)
         int ch = xfileReadChar(stream);
 
         rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() + 1);
-        if (rust_get_g_file_read_progress_bytes_read() >= gFileReadProgressChunkSize) {
+        if (rust_get_g_file_read_progress_bytes_read() >= rust_get_g_file_read_progress_chunk_size()) {
             rust_get_g_file_read_progress_handler()();
             rust_set_g_file_read_progress_bytes_read(0);
         }
@@ -169,9 +165,9 @@ char* fileReadString(char* string, size_t size, File* stream)
         }
 
         rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() + strlen(string));
-        while (rust_get_g_file_read_progress_bytes_read() >= gFileReadProgressChunkSize) {
+        while (rust_get_g_file_read_progress_bytes_read() >= rust_get_g_file_read_progress_chunk_size()) {
             rust_get_g_file_read_progress_handler()();
-            rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() - gFileReadProgressChunkSize);
+            rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() - rust_get_g_file_read_progress_chunk_size());
         }
 
         return string;
@@ -194,7 +190,7 @@ size_t fileRead(void* ptr, size_t size, size_t count, File* stream)
 
         size_t totalBytesRead = 0;
         long remainingSize = size * count;
-        long chunkSize = gFileReadProgressChunkSize - rust_get_g_file_read_progress_bytes_read();
+        long chunkSize = rust_get_g_file_read_progress_chunk_size() - rust_get_g_file_read_progress_bytes_read();
 
         while (remainingSize >= chunkSize) {
             size_t bytesRead = xfileRead(byteBuffer, sizeof(*byteBuffer), chunkSize, stream);
@@ -205,7 +201,7 @@ size_t fileRead(void* ptr, size_t size, size_t count, File* stream)
             rust_set_g_file_read_progress_bytes_read(0);
             rust_get_g_file_read_progress_handler()();
 
-            chunkSize = gFileReadProgressChunkSize;
+            chunkSize = rust_get_g_file_read_progress_chunk_size();
         }
 
         if (remainingSize != 0) {
@@ -641,10 +637,10 @@ void fileSetReadProgressHandler(FileReadProgressHandler* handler, int size)
 {
     if (handler != nullptr && size != 0) {
         rust_set_g_file_read_progress_handler(handler);
-        gFileReadProgressChunkSize = size;
+        rust_set_g_file_read_progress_chunk_size(size);
     } else {
         rust_set_g_file_read_progress_handler(nullptr);
-        gFileReadProgressChunkSize = 0;
+        rust_set_g_file_read_progress_chunk_size(0);
     }
 }
 

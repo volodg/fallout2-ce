@@ -40,6 +40,21 @@ pub unsafe extern "C" fn rust_set_g_file_read_progress_bytes_read(value: c_int) 
     G_FILE_READ_PROGRESS_BYTES_READ.store(value, Ordering::Relaxed)
 }
 
+// The number of bytes to read between calls to progress handler.
+//
+// 0x673040
+static G_FILE_READ_PROGRESS_CHUNK_SIZE: AtomicI32 = AtomicI32::new(0);
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_get_g_file_read_progress_chunk_size() -> c_int {
+    G_FILE_READ_PROGRESS_CHUNK_SIZE.load(Ordering::Relaxed)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_set_g_file_read_progress_chunk_size(value: c_int) {
+    G_FILE_READ_PROGRESS_CHUNK_SIZE.store(value, Ordering::Relaxed)
+}
+
 /*
 
 // Bytes read so far while tracking progress.
