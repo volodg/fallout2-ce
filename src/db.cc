@@ -25,7 +25,8 @@ extern "C" {
     void rust_set_g_file_read_progress_chunk_size(int);
     fallout::FileList* rust_g_get_file_list_head();
     void rust_g_set_file_list_head(fallout::FileList*);
-    // rust_db_get_file_size
+    int rust_db_get_file_contents(const char* filePath, void* ptr);
+    // rust_db_get_file_contents
 }
 
 namespace fallout {
@@ -76,42 +77,7 @@ int dbGetFileSize(const char* filePath, int* sizePtr)
 // 0x4C5DD4
 int dbGetFileContents(const char* filePath, void* ptr)
 {
-    assert(filePath); // "filename", "db.c", 141
-    assert(ptr); // "buf", "db.c", 142
-
-    File* stream = xfileOpen(filePath, "rb");
-    if (stream == nullptr) {
-        return -1;
-    }
-
-    long size = xfileGetSize(stream);
-    if (rust_get_g_file_read_progress_handler() != nullptr) {
-        unsigned char* byteBuffer = (unsigned char*)ptr;
-
-        long remainingSize = size;
-        long chunkSize = rust_get_g_file_read_progress_chunk_size() - rust_get_g_file_read_progress_bytes_read();
-
-        while (remainingSize >= chunkSize) {
-            size_t bytesRead = xfileRead(byteBuffer, sizeof(*byteBuffer), chunkSize, stream);
-            byteBuffer += bytesRead;
-            remainingSize -= bytesRead;
-
-            rust_set_g_file_read_progress_bytes_read(0);
-            rust_get_g_file_read_progress_handler()();
-
-            chunkSize = rust_get_g_file_read_progress_chunk_size();
-        }
-
-        if (remainingSize != 0) {
-            rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() + xfileRead(byteBuffer, sizeof(*byteBuffer), remainingSize, stream));
-        }
-    } else {
-        xfileRead(ptr, 1, size, stream);
-    }
-
-    xfileClose(stream);
-
-    return 0;
+    return rust_db_get_file_contents(filePath, ptr);
 }
 
 // 0x4C5EB4

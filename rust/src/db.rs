@@ -1,8 +1,9 @@
 use std::ffi::{c_void, CString};
+use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicI32, AtomicPtr, Ordering};
-use libc::{c_char, c_int};
-use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, xbase_open, XList};
+use libc::{c_char, c_int, c_long, size_t};
+use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, rust_xfile_read, xbase_open, XList};
 
 type FileReadProgressHandler = unsafe extern "C" fn();
 
@@ -127,8 +128,50 @@ pub unsafe extern "C" fn rust_db_get_file_size(file_path: *const c_char, size_pt
 
     0
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_db_get_file_contents(file_path: *const c_char, ptr: *mut c_void) -> c_int {
+    assert_ne!(file_path, null()); // "filename", "db.c", 141
+    assert_ne!(ptr, null_mut()); // "buf", "db.c", 142
+
+    let rb = CString::new("rb").expect("valid string");
+    let stream = rust_xfile_open(file_path, rb.as_ptr());
+    if stream == null_mut() {
+        return -1;
+    }
+
+    let size = rust_xfile_get_size(stream);
+    if mem::transmute::<unsafe extern "C" fn(), *const c_void>(rust_get_g_file_read_progress_handler()) != null() {
+        let mut byte_buffer = ptr;// as *mut c_uchar;
+
+        let mut remaining_size = size;
+        let mut chunk_size = rust_get_g_file_read_progress_chunk_size() - rust_get_g_file_read_progress_bytes_read();
+
+        while remaining_size >= chunk_size as c_long {
+            let bytes_read = rust_xfile_read(byte_buffer, mem::size_of_val(&byte_buffer), chunk_size as size_t, stream);
+            byte_buffer = byte_buffer.offset(bytes_read as isize);
+            remaining_size -= bytes_read as c_long;
+
+            rust_set_g_file_read_progress_bytes_read(0);
+            rust_get_g_file_read_progress_handler()();
+
+            chunk_size = rust_get_g_file_read_progress_chunk_size();
+        }
+
+        if remaining_size != 0 {
+            rust_set_g_file_read_progress_bytes_read(rust_get_g_file_read_progress_bytes_read() + rust_xfile_read(byte_buffer, mem::size_of_val(&byte_buffer), remaining_size as size_t, stream) as c_int);
+        }
+    } else {
+        rust_xfile_read(ptr, 1, size as size_t, stream);
+    }
+
+    rust_xfile_close(stream);
+
+    0
+}
+
 /*
-int dbGetFileSize(const char* filePath, int* sizePtr)
+int dbGetFileContents(const char* filePath, void* ptr)
 {
 
 }
