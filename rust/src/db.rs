@@ -1,6 +1,6 @@
 use std::ffi::{c_void, CString};
 use std::ptr::{null, null_mut};
-use std::sync::atomic::{AtomicPtr, Ordering};
+use std::sync::atomic::{AtomicI32, AtomicPtr, Ordering};
 use libc::{c_char, c_int};
 use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, xbase_open, XList};
 
@@ -20,6 +20,24 @@ pub unsafe extern "C" fn rust_get_g_file_read_progress_handler() -> FileReadProg
 #[no_mangle]
 pub unsafe extern "C" fn rust_set_g_file_read_progress_handler(value: FileReadProgressHandler) {
     G_FILE_READ_PROGRESS_HANDLER.store(std::mem::transmute(value), Ordering::Relaxed)
+}
+
+// Bytes read so far while tracking progress.
+//
+// Once this value reaches [gFileReadProgressChunkSize] the handler is called
+// and this value resets to zero.
+//
+// 0x51DEF0
+static G_FILE_READ_PROGRESS_BYTES_READ: AtomicI32 = AtomicI32::new(0);
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_get_g_file_read_progress_bytes_read() -> c_int {
+    G_FILE_READ_PROGRESS_BYTES_READ.load(Ordering::Relaxed)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_set_g_file_read_progress_bytes_read(value: c_int) {
+    G_FILE_READ_PROGRESS_BYTES_READ.store(value, Ordering::Relaxed)
 }
 
 /*
