@@ -284,11 +284,23 @@ pub unsafe extern "C" fn rust_file_read_int32(stream: *const XFile, value_ptr: *
 
     0
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_read_bool(stream: *const XFile, value_ptr: *mut bool) -> c_int {
+    let mut value = 0;
+    if rust_file_read_int32(stream, &mut value) == -1 {
+        return -1;
+    }
+
+    *value_ptr = value != 0;
+
+    0
+}
+
 /*
-int fileReadInt32(File* stream, int* valuePtr)
+int fileReadBool(File* stream, bool* valuePtr)
 {
 
-    return 0;
 }
  */
 

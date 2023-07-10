@@ -28,6 +28,7 @@ extern "C" {
     int rust_file_read_uint8(fallout::File* stream, unsigned char* valuePtr);
     int rust_file_read_int16(fallout::File* stream, short* valuePtr);
     int rust_file_read_int32(fallout::File* stream, int* valuePtr);
+    int rust_file_read_bool(fallout::File* stream, bool* valuePtr);
     // rust_file_read_uint8
 }
 
@@ -205,16 +206,10 @@ int fileReadFloat(File* stream, float* valuePtr)
     return fileReadInt32(stream, (int*)valuePtr);
 }
 
+// rust_file_read_bool
 int fileReadBool(File* stream, bool* valuePtr)
 {
-    int value;
-    if (fileReadInt32(stream, &value) == -1) {
-        return -1;
-    }
-
-    *valuePtr = (value != 0);
-
-    return 0;
+    return rust_file_read_bool(stream, valuePtr);
 }
 
 // NOTE: Not sure about signness.
