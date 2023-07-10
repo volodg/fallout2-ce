@@ -46,7 +46,6 @@ int objectSetNextFrame(Object* obj, Rect* rect);
 int objectSetPrevFrame(Object* obj, Rect* rect);
 int objectSetRotation(Object* obj, int direction, Rect* rect);
 int objectRotateClockwise(Object* obj, Rect* rect);
-int objectRotateCounterClockwise(Object* obj, Rect* rect);
 void _obj_rebuild_all_light();
 int objectSetLight(Object* obj, int lightDistance, int lightIntensity, Rect* rect);
 int objectGetLightIntensity(Object* obj);

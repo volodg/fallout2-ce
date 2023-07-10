@@ -102,9 +102,6 @@ static int _outlineCount = 0;
 // 0x519628
 static ObjectListNode* gObjectListHead = NULL;
 
-// 0x51962C
-static int _centerToUpperLeft = 0;
-
 // 0x519630
 static int gObjectFindElevation = 0;
 
@@ -189,25 +186,22 @@ static int _obj_last_elev = -1;
 static bool _obj_last_is_empty = true;
 
 // 0x519780
-unsigned char* _wallBlendTable = NULL;
+unsigned char* _wallBlendTable = nullptr;
 
 // 0x519784
-static unsigned char* _glassBlendTable = NULL;
+static unsigned char* _glassBlendTable = nullptr;
 
 // 0x519788
-static unsigned char* _steamBlendTable = NULL;
+static unsigned char* _steamBlendTable = nullptr;
 
 // 0x51978C
-static unsigned char* _energyBlendTable = NULL;
+static unsigned char* _energyBlendTable = nullptr;
 
 // 0x519790
-static unsigned char* _redBlendTable = NULL;
+static unsigned char* _redBlendTable = nullptr;
 
 // 0x519794
-Object* _moveBlockObj = NULL;
-
-// 0x519798
-static int _objItemOutlineState = 0;
+Object* _moveBlockObj = nullptr;
 
 // 0x51979C
 static int _cd_order[9] = {
@@ -322,7 +316,6 @@ int objectsInit(unsigned char* buf, int width, int height, int pitch)
     _obj_light_table_init();
     _obj_blend_table_init();
 
-    _centerToUpperLeft = tileFromScreenXY(gObjectsUpdateAreaPixelBounds.left, gObjectsUpdateAreaPixelBounds.top, 0) - gCenterTile;
     gObjectsWindowWidth = width;
     gObjectsWindowHeight = height;
     gObjectsWindowBuffer = buf;
@@ -1678,17 +1671,6 @@ int objectRotateClockwise(Object* obj, Rect* dirtyRect)
     int rotation = obj->rotation + 1;
     if (rotation >= ROTATION_COUNT) {
         rotation = ROTATION_NE;
-    }
-
-    return objectSetRotation(obj, rotation, dirtyRect);
-}
-
-// 0x48AC38
-int objectRotateCounterClockwise(Object* obj, Rect* dirtyRect)
-{
-    int rotation = obj->rotation - 1;
-    if (rotation < 0) {
-        rotation = ROTATION_NW;
     }
 
     return objectSetRotation(obj, rotation, dirtyRect);

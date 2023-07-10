@@ -63,7 +63,6 @@ void _combatKillCritterOutsideCombat(Object* critter_obj, char* msg);
 int combatGetTargetHighlight();
 int criticalsGetValue(int killType, int hitLocation, int effect, int dataMember);
 void criticalsSetValue(int killType, int hitLocation, int effect, int dataMember, int value);
-void criticalsResetValue(int killType, int hitLocation, int effect, int dataMember);
 int unarmedGetDamage(int hitMode, int* minDamagePtr, int* maxDamagePtr);
 int unarmedGetBonusCriticalChance(int hitMode);
 int unarmedGetActionPointCost(int hitMode);

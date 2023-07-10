@@ -6269,15 +6269,6 @@ void criticalsSetValue(int killType, int hitLocation, int effect, int dataMember
     }
 }
 
-void criticalsResetValue(int killType, int hitLocation, int effect, int dataMember)
-{
-    if (killType == SFALL_KILL_TYPE_COUNT) {
-        gPlayerCriticalHitTable[hitLocation][effect].values[dataMember] = gBasePlayerCriticalHitTable[hitLocation][effect].values[dataMember];
-    } else {
-        gCriticalHitTables[killType][hitLocation][effect].values[dataMember] = gBaseCriticalHitTables[killType][hitLocation][effect].values[dataMember];
-    }
-}
-
 static void burstModInit()
 {
     configGetBool(&gSfallConfig, SFALL_CONFIG_MISC_KEY, SFALL_CONFIG_BURST_MOD_ENABLED_KEY, &gBurstModEnabled);
