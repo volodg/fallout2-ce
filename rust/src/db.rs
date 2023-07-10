@@ -3,7 +3,7 @@ use std::mem;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicI32, AtomicPtr, Ordering};
 use libc::{c_char, c_int, c_long, c_short, c_uchar, size_t, strlen};
-use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, rust_xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string};
+use crate::xfile::{rust_xfile_close, rust_xfile_get_size, rust_xfile_open, rust_xfile_read, xfile_read_char, xbase_open, XFile, XList, xfile_read_string, rust_xfile_write_char};
 
 type FileReadProgressHandler = unsafe extern "C" fn();
 
@@ -297,10 +297,33 @@ pub unsafe extern "C" fn rust_file_read_bool(stream: *const XFile, value_ptr: *m
     0
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_write_uint8(stream: *const XFile, value: c_short) -> c_int {
+    rust_xfile_write_char(value as c_int, stream)
+}
+
 /*
-int fileReadBool(File* stream, bool* valuePtr)
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_write_int16(stream: *const XFile, value: c_short) -> c_int {
+    // NOTE: Uninline.
+    if file_write_uint8(stream, (value >> 8) & 0xFF) == -1 {
+        return -1;
+    }
+
+    // NOTE: Uninline.
+    if file_write_uint8(stream, value & 0xFF) == -1 {
+        return -1;
+    }
+
+    *value_ptr = value != 0;
+
+    0
+}
+
+int fileWriteInt16(File* stream, short value)
 {
 
+    return 0;
 }
  */
 

@@ -29,6 +29,7 @@ extern "C" {
     int rust_file_read_int16(fallout::File* stream, short* valuePtr);
     int rust_file_read_int32(fallout::File* stream, int* valuePtr);
     int rust_file_read_bool(fallout::File* stream, bool* valuePtr);
+    int rust_file_write_uint8(fallout::File* stream, unsigned char value);
     // rust_file_read_uint8
 }
 
@@ -217,7 +218,7 @@ int fileReadBool(File* stream, bool* valuePtr)
 // 0x4C61AC
 int fileWriteUInt8(File* stream, unsigned char value)
 {
-    return xfileWriteChar(value, stream);
+    return rust_file_write_uint8(stream, value);
 };
 
 // 0x4C61C8
