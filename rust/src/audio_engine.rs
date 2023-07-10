@@ -1,7 +1,7 @@
 use crate::win32::program_is_active;
 use lazy_static::lazy_static;
 use libc::{c_uchar, c_uint, free, malloc, memset, size_t};
-use parking_lot::ReentrantMutex;
+use parking_lot::RwLock;
 use sdl2::sys::{SDL_AudioDeviceID, SDL_AudioStream};
 use sdl2_sys::{
     u_char, SDL_AudioFormat, SDL_AudioSpec, SDL_AudioStreamGet, SDL_AudioStreamPut,
@@ -9,7 +9,6 @@ use sdl2_sys::{
     SDL_NewAudioStream, SDL_OpenAudioDevice, SDL_PauseAudioDevice, SDL_QuitSubSystem, SDL_WasInit,
     Uint8, AUDIO_S16, AUDIO_S8, SDL_AUDIO_ALLOW_ANY_CHANGE, SDL_INIT_AUDIO, SDL_MIX_MAXVOLUME,
 };
-use std::cell::RefCell;
 use std::ffi::{c_int, c_void};
 use std::ptr::{null, null_mut};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -89,15 +88,15 @@ unsafe impl Send for SdlAudioSpecHolder {}
 unsafe impl Sync for SdlAudioSpecHolder {}
 
 lazy_static! {
-    static ref AUDIO_ENGINE_SOUND_BUFFER: [ReentrantMutex<RefCell<AudioEngineSoundBuffer>>; AUDIO_ENGINE_SOUND_BUFFERS] = [
-        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
-        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
-        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
-        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
-        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
-        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
-        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
-        ReentrantMutex::new(RefCell::new(AudioEngineSoundBuffer::default())),
+    static ref AUDIO_ENGINE_SOUND_BUFFER: [RwLock<AudioEngineSoundBuffer>; AUDIO_ENGINE_SOUND_BUFFERS] = [
+        RwLock::new(AudioEngineSoundBuffer::default()),
+        RwLock::new(AudioEngineSoundBuffer::default()),
+        RwLock::new(AudioEngineSoundBuffer::default()),
+        RwLock::new(AudioEngineSoundBuffer::default()),
+        RwLock::new(AudioEngineSoundBuffer::default()),
+        RwLock::new(AudioEngineSoundBuffer::default()),
+        RwLock::new(AudioEngineSoundBuffer::default()),
+        RwLock::new(AudioEngineSoundBuffer::default()),
     ];
     static ref AUDIO_ENGINE_SPEC: Mutex<SdlAudioSpecHolder> =
         Mutex::new(SdlAudioSpecHolder::default());
@@ -135,8 +134,7 @@ unsafe extern "C" fn c_audio_engine_mixin(
     }
 
     for sound_buffer_ref in AUDIO_ENGINE_SOUND_BUFFER.iter() {
-        let sound_buffer_lock = sound_buffer_ref.lock();
-        let mut sound_buffer = sound_buffer_lock.borrow_mut();
+        let mut sound_buffer = sound_buffer_ref.write();
 
         if sound_buffer.active && sound_buffer.playing {
             let src_frame_size = sound_buffer.bits_per_sample / 8 * sound_buffer.channels;
@@ -275,9 +273,7 @@ pub extern "C" fn rust_audio_engine_create_sound_buffer(
     }
 
     for index in 0..AUDIO_ENGINE_SOUND_BUFFER.len() {
-        let sound_buffer_ref = &AUDIO_ENGINE_SOUND_BUFFER[index];
-        let sound_buffer_lock = sound_buffer_ref.lock();
-        let mut sound_buffer = sound_buffer_lock.borrow_mut();
+        let sound_buffer = &mut AUDIO_ENGINE_SOUND_BUFFER[index].write();
 
         if !sound_buffer.active {
             sound_buffer.active = true;
@@ -315,7 +311,7 @@ pub extern "C" fn rust_audio_engine_create_sound_buffer(
 
 fn visit_audio_engine_sound_buffer_mutex<F>(index: c_int, visitor: F) -> bool
 where
-    F: FnOnce(&ReentrantMutex<RefCell<AudioEngineSoundBuffer>>) -> bool,
+    F: FnOnce(&RwLock<AudioEngineSoundBuffer>) -> bool,
 {
     return audio_engine_is_initialized()
         && sound_buffer_is_valid(index)
@@ -327,8 +323,7 @@ where
     F: FnOnce(&AudioEngineSoundBuffer) -> bool,
 {
     visit_audio_engine_sound_buffer_mutex(index, |sound_buffer_ref| {
-        let sound_buffer_lock = sound_buffer_ref.lock();
-        let sound_buffer = sound_buffer_lock.borrow();
+        let sound_buffer = sound_buffer_ref.read();
 
         if !sound_buffer.active {
             return false;
@@ -343,8 +338,7 @@ where
     F: FnOnce(&mut AudioEngineSoundBuffer) -> bool,
 {
     visit_audio_engine_sound_buffer_mutex(index, |sound_buffer_ref| {
-        let sound_buffer_lock = sound_buffer_ref.lock();
-        let mut sound_buffer = sound_buffer_lock.borrow_mut();
+        let mut sound_buffer = sound_buffer_ref.write();
         return visitor(&mut *sound_buffer);
     })
 }
