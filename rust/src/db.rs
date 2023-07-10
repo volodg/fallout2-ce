@@ -18,8 +18,7 @@ unsafe fn get_g_file_read_progress_handler() -> FileReadProgressHandler {
     mem::transmute(result)
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_set_g_file_read_progress_handler(value: FileReadProgressHandler) {
+unsafe fn set_g_file_read_progress_handler(value: FileReadProgressHandler) {
     G_FILE_READ_PROGRESS_HANDLER.store(std::mem::transmute(value), Ordering::Relaxed)
 }
 
@@ -48,8 +47,7 @@ fn get_g_file_read_progress_chunk_size() -> c_int {
     G_FILE_READ_PROGRESS_CHUNK_SIZE.load(Ordering::Relaxed)
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn rust_set_g_file_read_progress_chunk_size(value: c_int) {
+fn set_g_file_read_progress_chunk_size(value: c_int) {
     G_FILE_READ_PROGRESS_CHUNK_SIZE.store(value, Ordering::Relaxed)
 }
 
@@ -544,12 +542,16 @@ pub unsafe extern "C" fn rust_file_name_list_free(file_name_list_ptr: *mut *mut 
     free(current_file_list as *mut c_void);
 }
 
-/*
-void fileNameListFree(char*** fileNameListPtr, int a2)
-{
-
+#[no_mangle]
+pub unsafe extern "C" fn rust_file_set_read_progress_handler(handler: FileReadProgressHandler, size: c_int) {
+    if mem::transmute::<unsafe extern "C" fn(), *const c_void>(handler) != null() && size != 0 {
+        set_g_file_read_progress_handler(handler);
+        set_g_file_read_progress_chunk_size(size);
+    } else {
+        set_g_file_read_progress_handler(mem::transmute(null::<*const c_void>()));
+        set_g_file_read_progress_chunk_size(0);
+    }
 }
- */
 
 #[cfg(test)]
 mod tests {

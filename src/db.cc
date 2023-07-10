@@ -14,8 +14,6 @@ namespace fallout {
 extern "C" {
     int rust_db_open(const char* filePath1, int a2, const char* filePath2, int a4);
     int rust_db_get_file_size(const char* filePath, int* sizePtr);
-    void rust_set_g_file_read_progress_handler(fallout::FileReadProgressHandler*);
-    void rust_set_g_file_read_progress_chunk_size(int);
     int rust_db_get_file_contents(const char* filePath, void* ptr);
     int rust_file_read_char(fallout::File* stream);
     char* rust_file_read_string(char* string, size_t size, fallout::File* stream);
@@ -36,6 +34,7 @@ extern "C" {
     int rust_db_fwrite_long_count(fallout::File* stream, int* arr, int count);
     int rust_file_name_list_init(const char* pattern, char*** fileNameListPtr, int a3, int a4);
     void rust_file_name_list_free(char*** fileNameListPtr, int a2);
+    void rust_file_set_read_progress_handler(fallout::FileReadProgressHandler* handler, int size);
     // rust_file_read_uint8
 }
 
@@ -359,13 +358,7 @@ int fileGetSize(File* stream)
 // 0x4C68C4
 void fileSetReadProgressHandler(FileReadProgressHandler* handler, int size)
 {
-    if (handler != nullptr && size != 0) {
-        rust_set_g_file_read_progress_handler(handler);
-        rust_set_g_file_read_progress_chunk_size(size);
-    } else {
-        rust_set_g_file_read_progress_handler(nullptr);
-        rust_set_g_file_read_progress_chunk_size(0);
-    }
+    rust_file_set_read_progress_handler(handler, size);
 }
 
 } // namespace fallout
