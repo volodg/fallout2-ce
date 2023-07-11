@@ -2,11 +2,13 @@
 #define ART_H
 
 #include "cache.h"
-#include "db.h"
 #include "heap.h"
 #include "obj_types.h"
-#include "platform_compat.h"
 #include "proto_types.h"
+
+// Migrated
+#include "db.h"
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -149,7 +151,6 @@ int artAliasFid(int fid);
 int buildFid(int objectType, int frmId, int animType, int a4, int rotation);
 Art* artLoad(const char* path);
 int artRead(const char* path, unsigned char* data);
-int artWrite(const char* path, unsigned char* data);
 
 class FrmImage {
 public:

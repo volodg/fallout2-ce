@@ -1,10 +1,12 @@
 #include "export.h"
 
-#include <ctype.h>
-#include <string.h>
+#include <cctype>
+#include <cstring>
 
 #include "interpreter_lib.h"
 #include "memory_manager.h"
+
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {

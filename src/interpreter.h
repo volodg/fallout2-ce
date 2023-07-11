@@ -2,8 +2,8 @@
 #define INTERPRETER_H
 
 #include "object.h"
-#include <setjmp.h>
 
+#include <csetjmp>
 #include <vector>
 
 namespace fallout {

@@ -1,6 +1,6 @@
 #include "sfall_opcodes.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "animation.h"
 #include "art.h"

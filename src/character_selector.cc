@@ -1,7 +1,7 @@
 #include "character_selector.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include <algorithm>
 #include <vector>
@@ -10,7 +10,6 @@
 #include "character_editor.h"
 #include "color.h"
 #include "critter.h"
-#include "db.h"
 #include "debug.h"
 #include "draw.h"
 #include "game.h"
@@ -22,7 +21,6 @@
 #include "mouse.h"
 #include "object.h"
 #include "palette.h"
-#include "platform_compat.h"
 #include "preferences.h"
 #include "proto.h"
 #include "settings.h"
@@ -33,6 +31,10 @@
 #include "text_font.h"
 #include "trait.h"
 #include "window_manager.h"
+
+// Migrated
+#include "db.h"
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -163,7 +165,7 @@ int characterSelectorOpen()
     int rc = 0;
     bool done = false;
     while (!done) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         if (_game_user_wants_to_quit != 0) {
             break;
@@ -241,7 +243,7 @@ int characterSelectorOpen()
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     paletteFadeTo(gPaletteBlack);

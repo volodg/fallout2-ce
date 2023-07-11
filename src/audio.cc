@@ -1,14 +1,16 @@
 #include "audio.h"
 
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
+#include <cassert>
+#include <cstdio>
+#include <cstring>
 
-#include "db.h"
 #include "debug.h"
 #include "memory_manager.h"
 #include "sound.h"
 #include "sound_decoder.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 
@@ -43,7 +45,7 @@ static Audio* gAudioList;
 static bool defaultCompressionFunc(char* filePath)
 {
     char* pch = strrchr(filePath, '.');
-    if (pch != NULL) {
+    if (pch != nullptr) {
         strcpy(pch + 1, "raw");
     }
 

@@ -1,8 +1,11 @@
 #include "sfall_config.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
+// TODO Migrate
+
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {
@@ -65,7 +68,7 @@ bool sfallConfigInit(int argc, char** argv)
     char path[COMPAT_MAX_PATH];
     char* executable = argv[0];
     char* ch = strrchr(executable, '\\');
-    if (ch != NULL) {
+    if (ch != nullptr) {
         *ch = '\0';
         snprintf(path, sizeof(path), "%s\\%s", executable, SFALL_CONFIG_FILE_NAME);
         *ch = '\\';

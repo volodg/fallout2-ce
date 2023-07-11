@@ -3,9 +3,11 @@
 
 #include <vector>
 
-#include "db.h"
 #include "obj_types.h"
 #include "scripts.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

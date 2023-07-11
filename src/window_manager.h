@@ -1,7 +1,7 @@
 #ifndef WINDOW_MANAGER_H
 #define WINDOW_MANAGER_H
 
-#include <stddef.h>
+#include <cstddef>
 
 #include "geometry.h"
 
@@ -75,8 +75,8 @@ typedef struct MenuBar {
     Rect rect;
     int pulldownsLength;
     MenuPulldown pulldowns[15];
-    int foregroundColor;
-    int backgroundColor;
+    int _foregroundColor;
+    int _backgroundColor;
 } MenuBar;
 
 typedef void WindowBlitProc(unsigned char* src, int width, int height, int srcPitch, unsigned char* dest, int destPitch);
@@ -185,7 +185,6 @@ int buttonSetRightMouseCallbacks(int btn, int rightMouseDownEventCode, int right
 int buttonSetCallbacks(int btn, ButtonCallback* pressSoundFunc, ButtonCallback* releaseSoundFunc);
 int buttonSetMask(int btn, unsigned char* mask);
 bool _win_button_down(int btn);
-int buttonGetWindowId(int btn);
 int _win_last_button_winID();
 int buttonDestroy(int btn);
 int buttonEnable(int btn);

@@ -11,8 +11,6 @@ typedef enum EndgameDeathEndingReason {
     ENDGAME_DEATH_ENDING_REASON_TIMEOUT = 2,
 } EndgameDeathEndingReason;
 
-extern char _aEnglish_2[];
-
 void endgamePlaySlideshow();
 void endgamePlayMovie();
 int endgameDeathEndingInit();

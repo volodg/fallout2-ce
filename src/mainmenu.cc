@@ -1,6 +1,6 @@
 #include "mainmenu.h"
 
-#include <ctype.h>
+#include <cctype>
 
 #include "art.h"
 #include "color.h"
@@ -15,8 +15,10 @@
 #include "sfall_config.h"
 #include "svga.h"
 #include "text_font.h"
-#include "version.h"
 #include "window_manager.h"
+
+// Migrated
+#include "version.h"
 
 namespace fallout {
 
@@ -292,12 +294,6 @@ void mainMenuWindowUnhide(bool animate)
     gMainMenuWindowHidden = false;
 }
 
-// 0x481AA8
-int _main_menu_is_enabled()
-{
-    return 1;
-}
-
 // 0x481AEC
 int mainMenuWindowHandleEvents()
 {
@@ -312,7 +308,7 @@ int mainMenuWindowHandleEvents()
 
     int rc = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -366,7 +362,7 @@ int mainMenuWindowHandleEvents()
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (oldCursorIsHidden) {

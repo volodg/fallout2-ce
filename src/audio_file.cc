@@ -1,14 +1,16 @@
 #include "audio_file.h"
 
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
+#include <cassert>
+#include <cstdio>
+#include <cstring>
 
 #include "debug.h"
 #include "memory_manager.h"
-#include "platform_compat.h"
 #include "sound.h"
 #include "sound_decoder.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -70,7 +72,7 @@ int audioFileOpen(const char* fname, int* sampleRate)
     }
 
     FILE* stream = compat_fopen(path, "rb");
-    if (stream == NULL) {
+    if (stream == nullptr) {
         return -1;
     }
 
@@ -82,7 +84,7 @@ int audioFileOpen(const char* fname, int* sampleRate)
     }
 
     if (index == gAudioFileListLength) {
-        if (gAudioFileList != NULL) {
+        if (gAudioFileList != nullptr) {
             gAudioFileList = (AudioFile*)internal_realloc_safe(gAudioFileList, sizeof(*gAudioFileList) * (gAudioFileListLength + 1), __FILE__, __LINE__); // "..\int\audiof.c", 207
         } else {
             gAudioFileList = (AudioFile*)internal_malloc_safe(sizeof(*gAudioFileList), __FILE__, __LINE__); // "..\int\audiof.c", 209

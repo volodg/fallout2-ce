@@ -1,7 +1,7 @@
 #include "color.h"
 
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 
 #include <algorithm>
 
@@ -193,7 +193,7 @@ int Color2RGB(Color c)
 void colorPaletteFadeBetween(unsigned char* oldPalette, unsigned char* newPalette, int steps)
 {
     for (int step = 0; step < steps; step++) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         unsigned char palette[768];
 
@@ -209,13 +209,13 @@ void colorPaletteFadeBetween(unsigned char* oldPalette, unsigned char* newPalett
 
         _setSystemPalette(palette);
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
-    sharedFpsLimiter.mark();
+    rust_fps_limiter_mark(sharedFpsLimiter);
     _setSystemPalette(newPalette);
     renderPresent();
-    sharedFpsLimiter.throttle();
+    rust_fps_limiter_throttle(sharedFpsLimiter);
 }
 
 // 0x4C73D4
@@ -593,60 +593,6 @@ void colorSetBrightness(double value)
     }
 
     _setSystemPalette(_systemCmap);
-}
-
-// NOTE: Unused.
-//
-// 0x4C8828
-bool colorPushColorPalette()
-{
-    if (gColorPaletteStackSize >= COLOR_PALETTE_STACK_CAPACITY) {
-        _errorStr = _aColor_cColorpa;
-        return false;
-    }
-
-    ColorPaletteStackEntry* entry = (ColorPaletteStackEntry*)malloc(sizeof(*entry));
-    gColorPaletteStack[gColorPaletteStackSize] = entry;
-
-    memcpy(entry->mappedColors, _mappedColor, sizeof(_mappedColor));
-    memcpy(entry->cmap, _cmap, sizeof(_cmap));
-    memcpy(entry->colorTable, _colorTable, sizeof(_colorTable));
-
-    gColorPaletteStackSize++;
-
-    return true;
-}
-
-// NOTE: Unused.
-//
-// 0x4C88E0
-bool colorPopColorPalette()
-{
-    if (gColorPaletteStackSize == 0) {
-        _errorStr = aColor_cColor_0;
-        return false;
-    }
-
-    gColorPaletteStackSize--;
-
-    ColorPaletteStackEntry* entry = gColorPaletteStack[gColorPaletteStackSize];
-
-    memcpy(_mappedColor, entry->mappedColors, sizeof(_mappedColor));
-    memcpy(_cmap, entry->cmap, sizeof(_cmap));
-    memcpy(_colorTable, entry->colorTable, sizeof(_colorTable));
-
-    free(entry);
-    gColorPaletteStack[gColorPaletteStackSize] = NULL;
-
-    _setIntensityTables();
-
-    for (int index = 0; index < 256; index++) {
-        _setMixTableColor(index);
-    }
-
-    _rebuildColorBlendTables();
-
-    return true;
 }
 
 // 0x4C89CC

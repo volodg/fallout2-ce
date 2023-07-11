@@ -1,15 +1,16 @@
 #include "debug.h"
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 
 #include <SDL.h>
 
 #include "memory.h"
-#include "platform_compat.h"
 #include "window_manager_private.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -22,7 +23,7 @@ static void _debug_putc(int ch);
 static void _debug_scroll();
 
 // 0x51DEF8
-static FILE* _fd = NULL;
+static FILE* _fd = nullptr;
 
 // 0x51DEFC
 static int _curx = 0;
@@ -31,103 +32,12 @@ static int _curx = 0;
 static int _cury = 0;
 
 // 0x51DF04
-static DebugPrintProc* gDebugPrintProc = NULL;
+static DebugPrintProc* gDebugPrintProc = nullptr;
 
 // 0x4C6CD0
 void _GNW_debug_init()
 {
     atexit(_debug_exit);
-}
-
-// 0x4C6CDC
-void _debug_register_mono()
-{
-    if (gDebugPrintProc != _debug_mono) {
-        if (_fd != NULL) {
-            fclose(_fd);
-            _fd = NULL;
-        }
-
-        gDebugPrintProc = _debug_mono;
-        _debug_clear();
-    }
-}
-
-// 0x4C6D18
-void _debug_register_log(const char* fileName, const char* mode)
-{
-    if ((mode[0] == 'w' && mode[1] == 'a') && mode[1] == 't') {
-        if (_fd != NULL) {
-            fclose(_fd);
-        }
-
-        _fd = compat_fopen(fileName, mode);
-        gDebugPrintProc = _debug_log;
-    }
-}
-
-// 0x4C6D5C
-void _debug_register_screen()
-{
-    if (gDebugPrintProc != _debug_screen) {
-        if (_fd != NULL) {
-            fclose(_fd);
-            _fd = NULL;
-        }
-
-        gDebugPrintProc = _debug_screen;
-    }
-}
-
-// 0x4C6D90
-void _debug_register_env()
-{
-    const char* type = getenv("DEBUGACTIVE");
-    if (type == NULL) {
-        return;
-    }
-
-    char* copy = (char*)internal_malloc(strlen(type) + 1);
-    if (copy == NULL) {
-        return;
-    }
-
-    strcpy(copy, type);
-    compat_strlwr(copy);
-
-    if (strcmp(copy, "mono") == 0) {
-        // NOTE: Uninline.
-        _debug_register_mono();
-    } else if (strcmp(copy, "log") == 0) {
-        _debug_register_log("debug.log", "wt");
-    } else if (strcmp(copy, "screen") == 0) {
-        // NOTE: Uninline.
-        _debug_register_screen();
-    } else if (strcmp(copy, "gnw") == 0) {
-        if (gDebugPrintProc != _win_debug) {
-            if (_fd != NULL) {
-                fclose(_fd);
-                _fd = NULL;
-            }
-
-            gDebugPrintProc = _win_debug;
-        }
-    }
-
-    internal_free(copy);
-}
-
-// 0x4C6F18
-void _debug_register_func(DebugPrintProc* proc)
-{
-    if (gDebugPrintProc != proc) {
-        if (_fd != NULL) {
-            fclose(_fd);
-            _fd = NULL;
-        }
-
-        gDebugPrintProc = proc;
-    }
 }
 
 // 0x4C6F48
@@ -138,7 +48,7 @@ int debugPrint(const char* format, ...)
 
     int rc;
 
-    if (gDebugPrintProc != NULL) {
+    if (gDebugPrintProc != nullptr) {
         char string[260];
         vsnprintf(string, sizeof(string), format, args);
 
@@ -158,7 +68,7 @@ int debugPrint(const char* format, ...)
 // 0x4C6F94
 static int _debug_puts(char* string)
 {
-    if (gDebugPrintProc != NULL) {
+    if (gDebugPrintProc != nullptr) {
         return gDebugPrintProc(string);
     }
 
@@ -172,7 +82,7 @@ static void _debug_clear()
     int x;
     int y;
 
-    buffer = NULL;
+    buffer = nullptr;
 
     if (gDebugPrintProc == _debug_mono) {
         buffer = (char*)0xB0000;
@@ -180,7 +90,7 @@ static void _debug_clear()
         buffer = (char*)0xB8000;
     }
 
-    if (buffer != NULL) {
+    if (buffer != nullptr) {
         for (y = 0; y < 25; y++) {
             for (x = 0; x < 80; x++) {
                 *buffer++ = ' ';
@@ -208,7 +118,7 @@ static int _debug_mono(char* string)
 static int _debug_log(char* string)
 {
     if (gDebugPrintProc == _debug_log) {
-        if (_fd == NULL) {
+        if (_fd == nullptr) {
             return -1;
         }
 
@@ -306,7 +216,7 @@ static void _debug_scroll()
 // 0x4C71E8
 void _debug_exit(void)
 {
-    if (_fd != NULL) {
+    if (_fd != nullptr) {
         fclose(_fd);
     }
 }

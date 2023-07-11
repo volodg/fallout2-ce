@@ -1,15 +1,17 @@
 #include "mouse_manager.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "datafile.h"
-#include "db.h"
 #include "debug.h"
 #include "input.h"
 #include "memory_manager.h"
 #include "mouse.h"
-#include "platform_compat.h"
 #include "svga.h"
+
+// Migrated
+#include "db.h"
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -570,78 +572,6 @@ bool mouseManagerSetMousePointer(char* fileName)
     strncpy(gMouseManagerCache[gMouseManagerCurrentCacheEntryIndex].field_32C, fileName, 31);
 
     return rc;
-}
-
-// 0x4862AC
-void mouseManagerResetMouse()
-{
-    MouseManagerCacheEntry* entry = &(gMouseManagerCache[gMouseManagerCurrentCacheEntryIndex]);
-
-    int imageWidth;
-    int imageHeight;
-    switch (entry->type) {
-    case MOUSE_MANAGER_MOUSE_TYPE_STATIC:
-        imageWidth = entry->staticData->width;
-        imageHeight = entry->staticData->height;
-        break;
-    case MOUSE_MANAGER_MOUSE_TYPE_ANIMATED:
-        imageWidth = entry->animatedData->width;
-        imageHeight = entry->animatedData->height;
-        break;
-    }
-
-    switch (entry->type) {
-    case MOUSE_MANAGER_MOUSE_TYPE_STATIC:
-        if (gMouseManagerCurrentStaticData != NULL) {
-            if (gMouseManagerCurrentStaticData != NULL) {
-                internal_free_safe(gMouseManagerCurrentStaticData, __FILE__, __LINE__); // "..\\int\\MOUSEMGR.C", 572
-            }
-
-            gMouseManagerCurrentStaticData = (unsigned char*)internal_malloc_safe(imageWidth * imageHeight, __FILE__, __LINE__); // "..\\int\\MOUSEMGR.C", 574
-            memcpy(gMouseManagerCurrentStaticData, entry->staticData->data, imageWidth * imageHeight);
-            sub_42EE84(gMouseManagerCurrentStaticData, entry->palette, imageWidth, imageHeight);
-
-            mouseSetFrame(gMouseManagerCurrentStaticData,
-                imageWidth,
-                imageHeight,
-                imageWidth,
-                entry->staticData->field_4,
-                entry->staticData->field_8,
-                0);
-        } else {
-            debugPrint("Hm, current mouse type is M_STATIC, but no current mouse pointer\n");
-        }
-        break;
-    case MOUSE_MANAGER_MOUSE_TYPE_ANIMATED:
-        if (gMouseManagerCurrentAnimatedData != NULL) {
-            for (int index = 0; index < gMouseManagerCurrentAnimatedData->frameCount; index++) {
-                memcpy(gMouseManagerCurrentAnimatedData->field_0[index], gMouseManagerCurrentAnimatedData->field_4[index], imageWidth * imageHeight);
-                sub_42EE84(gMouseManagerCurrentAnimatedData->field_0[index], entry->palette, imageWidth, imageHeight);
-            }
-
-            mouseSetFrame(gMouseManagerCurrentAnimatedData->field_0[gMouseManagerCurrentAnimatedData->field_26],
-                imageWidth,
-                imageHeight,
-                imageWidth,
-                gMouseManagerCurrentAnimatedData->field_8[gMouseManagerCurrentAnimatedData->field_26],
-                gMouseManagerCurrentAnimatedData->field_C[gMouseManagerCurrentAnimatedData->field_26],
-                0);
-        } else {
-            debugPrint("Hm, current mouse type is M_ANIMATED, but no current mouse pointer\n");
-        }
-    }
-}
-
-// 0x4865C4
-void mouseManagerHideMouse()
-{
-    mouseHideCursor();
-}
-
-// 0x4865CC
-void mouseManagerShowMouse()
-{
-    mouseShowCursor();
 }
 
 } // namespace fallout

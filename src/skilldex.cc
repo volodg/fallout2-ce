@@ -1,7 +1,7 @@
 #include "skilldex.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "art.h"
 #include "color.h"
@@ -11,7 +11,6 @@
 #include "game.h"
 #include "game_mouse.h"
 #include "game_sound.h"
-#include "geometry.h"
 #include "input.h"
 #include "interface.h"
 #include "kb.h"
@@ -19,11 +18,13 @@
 #include "memory.h"
 #include "message.h"
 #include "object.h"
-#include "platform_compat.h"
 #include "skill.h"
 #include "svga.h"
 #include "text_font.h"
 #include "window_manager.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -118,7 +119,7 @@ int skilldexOpen()
 
     int rc = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -133,7 +134,7 @@ int skilldexOpen()
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (rc != 0) {
@@ -187,7 +188,7 @@ static int skilldexWindowInit()
     int buttonDataIndex;
     for (buttonDataIndex = 0; buttonDataIndex < SKILLDEX_SKILL_BUTTON_BUFFER_COUNT; buttonDataIndex++) {
         gSkilldexButtonsData[buttonDataIndex] = (unsigned char*)internal_malloc(_skilldexFrmImages[SKILLDEX_FRM_BUTTON_ON].getHeight() * _skilldexFrmImages[SKILLDEX_FRM_BUTTON_ON].getWidth() + 512);
-        if (gSkilldexButtonsData[buttonDataIndex] == NULL) {
+        if (gSkilldexButtonsData[buttonDataIndex] == nullptr) {
             break;
         }
 
@@ -349,7 +350,7 @@ static int skilldexWindowInit()
             501 + index,
             gSkilldexButtonsData[index * 2],
             gSkilldexButtonsData[index * 2 + 1],
-            NULL,
+            nullptr,
             BUTTON_FLAG_TRANSPARENT);
         if (btn != -1) {
             buttonSetCallbacks(btn, _gsound_lrg_butt_press, _gsound_lrg_butt_release);
@@ -377,7 +378,7 @@ static int skilldexWindowInit()
         500,
         _skilldexFrmImages[SKILLDEX_FRM_LITTLE_RED_BUTTON_UP].getData(),
         _skilldexFrmImages[SKILLDEX_FRM_LITTLE_RED_BUTTON_DOWN].getData(),
-        NULL,
+        nullptr,
         BUTTON_FLAG_TRANSPARENT);
     if (cancelBtn != -1) {
         buttonSetCallbacks(cancelBtn, _gsound_red_butt_press, _gsound_red_butt_release);

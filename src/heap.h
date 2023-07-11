@@ -29,7 +29,6 @@ bool heapBlockAllocate(Heap* heap, int* handleIndexPtr, int size, int a3);
 bool heapBlockDeallocate(Heap* heap, int* handleIndexPtr);
 bool heapLock(Heap* heap, int handleIndex, unsigned char** bufferPtr);
 bool heapUnlock(Heap* heap, int handleIndex);
-bool heapValidate(Heap* heap);
 
 } // namespace fallout
 

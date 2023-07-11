@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.19)
 
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
@@ -71,8 +71,6 @@ target_sources(${EXECUTABLE_NAME} PUBLIC
     "src/dbox.h"
     "src/debug.cc"
     "src/debug.h"
-    "src/dfile.cc"
-    "src/dfile.h"
     "src/dialog.cc"
     "src/dialog.h"
     "src/dictionary.cc"
@@ -89,8 +87,6 @@ target_sources(${EXECUTABLE_NAME} PUBLIC
     "src/endgame.h"
     "src/export.cc"
     "src/export.h"
-    "src/file_find.cc"
-    "src/file_find.h"
     "src/file_utils.cc"
     "src/file_utils.h"
     "src/font_manager.cc"
@@ -253,7 +249,6 @@ target_sources(${EXECUTABLE_NAME} PUBLIC
 target_sources(${EXECUTABLE_NAME} PUBLIC
     "src/audio_engine.cc"
     "src/audio_engine.h"
-    "src/fps_limiter.cc"
     "src/fps_limiter.h"
     "src/platform_compat.cc"
     "src/platform_compat.h"
@@ -301,7 +296,7 @@ endif()
 
 if(WIN32)
     target_link_libraries(${EXECUTABLE_NAME}
-        winmm
+        winmm ws2_32 userenv ntdll bcrypt
     )
 endif()
 
@@ -399,3 +394,14 @@ if(APPLE)
 
     include(CPack)
 endif()
+
+# Enable rust
+
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+enable_language(Rust)
+include(CMakeCargo)
+
+# add_subdirectory(hello_world)
+add_subdirectory(rust)
+target_link_libraries(${EXECUTABLE_NAME} rust)

@@ -1,11 +1,13 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#include "db.h"
 #include "geometry.h"
 #include "inventory.h"
 #include "map_defs.h"
 #include "obj_types.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 
@@ -44,7 +46,6 @@ int objectSetNextFrame(Object* obj, Rect* rect);
 int objectSetPrevFrame(Object* obj, Rect* rect);
 int objectSetRotation(Object* obj, int direction, Rect* rect);
 int objectRotateClockwise(Object* obj, Rect* rect);
-int objectRotateCounterClockwise(Object* obj, Rect* rect);
 void _obj_rebuild_all_light();
 int objectSetLight(Object* obj, int lightDistance, int lightIntensity, Rect* rect);
 int objectGetLightIntensity(Object* obj);
@@ -60,7 +61,6 @@ int _obj_inven_free(Inventory* inventory);
 bool _obj_action_can_use(Object* obj);
 bool _obj_action_can_talk_to(Object* obj);
 bool _obj_portal_is_walk_thru(Object* obj);
-Object* objectFindById(int a1);
 Object* objectGetOwner(Object* obj);
 void _obj_remove_all();
 Object* objectFindFirst();

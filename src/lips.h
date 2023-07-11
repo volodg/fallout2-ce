@@ -1,7 +1,7 @@
 #ifndef LIPS_H
 #define LIPS_H
 
-#include <stddef.h>
+#include <cstddef>
 
 #include "sound.h"
 

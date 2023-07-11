@@ -1,14 +1,12 @@
 #include "credits.h"
 
-#include <string.h>
+#include <cstring>
 
 #include <algorithm>
 
 #include "art.h"
 #include "color.h"
 #include "cycle.h"
-#include "db.h"
-#include "debug.h"
 #include "draw.h"
 #include "game_mouse.h"
 #include "input.h"
@@ -16,11 +14,14 @@
 #include "message.h"
 #include "mouse.h"
 #include "palette.h"
-#include "platform_compat.h"
 #include "sound.h"
 #include "svga.h"
 #include "text_font.h"
 #include "window_manager.h"
+
+// Migrated
+#include "db.h"
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -148,7 +149,7 @@ void creditsOpen(const char* filePath, int backgroundFid, bool useReversedStyle)
                                     unsigned char* dest = intermediateBuffer + windowWidth * windowHeight - windowWidth + (windowWidth - stringWidth) / 2;
                                     unsigned char* src = stringBuffer;
                                     for (int index = 0; index < lineHeight; index++) {
-                                        sharedFpsLimiter.mark();
+                                        rust_fps_limiter_mark(sharedFpsLimiter);
 
                                         if (inputGetInput() != -1) {
                                             stop = true;
@@ -181,7 +182,7 @@ void creditsOpen(const char* filePath, int backgroundFid, bool useReversedStyle)
 
                                         src += windowWidth;
 
-                                        sharedFpsLimiter.throttle();
+                                        rust_fps_limiter_throttle(sharedFpsLimiter);
                                         renderPresent();
                                     }
 
@@ -192,7 +193,7 @@ void creditsOpen(const char* filePath, int backgroundFid, bool useReversedStyle)
 
                                 if (!stop) {
                                     for (int index = 0; index < windowHeight; index++) {
-                                        sharedFpsLimiter.mark();
+                                        rust_fps_limiter_mark(sharedFpsLimiter);
 
                                         if (inputGetInput() != -1) {
                                             break;
@@ -222,7 +223,7 @@ void creditsOpen(const char* filePath, int backgroundFid, bool useReversedStyle)
 
                                         windowRefresh(window);
 
-                                        sharedFpsLimiter.throttle();
+                                        rust_fps_limiter_throttle(sharedFpsLimiter);
                                         renderPresent();
                                     }
                                 }

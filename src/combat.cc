@@ -1,8 +1,8 @@
 #include "combat.h"
 
-#include <limits.h>
-#include <stdio.h>
-#include <string.h>
+#include <climits>
+#include <cstdio>
+#include <cstring>
 
 #include "actions.h"
 #include "animation.h"
@@ -10,11 +10,9 @@
 #include "color.h"
 #include "combat_ai.h"
 #include "critter.h"
-#include "db.h"
 #include "debug.h"
 #include "display_monitor.h"
 #include "draw.h"
-#include "elevator.h"
 #include "game.h"
 #include "game_mouse.h"
 #include "game_sound.h"
@@ -29,8 +27,6 @@
 #include "object.h"
 #include "party_member.h"
 #include "perk.h"
-#include "pipboy.h"
-#include "platform_compat.h"
 #include "proto.h"
 #include "queue.h"
 #include "random.h"
@@ -45,6 +41,10 @@
 #include "tile.h"
 #include "trait.h"
 #include "window_manager.h"
+
+// Migrated
+#include "db.h"
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -3111,12 +3111,12 @@ static void combatAttemptEnd()
 void _combat_turn_run()
 {
     while (_combat_turn_running > 0) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         _process_bk();
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 }
 
@@ -3126,7 +3126,7 @@ static int _combat_input()
     ScopedGameMode gm(GameMode::kPlayerTurn);
 
     while ((gCombatState & COMBAT_STATE_0x02) != 0) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         if ((gCombatState & COMBAT_STATE_0x08) != 0) {
             break;
@@ -3170,7 +3170,7 @@ static int _combat_input()
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     int v4 = _game_user_wants_to_quit;
@@ -5586,7 +5586,7 @@ static int calledShotSelectHitLocation(Object* critter, int* hitLocation, int hi
 
     int eventCode;
     while (true) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         eventCode = inputGetInput();
 
@@ -5603,7 +5603,7 @@ static int calledShotSelectHitLocation(Object* critter, int* hitLocation, int hi
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     _gmouse_enable();
@@ -6266,15 +6266,6 @@ void criticalsSetValue(int killType, int hitLocation, int effect, int dataMember
         gPlayerCriticalHitTable[hitLocation][effect].values[dataMember] = value;
     } else {
         gCriticalHitTables[killType][hitLocation][effect].values[dataMember] = value;
-    }
-}
-
-void criticalsResetValue(int killType, int hitLocation, int effect, int dataMember)
-{
-    if (killType == SFALL_KILL_TYPE_COUNT) {
-        gPlayerCriticalHitTable[hitLocation][effect].values[dataMember] = gBasePlayerCriticalHitTable[hitLocation][effect].values[dataMember];
-    } else {
-        gCriticalHitTables[killType][hitLocation][effect].values[dataMember] = gBaseCriticalHitTables[killType][hitLocation][effect].values[dataMember];
     }
 }
 

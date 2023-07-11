@@ -97,7 +97,7 @@ int showOptions()
 
     int rc = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -158,7 +158,7 @@ int showOptions()
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     optionsWindowFree();
@@ -441,7 +441,7 @@ int showPause(bool a1)
 
     bool done = false;
     while (!done) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
         switch (keyCode) {
@@ -464,7 +464,7 @@ int showPause(bool a1)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (!a1) {

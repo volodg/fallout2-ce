@@ -1,7 +1,7 @@
 #include "map.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include <vector>
 
@@ -27,9 +27,7 @@
 #include "loadsave.h"
 #include "memory.h"
 #include "object.h"
-#include "palette.h"
 #include "party_member.h"
-#include "pipboy.h"
 #include "proto.h"
 #include "proto_instance.h"
 #include "queue.h"

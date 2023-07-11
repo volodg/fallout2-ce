@@ -1,14 +1,13 @@
 #include "movie_effect.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstring>
 
 #include "config.h"
-#include "debug.h"
 #include "memory.h"
 #include "movie.h"
 #include "palette.h"
+
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {

@@ -1,13 +1,12 @@
 #include "automap.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include <algorithm>
 
 #include "art.h"
 #include "color.h"
-#include "config.h"
 #include "dbox.h"
 #include "debug.h"
 #include "draw.h"
@@ -21,11 +20,13 @@
 #include "map.h"
 #include "memory.h"
 #include "object.h"
-#include "platform_compat.h"
 #include "settings.h"
 #include "svga.h"
 #include "text_font.h"
 #include "window_manager.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -399,7 +400,7 @@ void automapShow(bool isInGame, bool isUsingScanner)
 
     bool done = false;
     while (!done) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         bool needsRefresh = false;
 
@@ -483,7 +484,7 @@ void automapShow(bool isInGame, bool isUsingScanner)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (isoWasEnabled) {

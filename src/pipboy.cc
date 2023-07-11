@@ -1,14 +1,12 @@
 #include "pipboy.h"
 
-#include <ctype.h>
-#include <stdio.h>
-#include <string.h>
+#include <cctype>
+#include <cstdio>
+#include <cstring>
 
 #include "art.h"
 #include "automap.h"
 #include "color.h"
-#include "combat.h"
-#include "config.h"
 #include "critter.h"
 #include "cycle.h"
 #include "dbox.h"
@@ -28,7 +26,6 @@
 #include "mouse.h"
 #include "object.h"
 #include "party_member.h"
-#include "platform_compat.h"
 #include "queue.h"
 #include "random.h"
 #include "scripts.h"
@@ -39,6 +36,9 @@
 #include "window_manager.h"
 #include "word_wrap.h"
 #include "worldmap.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -417,7 +417,7 @@ int pipboyOpen(int intent)
     gPipboyLastEventTimestamp = getTicks();
 
     while (true) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -475,7 +475,7 @@ int pipboyOpen(int intent)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     pipboyWindowFree();
@@ -1967,7 +1967,7 @@ static bool pipboyRest(int hours, int minutes, int duration)
             double v4 = v3 * 20.0;
             int v5 = 0;
             for (int v5 = 0; v5 < (int)v4; v5++) {
-                sharedFpsLimiter.mark();
+                rust_fps_limiter_mark(sharedFpsLimiter);
 
                 if (rc) {
                     break;
@@ -2006,7 +2006,7 @@ static bool pipboyRest(int hours, int minutes, int duration)
                 }
 
                 renderPresent();
-                sharedFpsLimiter.throttle();
+                rust_fps_limiter_throttle(sharedFpsLimiter);
             }
 
             if (!rc) {
@@ -2029,7 +2029,7 @@ static bool pipboyRest(int hours, int minutes, int duration)
             double v7 = (v2 - v3) * 20.0;
 
             for (int hour = 0; hour < (int)v7; hour++) {
-                sharedFpsLimiter.mark();
+                rust_fps_limiter_mark(sharedFpsLimiter);
 
                 if (rc) {
                     break;
@@ -2077,7 +2077,7 @@ static bool pipboyRest(int hours, int minutes, int duration)
                 }
 
                 renderPresent();
-                sharedFpsLimiter.throttle();
+                rust_fps_limiter_throttle(sharedFpsLimiter);
             }
 
             if (!rc) {
@@ -2251,7 +2251,7 @@ static int pipboyRenderScreensaver()
 
     int v31 = 50;
     while (true) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         unsigned int time = getTicks();
 
@@ -2373,7 +2373,7 @@ static int pipboyRenderScreensaver()
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     blitBufferToBuffer(buf,

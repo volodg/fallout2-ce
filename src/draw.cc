@@ -1,9 +1,8 @@
 #include "draw.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "color.h"
-#include "svga.h"
 
 namespace fallout {
 
@@ -244,26 +243,6 @@ void _lighten_buf(unsigned char* buf, int width, int height, int pitch)
             *buf++ = intensityColorTable[color][147];
         }
         buf += skip;
-    }
-}
-
-// Swaps two colors in the buffer.
-//
-// 0x4D3A8C
-void _swap_color_buf(unsigned char* buf, int width, int height, int pitch, int color1, int color2)
-{
-    int step = pitch - width;
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            int v1 = *buf & 0xFF;
-            if (v1 == color1) {
-                *buf = color2 & 0xFF;
-            } else if (v1 == color2) {
-                *buf = color1 & 0xFF;
-            }
-            buf++;
-        }
-        buf += step;
     }
 }
 

@@ -1,7 +1,7 @@
 #include "region.h"
 
-#include <limits.h>
-#include <string.h>
+#include <climits>
+#include <cstring>
 
 #include "debug.h"
 #include "memory_manager.h"
@@ -237,30 +237,6 @@ char* regionGetName(Region* region)
     }
 
     return region->name;
-}
-
-// regionGetUserData
-// 0x4A2F98
-void* regionGetUserData(Region* region)
-{
-    if (region == NULL) {
-        debugPrint("regionGetUserData(): null region ptr\n");
-        return NULL;
-    }
-
-    return region->userData;
-}
-
-// regionSetUserData
-// 0x4A2FB4
-void regionSetUserData(Region* region, void* data)
-{
-    if (region == NULL) {
-        debugPrint("regionSetUserData(): null region ptr\n");
-        return;
-    }
-
-    region->userData = data;
 }
 
 // 0x4A2FD0

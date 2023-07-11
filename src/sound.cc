@@ -1,8 +1,6 @@
 #include "sound.h"
 
 #include <fcntl.h>
-#include <limits.h>
-#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -12,13 +10,13 @@
 #include <unistd.h>
 #endif
 
-#include <algorithm>
-
 #include <SDL.h>
 
-#include "audio_engine.h"
 #include "debug.h"
+
+// Migrated
 #include "platform_compat.h"
+#include "audio_engine.h"
 
 namespace fallout {
 
@@ -435,7 +433,7 @@ void _refreshSoundBuffers(Sound* sound)
         }
     }
 
-    audioEngineSoundBufferUnlock(sound->soundBuffer, audioPtr1, audioBytes1, audioPtr2, audioBytes2);
+    audioEngineSoundBufferUnlock(sound->soundBuffer);
 
     sound->lastUpdate = v6;
 }
@@ -684,7 +682,7 @@ int _addSoundData(Sound* sound, unsigned char* buf, int size)
         memcpy(audioPtr2, buf + audioBytes1, audioBytes2);
     }
 
-    hr = audioEngineSoundBufferUnlock(sound->soundBuffer, audioPtr1, audioBytes1, audioPtr2, audioBytes2);
+    hr = audioEngineSoundBufferUnlock(sound->soundBuffer);
     if (!hr) {
         gSoundLastError = SOUND_UNKNOWN_ERROR;
         return gSoundLastError;

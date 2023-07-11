@@ -1,8 +1,10 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
-#include "db.h"
 #include "obj_types.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 

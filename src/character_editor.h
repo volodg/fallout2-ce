@@ -1,6 +1,9 @@
 #ifndef CHARACTER_EDITOR_H
 #define CHARACTER_EDITOR_H
 
+// TODO Migrate
+
+// Migrated
 #include "db.h"
 
 namespace fallout {

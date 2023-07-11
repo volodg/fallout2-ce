@@ -2,9 +2,7 @@
 
 #include <SDL.h>
 
-#include "audio_engine.h"
 #include "color.h"
-#include "dinput.h"
 #include "draw.h"
 #include "kb.h"
 #include "memory.h"
@@ -13,7 +11,17 @@
 #include "text_font.h"
 #include "touch.h"
 #include "vcr.h"
-#include "win32.h"
+
+// Migrated
+#include "platform_compat.h"
+#include "audio_engine.h"
+#include "dinput.h"
+
+extern "C"
+{
+    void rust_c_set_program_is_active(bool value);
+    bool rust_c_get_program_is_active();
+}
 
 namespace fallout {
 
@@ -182,7 +190,7 @@ int inputGetInput()
 
     _GNW95_process_message();
 
-    if (!gProgramIsActive) {
+    if (!rust_c_get_program_is_active()) {
         _GNW95_lost_focus();
     }
 
@@ -669,66 +677,10 @@ unsigned int _get_bk_time()
 
 // NOTE: Unused.
 //
-// 0x4C9418
-void inputSetKeyboardKeyRepeatRate(int value)
-{
-    gKeyboardKeyRepeatRate = value;
-}
-
-// NOTE: Unused.
-//
-// 0x4C9420
-int inputGetKeyboardKeyRepeatRate()
-{
-    return gKeyboardKeyRepeatRate;
-}
-
-// NOTE: Unused.
-//
-// 0x4C9428
-void inputSetKeyboardKeyRepeatDelay(int value)
-{
-    gKeyboardKeyRepeatDelay = value;
-}
-
-// NOTE: Unused.
-//
-// 0x4C9430
-int inputGetKeyboardKeyRepeatDelay()
-{
-    return gKeyboardKeyRepeatDelay;
-}
-
-// NOTE: Unused.
-//
-// 0x4C9438
-void inputSetFocusFunc(FocusFunc* func)
-{
-    _focus_func = func;
-}
-
-// NOTE: Unused.
-//
-// 0x4C9440
-FocusFunc* inputGetFocusFunc()
-{
-    return _focus_func;
-}
-
-// NOTE: Unused.
-//
 // 0x4C9448
 void inputSetIdleFunc(IdleFunc* func)
 {
     _idle_func = func;
-}
-
-// NOTE: Unused.
-//
-// 0x4C9450
-IdleFunc* inputGetIdleFunc()
-{
-    return _idle_func;
 }
 
 // 0x4C9490
@@ -1110,12 +1062,12 @@ void _GNW95_process_message()
                 handleWindowSizeChanged();
                 break;
             case SDL_WINDOWEVENT_FOCUS_GAINED:
-                gProgramIsActive = true;
+                rust_c_set_program_is_active(true);
                 windowRefreshAll(&_scr_size);
                 audioEngineResume();
                 break;
             case SDL_WINDOWEVENT_FOCUS_LOST:
-                gProgramIsActive = false;
+                rust_c_set_program_is_active(false);
                 audioEnginePause();
                 break;
             }
@@ -1128,7 +1080,7 @@ void _GNW95_process_message()
 
     touch_process_gesture();
 
-    if (gProgramIsActive && !keyboardIsDisabled()) {
+    if (rust_c_get_program_is_active() && !keyboardIsDisabled()) {
         // NOTE: Uninline
         int tick = getTicks();
 
@@ -1198,7 +1150,7 @@ void _GNW95_lost_focus()
         _focus_func(false);
     }
 
-    while (!gProgramIsActive) {
+    while (!rust_c_get_program_is_active()) {
         _GNW95_process_message();
 
         if (_idle_func != NULL) {

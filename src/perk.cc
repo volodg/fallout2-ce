@@ -1,6 +1,6 @@
 #include "perk.h"
 
-#include <stdio.h>
+#include <cstdio>
 
 #include "debug.h"
 #include "game.h"
@@ -8,9 +8,11 @@
 #include "message.h"
 #include "object.h"
 #include "party_member.h"
-#include "platform_compat.h"
 #include "skill.h"
 #include "stat.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

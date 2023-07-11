@@ -1,41 +1,49 @@
 #include "db.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
 
-#include "platform_compat.h"
+// TODO Migrate
+
+// Migrated
 #include "xfile.h"
+
+namespace fallout {
+    struct FileList;
+}
+
+extern "C" {
+    int rust_db_open(const char* filePath1, int a2, const char* filePath2, int a4);
+    int rust_db_get_file_size(const char* filePath, int* sizePtr);
+    int rust_db_get_file_contents(const char* filePath, void* ptr);
+    int rust_file_read_char(fallout::File* stream);
+    char* rust_file_read_string(char* string, size_t size, fallout::File* stream);
+    size_t rust_file_read(void* ptr, size_t size, size_t count, fallout::File* stream);
+    int rust_file_read_uint8(fallout::File* stream, unsigned char* valuePtr);
+    int rust_file_read_int16(fallout::File* stream, short* valuePtr);
+    int rust_file_read_int32(fallout::File* stream, int* valuePtr);
+    int rust_file_read_bool(fallout::File* stream, bool* valuePtr);
+    int rust_file_write_uint8(fallout::File* stream, unsigned char value);
+    int rust_file_write_int16(fallout::File* stream, short value);
+    int rust_db_fwrite_long(fallout::File* stream, int value);
+    int rust_file_read_uint8_list(fallout::File* stream, unsigned char* arr, int count);
+    int rust_file_read_int16_list(fallout::File* stream, short* arr, int count);
+    int rust_file_read_int32_list(fallout::File* stream, int* arr, int count);
+    int rust_file_write_uint8_list(fallout::File* stream, unsigned char* arr, int count);
+    int rust_file_write_int16_list(fallout::File* stream, short* arr, int count);
+    int rust_file_write_int32_list(fallout::File* stream, int* arr, int count);
+    int rust_db_fwrite_long_count(fallout::File* stream, int* arr, int count);
+    int rust_file_name_list_init(const char* pattern, char*** fileNameListPtr, int a3, int a4);
+    void rust_file_name_list_free(char*** fileNameListPtr, int a2);
+    void rust_file_set_read_progress_handler(fallout::FileReadProgressHandler* handler, int size);
+    // rust_file_read_uint8
+}
 
 namespace fallout {
 
 typedef struct FileList {
-    XList xlist;
+    XList _xlist;
     struct FileList* next;
 } FileList;
-
-static int _db_list_compare(const void* p1, const void* p2);
-
-// Generic file progress report handler.
-//
-// 0x51DEEC
-static FileReadProgressHandler* gFileReadProgressHandler = NULL;
-
-// Bytes read so far while tracking progress.
-//
-// Once this value reaches [gFileReadProgressChunkSize] the handler is called
-// and this value resets to zero.
-//
-// 0x51DEF0
-static int gFileReadProgressBytesRead = 0;
-
-// The number of bytes to read between calls to progress handler.
-//
-// 0x673040
-static int gFileReadProgressChunkSize;
-
-// 0x673044
-static FileList* gFileListHead;
 
 // Opens file database.
 //
@@ -50,17 +58,7 @@ static FileList* gFileListHead;
 // 0x4C5D30
 int dbOpen(const char* filePath1, int a2, const char* filePath2, int a4)
 {
-    if (filePath1 != NULL) {
-        if (!xbaseOpen(filePath1)) {
-            return -1;
-        }
-    }
-
-    if (filePath2 != NULL) {
-        xbaseOpen(filePath2);
-    }
-
-    return 0;
+    return rust_db_open(filePath1, a2, filePath2, a4);
 }
 
 // 0x4C5D58
@@ -72,7 +70,7 @@ int _db_total()
 // 0x4C5D60
 void dbExit()
 {
-    xbaseReopenAll(NULL);
+    xbaseReopenAll(nullptr);
 }
 
 // TODO: sizePtr should be long*.
@@ -80,60 +78,13 @@ void dbExit()
 // 0x4C5D68
 int dbGetFileSize(const char* filePath, int* sizePtr)
 {
-    assert(filePath); // "filename", "db.c", 108
-    assert(sizePtr); // "de", "db.c", 109
-
-    File* stream = xfileOpen(filePath, "rb");
-    if (stream == NULL) {
-        return -1;
-    }
-
-    *sizePtr = xfileGetSize(stream);
-
-    xfileClose(stream);
-
-    return 0;
+    return rust_db_get_file_size(filePath, sizePtr);
 }
 
 // 0x4C5DD4
 int dbGetFileContents(const char* filePath, void* ptr)
 {
-    assert(filePath); // "filename", "db.c", 141
-    assert(ptr); // "buf", "db.c", 142
-
-    File* stream = xfileOpen(filePath, "rb");
-    if (stream == NULL) {
-        return -1;
-    }
-
-    long size = xfileGetSize(stream);
-    if (gFileReadProgressHandler != NULL) {
-        unsigned char* byteBuffer = (unsigned char*)ptr;
-
-        long remainingSize = size;
-        long chunkSize = gFileReadProgressChunkSize - gFileReadProgressBytesRead;
-
-        while (remainingSize >= chunkSize) {
-            size_t bytesRead = xfileRead(byteBuffer, sizeof(*byteBuffer), chunkSize, stream);
-            byteBuffer += bytesRead;
-            remainingSize -= bytesRead;
-
-            gFileReadProgressBytesRead = 0;
-            gFileReadProgressHandler();
-
-            chunkSize = gFileReadProgressChunkSize;
-        }
-
-        if (remainingSize != 0) {
-            gFileReadProgressBytesRead += xfileRead(byteBuffer, sizeof(*byteBuffer), remainingSize, stream);
-        }
-    } else {
-        xfileRead(ptr, 1, size, stream);
-    }
-
-    xfileClose(stream);
-
-    return 0;
+    return rust_db_get_file_contents(filePath, ptr);
 }
 
 // 0x4C5EB4
@@ -166,39 +117,13 @@ int filePrintFormatted(File* stream, const char* format, ...)
 // 0x4C5F24
 int fileReadChar(File* stream)
 {
-    if (gFileReadProgressHandler != NULL) {
-        int ch = xfileReadChar(stream);
-
-        gFileReadProgressBytesRead++;
-        if (gFileReadProgressBytesRead >= gFileReadProgressChunkSize) {
-            gFileReadProgressHandler();
-            gFileReadProgressBytesRead = 0;
-        }
-
-        return ch;
-    }
-
-    return xfileReadChar(stream);
+    return rust_file_read_char(stream);
 }
 
 // 0x4C5F70
 char* fileReadString(char* string, size_t size, File* stream)
 {
-    if (gFileReadProgressHandler != NULL) {
-        if (xfileReadString(string, size, stream) == NULL) {
-            return NULL;
-        }
-
-        gFileReadProgressBytesRead += strlen(string);
-        while (gFileReadProgressBytesRead >= gFileReadProgressChunkSize) {
-            gFileReadProgressHandler();
-            gFileReadProgressBytesRead -= gFileReadProgressChunkSize;
-        }
-
-        return string;
-    }
-
-    return xfileReadString(string, size, stream);
+    return rust_file_read_string(string, size, stream);
 }
 
 // 0x4C5FEC
@@ -210,35 +135,7 @@ int fileWriteString(const char* string, File* stream)
 // 0x4C5FFC
 size_t fileRead(void* ptr, size_t size, size_t count, File* stream)
 {
-    if (gFileReadProgressHandler != NULL) {
-        unsigned char* byteBuffer = (unsigned char*)ptr;
-
-        size_t totalBytesRead = 0;
-        long remainingSize = size * count;
-        long chunkSize = gFileReadProgressChunkSize - gFileReadProgressBytesRead;
-
-        while (remainingSize >= chunkSize) {
-            size_t bytesRead = xfileRead(byteBuffer, sizeof(*byteBuffer), chunkSize, stream);
-            byteBuffer += bytesRead;
-            totalBytesRead += bytesRead;
-            remainingSize -= bytesRead;
-
-            gFileReadProgressBytesRead = 0;
-            gFileReadProgressHandler();
-
-            chunkSize = gFileReadProgressChunkSize;
-        }
-
-        if (remainingSize != 0) {
-            size_t bytesRead = xfileRead(byteBuffer, sizeof(*byteBuffer), remainingSize, stream);
-            gFileReadProgressBytesRead += bytesRead;
-            totalBytesRead += bytesRead;
-        }
-
-        return totalBytesRead / size;
-    }
-
-    return xfileRead(ptr, size, count, stream);
+    return rust_file_read(ptr, size, count, stream);
 }
 
 // 0x4C60B8
@@ -276,14 +173,7 @@ int fileEof(File* stream)
 // 0x4C60E0
 int fileReadUInt8(File* stream, unsigned char* valuePtr)
 {
-    int value = fileReadChar(stream);
-    if (value == -1) {
-        return -1;
-    }
-
-    *valuePtr = value & 0xFF;
-
-    return 0;
+    return rust_file_read_uint8(stream, valuePtr);
 }
 
 // NOTE: Not sure about signness.
@@ -291,44 +181,13 @@ int fileReadUInt8(File* stream, unsigned char* valuePtr)
 // 0x4C60F4
 int fileReadInt16(File* stream, short* valuePtr)
 {
-    unsigned char high;
-    // NOTE: Uninline.
-    if (fileReadUInt8(stream, &high) == -1) {
-        return -1;
-    }
-
-    unsigned char low;
-    // NOTE: Uninline.
-    if (fileReadUInt8(stream, &low) == -1) {
-        return -1;
-    }
-
-    *valuePtr = (high << 8) | low;
-
-    return 0;
-}
-
-// NOTE: Probably uncollapsed 0x4C60F4. There are only couple of places where
-// the game reads/writes 16-bit integers. I'm not sure there are unsigned
-// shorts used, but there are definitely signed (art offsets can be both
-// positive and negative). Provided just in case.
-int fileReadUInt16(File* stream, unsigned short* valuePtr)
-{
-    return fileReadInt16(stream, (short*)valuePtr);
+    return rust_file_read_int16(stream, valuePtr);
 }
 
 // 0x4C614C
 int fileReadInt32(File* stream, int* valuePtr)
 {
-    int value;
-
-    if (xfileRead(&value, 4, 1, stream) == -1) {
-        return -1;
-    }
-
-    *valuePtr = ((value & 0xFF000000) >> 24) | ((value & 0xFF0000) >> 8) | ((value & 0xFF00) << 8) | ((value & 0xFF) << 24);
-
-    return 0;
+    return rust_file_read_int32(stream, valuePtr);
 }
 
 // NOTE: Uncollapsed 0x4C614C. The opposite of [_db_fwriteLong]. It can be either
@@ -351,16 +210,10 @@ int fileReadFloat(File* stream, float* valuePtr)
     return fileReadInt32(stream, (int*)valuePtr);
 }
 
+// rust_file_read_bool
 int fileReadBool(File* stream, bool* valuePtr)
 {
-    int value;
-    if (fileReadInt32(stream, &value) == -1) {
-        return -1;
-    }
-
-    *valuePtr = (value != 0);
-
-    return 0;
+    return rust_file_read_bool(stream, valuePtr);
 }
 
 // NOTE: Not sure about signness.
@@ -368,29 +221,13 @@ int fileReadBool(File* stream, bool* valuePtr)
 // 0x4C61AC
 int fileWriteUInt8(File* stream, unsigned char value)
 {
-    return xfileWriteChar(value, stream);
+    return rust_file_write_uint8(stream, value);
 };
 
 // 0x4C61C8
 int fileWriteInt16(File* stream, short value)
 {
-    // NOTE: Uninline.
-    if (fileWriteUInt8(stream, (value >> 8) & 0xFF) == -1) {
-        return -1;
-    }
-
-    // NOTE: Uninline.
-    if (fileWriteUInt8(stream, value & 0xFF) == -1) {
-        return -1;
-    }
-
-    return 0;
-}
-
-// NOTE: Probably uncollapsed 0x4C61C8.
-int fileWriteUInt16(File* stream, unsigned short value)
-{
-    return fileWriteInt16(stream, (short)value);
+    return rust_file_write_int16(stream, value);
 }
 
 // NOTE: Not sure about signness and int vs. long.
@@ -408,15 +245,7 @@ int fileWriteInt32(File* stream, int value)
 // 0x4C6244
 int _db_fwriteLong(File* stream, int value)
 {
-    if (fileWriteInt16(stream, (value >> 16) & 0xFFFF) == -1) {
-        return -1;
-    }
-
-    if (fileWriteInt16(stream, value & 0xFFFF) == -1) {
-        return -1;
-    }
-
-    return 0;
+    return rust_db_fwrite_long(stream, value);
 }
 
 // NOTE: Probably uncollapsed 0x4C6214 or 0x4C6244.
@@ -440,17 +269,7 @@ int fileWriteBool(File* stream, bool value)
 // 0x4C62FC
 int fileReadUInt8List(File* stream, unsigned char* arr, int count)
 {
-    for (int index = 0; index < count; index++) {
-        unsigned char ch;
-        // NOTE: Uninline.
-        if (fileReadUInt8(stream, &ch) == -1) {
-            return -1;
-        }
-
-        arr[index] = ch;
-    }
-
-    return 0;
+    return rust_file_read_uint8_list(stream, arr, count);
 }
 
 // NOTE: Probably uncollapsed 0x4C62FC. There are couple of places where
@@ -465,23 +284,7 @@ int fileReadFixedLengthString(File* stream, char* string, int length)
 // 0x4C6330
 int fileReadInt16List(File* stream, short* arr, int count)
 {
-    for (int index = 0; index < count; index++) {
-        short value;
-        // NOTE: Uninline.
-        if (fileReadInt16(stream, &value) == -1) {
-            return -1;
-        }
-
-        arr[index] = value;
-    }
-
-    return 0;
-}
-
-// NOTE: Probably uncollapsed 0x4C6330.
-int fileReadUInt16List(File* stream, unsigned short* arr, int count)
-{
-    return fileReadInt16List(stream, (short*)arr, count);
+    return rust_file_read_int16_list(stream, arr, count);
 }
 
 // NOTE: Not sure about signed/unsigned int/long.
@@ -489,20 +292,7 @@ int fileReadUInt16List(File* stream, unsigned short* arr, int count)
 // 0x4C63BC
 int fileReadInt32List(File* stream, int* arr, int count)
 {
-    if (count == 0) {
-        return 0;
-    }
-
-    if (fileRead(arr, sizeof(*arr) * count, 1, stream) < 1) {
-        return -1;
-    }
-
-    for (int index = 0; index < count; index++) {
-        int value = arr[index];
-        arr[index] = ((value & 0xFF000000) >> 24) | ((value & 0xFF0000) >> 8) | ((value & 0xFF00) << 8) | ((value & 0xFF) << 24);
-    }
-
-    return 0;
+    return rust_file_read_int32_list(stream, arr, count);
 }
 
 // NOTE: Uncollapsed 0x4C63BC. The opposite of [_db_fwriteLongCount].
@@ -511,23 +301,10 @@ int _db_freadIntCount(File* stream, int* arr, int count)
     return fileReadInt32List(stream, arr, count);
 }
 
-// NOTE: Probably uncollapsed 0x4C63BC.
-int fileReadUInt32List(File* stream, unsigned int* arr, int count)
-{
-    return fileReadInt32List(stream, (int*)arr, count);
-}
-
 // 0x4C6464
 int fileWriteUInt8List(File* stream, unsigned char* arr, int count)
 {
-    for (int index = 0; index < count; index++) {
-        // NOTE: Uninline.
-        if (fileWriteUInt8(stream, arr[index]) == -1) {
-            return -1;
-        }
-    }
-
-    return 0;
+    return rust_file_write_uint8_list(stream, arr, count);
 }
 
 // NOTE: Probably uncollapsed 0x4C6464. See [fileReadFixedLengthString].
@@ -539,20 +316,7 @@ int fileWriteFixedLengthString(File* stream, char* string, int length)
 // 0x4C6490
 int fileWriteInt16List(File* stream, short* arr, int count)
 {
-    for (int index = 0; index < count; index++) {
-        // NOTE: Uninline.
-        if (fileWriteInt16(stream, arr[index]) == -1) {
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
-// NOTE: Probably uncollapsed 0x4C6490.
-int fileWriteUInt16List(File* stream, unsigned short* arr, int count)
-{
-    return fileWriteInt16List(stream, (short*)arr, count);
+    return rust_file_write_int16_list(stream, arr, count);
 }
 
 // NOTE: Can be either signed/unsigned + int/long variant.
@@ -560,14 +324,7 @@ int fileWriteUInt16List(File* stream, unsigned short* arr, int count)
 // 0x4C64F8
 int fileWriteInt32List(File* stream, int* arr, int count)
 {
-    for (int index = 0; index < count; index++) {
-        // NOTE: Uninline.
-        if (_db_fwriteLong(stream, arr[index]) == -1) {
-            return -1;
-        }
-    }
-
-    return 0;
+    return rust_file_write_int32_list(stream, arr, count);
 }
 
 // NOTE: Not sure about signed/unsigned int/long.
@@ -575,117 +332,19 @@ int fileWriteInt32List(File* stream, int* arr, int count)
 // 0x4C6550
 int _db_fwriteLongCount(File* stream, int* arr, int count)
 {
-    for (int index = 0; index < count; index++) {
-        int value = arr[index];
-
-        // NOTE: Uninline.
-        if (fileWriteInt16(stream, (value >> 16) & 0xFFFF) == -1) {
-            return -1;
-        }
-
-        // NOTE: Uninline.
-        if (fileWriteInt16(stream, value & 0xFFFF) == -1) {
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
-// NOTE: Probably uncollapsed 0x4C64F8 or 0x4C6550.
-int fileWriteUInt32List(File* stream, unsigned int* arr, int count)
-{
-    return fileWriteInt32List(stream, (int*)arr, count);
+    return rust_db_fwrite_long_count(stream, arr, count);
 }
 
 // 0x4C6628
 int fileNameListInit(const char* pattern, char*** fileNameListPtr, int a3, int a4)
 {
-    FileList* fileList = (FileList*)malloc(sizeof(*fileList));
-    if (fileList == NULL) {
-        return 0;
-    }
-
-    memset(fileList, 0, sizeof(*fileList));
-
-    XList* xlist = &(fileList->xlist);
-    if (!xlistInit(pattern, xlist)) {
-        free(fileList);
-        return 0;
-    }
-
-    int length = 0;
-    if (xlist->fileNamesLength != 0) {
-        qsort(xlist->fileNames, xlist->fileNamesLength, sizeof(*xlist->fileNames), _db_list_compare);
-
-        int fileNamesLength = xlist->fileNamesLength;
-        for (int index = 0; index < fileNamesLength - 1; index++) {
-            if (compat_stricmp(xlist->fileNames[index], xlist->fileNames[index + 1]) == 0) {
-                char* temp = xlist->fileNames[index + 1];
-                memmove(&(xlist->fileNames[index + 1]), &(xlist->fileNames[index + 2]), sizeof(*xlist->fileNames) * (xlist->fileNamesLength - index - 1));
-                xlist->fileNames[xlist->fileNamesLength - 1] = temp;
-
-                fileNamesLength--;
-                index--;
-            }
-        }
-
-        bool isWildcard = *pattern == '*';
-
-        for (int index = 0; index < fileNamesLength; index += 1) {
-            char* name = xlist->fileNames[index];
-            char dir[COMPAT_MAX_DIR];
-            char fileName[COMPAT_MAX_FNAME];
-            char extension[COMPAT_MAX_EXT];
-            compat_windows_path_to_native(name);
-            compat_splitpath(name, NULL, dir, fileName, extension);
-
-            if (!isWildcard || *dir == '\0' || (strchr(dir, '\\') == NULL && strchr(dir, '/') == NULL)) {
-                // NOTE: Quick and dirty fix to buffer overflow. See RE to
-                // understand the problem.
-                char path[COMPAT_MAX_PATH];
-                snprintf(path, sizeof(path), "%s%s", fileName, extension);
-                free(xlist->fileNames[length]);
-                xlist->fileNames[length] = compat_strdup(path);
-                length++;
-            }
-        }
-    }
-
-    fileList->next = gFileListHead;
-    gFileListHead = fileList;
-
-    *fileNameListPtr = xlist->fileNames;
-
-    return length;
+    return rust_file_name_list_init(pattern, fileNameListPtr, a3, a4);
 }
 
 // 0x4C6868
 void fileNameListFree(char*** fileNameListPtr, int a2)
 {
-    if (gFileListHead == NULL) {
-        return;
-    }
-
-    FileList* currentFileList = gFileListHead;
-    FileList* previousFileList = gFileListHead;
-    while (*fileNameListPtr != currentFileList->xlist.fileNames) {
-        previousFileList = currentFileList;
-        currentFileList = currentFileList->next;
-        if (currentFileList == NULL) {
-            return;
-        }
-    }
-
-    if (previousFileList == gFileListHead) {
-        gFileListHead = currentFileList->next;
-    } else {
-        previousFileList->next = currentFileList->next;
-    }
-
-    xlistFree(&(currentFileList->xlist));
-
-    free(currentFileList);
+    rust_file_name_list_free(fileNameListPtr, a2);
 }
 
 // TODO: Return type should be long.
@@ -699,19 +358,7 @@ int fileGetSize(File* stream)
 // 0x4C68C4
 void fileSetReadProgressHandler(FileReadProgressHandler* handler, int size)
 {
-    if (handler != NULL && size != 0) {
-        gFileReadProgressHandler = handler;
-        gFileReadProgressChunkSize = size;
-    } else {
-        gFileReadProgressHandler = NULL;
-        gFileReadProgressChunkSize = 0;
-    }
-}
-
-// 0x4C68E8
-int _db_list_compare(const void* p1, const void* p2)
-{
-    return compat_stricmp(*(const char**)p1, *(const char**)p2);
+    rust_file_set_read_progress_handler(handler, size);
 }
 
 } // namespace fallout

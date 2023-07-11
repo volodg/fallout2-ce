@@ -1,8 +1,7 @@
 #include "stat.h"
 
-#include <stdio.h>
-
 #include <algorithm>
+#include <cstdio>
 
 #include "art.h"
 #include "combat.h"
@@ -12,19 +11,18 @@
 #include "game_sound.h"
 #include "interface.h"
 #include "item.h"
-#include "memory.h"
 #include "message.h"
 #include "object.h"
 #include "party_member.h"
 #include "perk.h"
-#include "platform_compat.h"
 #include "proto.h"
 #include "random.h"
 #include "scripts.h"
 #include "skill.h"
-#include "svga.h"
-#include "tile.h"
 #include "trait.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

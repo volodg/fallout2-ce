@@ -1,7 +1,7 @@
 #ifndef SOUND_DECODER_H
 #define SOUND_DECODER_H
 
-#include <stddef.h>
+#include <cstddef>
 
 namespace fallout {
 

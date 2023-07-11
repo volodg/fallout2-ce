@@ -9,7 +9,6 @@ namespace fallout {
 extern Object* gGameDialogSpeaker;
 extern bool gGameDialogSpeakerIsPartyMember;
 extern int gGameDialogHeadFid;
-extern int gGameDialogSid;
 
 int gameDialogInit();
 int gameDialogReset();

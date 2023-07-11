@@ -1,19 +1,16 @@
 #include "interface.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "animation.h"
 #include "art.h"
 #include "color.h"
 #include "combat.h"
-#include "config.h"
 #include "critter.h"
-#include "cycle.h"
 #include "debug.h"
 #include "display_monitor.h"
 #include "draw.h"
-#include "endgame.h"
 #include "game.h"
 #include "game_mouse.h"
 #include "game_sound.h"
@@ -24,16 +21,16 @@
 #include "memory.h"
 #include "mouse.h"
 #include "object.h"
-#include "platform_compat.h"
 #include "proto.h"
 #include "proto_instance.h"
-#include "proto_types.h"
-#include "skill.h"
 #include "stat.h"
 #include "svga.h"
 #include "text_font.h"
 #include "tile.h"
 #include "window_manager.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -1401,7 +1398,7 @@ void interfaceBarEndButtonsShow(bool animated)
         int time = 0;
         int frame = 0;
         while (frame < frameCount) {
-            sharedFpsLimiter.mark();
+            rust_fps_limiter_mark(sharedFpsLimiter);
 
             if (getTicksSince(time) >= delay) {
                 unsigned char* src = artGetFrameData(art, frame, 0);
@@ -1416,7 +1413,7 @@ void interfaceBarEndButtonsShow(bool animated)
             gameMouseRefresh();
 
             renderPresent();
-            sharedFpsLimiter.throttle();
+            rust_fps_limiter_throttle(sharedFpsLimiter);
         }
     } else {
         unsigned char* src = artGetFrameData(art, frameCount - 1, 0);
@@ -1460,7 +1457,7 @@ void interfaceBarEndButtonsHide(bool animated)
         int frame = artGetFrameCount(art);
 
         while (frame != 0) {
-            sharedFpsLimiter.mark();
+            rust_fps_limiter_mark(sharedFpsLimiter);
 
             if (getTicksSince(time) >= delay) {
                 unsigned char* src = artGetFrameData(art, frame - 1, 0);
@@ -1476,7 +1473,7 @@ void interfaceBarEndButtonsHide(bool animated)
             gameMouseRefresh();
 
             renderPresent();
-            sharedFpsLimiter.throttle();
+            rust_fps_limiter_throttle(sharedFpsLimiter);
         }
     } else {
         unsigned char* dest = gInterfaceWindowBuffer + gInterfaceBarWidth * 38 + 580 + gInterfaceBarContentOffset;
@@ -1856,7 +1853,7 @@ static void interfaceBarSwapHandsAnimatePutAwayTakeOutSequence(int previousWeapo
     gameMouseSetCursor(MOUSE_CURSOR_WAIT_WATCH);
 
     while (gInterfaceBarSwapHandsInProgress) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         if (_game_user_wants_to_quit) {
             break;
@@ -1865,7 +1862,7 @@ static void interfaceBarSwapHandsAnimatePutAwayTakeOutSequence(int previousWeapo
         inputGetInput();
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     gameMouseSetCursor(MOUSE_CURSOR_NONE);

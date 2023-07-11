@@ -1,14 +1,13 @@
 #include "party_member.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "animation.h"
 #include "color.h"
 #include "combat.h"
 #include "combat_ai.h"
-#include "combat_ai_defs.h"
 #include "config.h"
 #include "critter.h"
 #include "debug.h"

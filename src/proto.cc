@@ -1,15 +1,13 @@
 #include "proto.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "art.h"
 #include "character_editor.h"
 #include "combat.h"
-#include "config.h"
 #include "critter.h"
 #include "debug.h"
-#include "dialog.h"
 #include "game.h"
 #include "game_movie.h"
 #include "interface.h"
@@ -1262,7 +1260,7 @@ static int _proto_header_load()
         }
 
         int ch = '\0';
-        while (1) {
+        while (true) {
             ch = fileReadChar(stream);
             if (ch == -1) {
                 break;

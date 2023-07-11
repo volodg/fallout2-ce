@@ -1,17 +1,18 @@
 #include "lips.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "audio.h"
-#include "db.h"
 #include "debug.h"
 #include "game_sound.h"
 #include "input.h"
 #include "memory.h"
-#include "platform_compat.h"
 #include "sound.h"
-#include "svga.h"
+
+// Migrated
+#include "db.h"
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -155,7 +156,7 @@ int lipsStart()
     }
 
     int v2 = _head_marker_current;
-    while (1) {
+    while (true) {
         _head_marker_current = v2;
 
         SpeechMarker* speechEntry = &(gLipsData.markers[v2]);

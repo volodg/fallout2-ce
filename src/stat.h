@@ -1,14 +1,14 @@
 #ifndef STAT_H
 #define STAT_H
 
-#include "db.h"
 #include "obj_types.h"
 #include "proto_types.h"
 #include "stat_defs.h"
 
-namespace fallout {
+// Migrated
+#include "db.h"
 
-#define STAT_ERR_INVALID_STAT (-5)
+namespace fallout {
 
 int statsInit();
 int statsReset();

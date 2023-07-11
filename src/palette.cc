@@ -1,13 +1,12 @@
 #include "palette.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "color.h"
 #include "cycle.h"
 #include "debug.h"
 #include "game_sound.h"
 #include "input.h"
-#include "svga.h"
 
 namespace fallout {
 

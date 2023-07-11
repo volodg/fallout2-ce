@@ -1,9 +1,11 @@
 #include "string_parsers.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 #include "debug.h"
+
+// Migrated
 #include "platform_compat.h"
 
 namespace fallout {

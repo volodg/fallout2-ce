@@ -1,6 +1,6 @@
 #include "window_manager.h"
 
-#include <string.h>
+#include <cstring>
 
 #include <algorithm>
 
@@ -8,18 +8,19 @@
 
 #include "color.h"
 #include "debug.h"
-#include "dinput.h"
 #include "draw.h"
 #include "input.h"
 #include "memory.h"
 #include "mouse.h"
-#include "palette.h"
 #include "pointer_registry.h"
 #include "svga.h"
 #include "text_font.h"
 #include "vcr.h"
 #include "win32.h"
 #include "window_manager_private.h"
+
+// Migrated
+#include "dinput.h"
 
 namespace fallout {
 
@@ -2074,21 +2075,6 @@ bool _button_under_mouse(Button* button, Rect* rect)
 
     int width = button->rect.right - button->rect.left + 1;
     return button->mask[width * y + x] != 0;
-}
-
-// 0x4D927C
-int buttonGetWindowId(int btn)
-{
-    if (!gWindowSystemInitialized) {
-        return -1;
-    }
-
-    Window* window;
-    if (buttonGetButton(btn, &window) == NULL) {
-        return -1;
-    }
-
-    return window->id;
 }
 
 // 0x4D92B4

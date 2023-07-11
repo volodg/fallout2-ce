@@ -1,12 +1,15 @@
 #include "memory_manager.h"
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+// TODO Migrate
 
 namespace fallout {
 
+// TODO migrate
 typedef void(MemoryManagerPrintErrorProc)(const char* string);
 
 static void memoryManagerDefaultPrintErrorImpl(const char* string);

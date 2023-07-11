@@ -1,6 +1,9 @@
 #ifndef WORLD_MAP_H
 #define WORLD_MAP_H
 
+// TODO Migrate
+
+// Migrated
 #include "db.h"
 
 namespace fallout {

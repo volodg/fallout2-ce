@@ -1,12 +1,11 @@
 #include "vcr.h"
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #include "input.h"
 #include "kb.h"
 #include "memory.h"
 #include "mouse.h"
-#include "svga.h"
 
 namespace fallout {
 
@@ -16,7 +15,7 @@ static bool vcrClear();
 static bool vcrLoad();
 
 // 0x51E2F0
-VcrEntry* _vcr_buffer = NULL;
+VcrEntry* _vcr_buffer = nullptr;
 
 // number of entries in _vcr_buffer
 // 0x51E2F4

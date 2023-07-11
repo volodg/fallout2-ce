@@ -1,16 +1,15 @@
 #include "endgame.h"
 
-#include <ctype.h>
-#include <limits.h>
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
+#include <cctype>
+#include <climits>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
 
 #include "art.h"
 #include "color.h"
 #include "credits.h"
 #include "cycle.h"
-#include "db.h"
 #include "dbox.h"
 #include "debug.h"
 #include "draw.h"
@@ -24,8 +23,6 @@
 #include "mouse.h"
 #include "object.h"
 #include "palette.h"
-#include "pipboy.h"
-#include "platform_compat.h"
 #include "random.h"
 #include "settings.h"
 #include "stat.h"
@@ -34,6 +31,10 @@
 #include "window_manager.h"
 #include "word_wrap.h"
 #include "worldmap.h"
+
+// Migrated
+#include "db.h"
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -362,7 +363,7 @@ static void endgameEndingRenderPanningScene(int direction, const char* narratorF
 
         unsigned int since = 0;
         while (start != end) {
-            sharedFpsLimiter.mark();
+            rust_fps_limiter_mark(sharedFpsLimiter);
 
             int v12 = 640 - v32;
 
@@ -423,7 +424,7 @@ static void endgameEndingRenderPanningScene(int direction, const char* narratorF
             }
 
             renderPresent();
-            sharedFpsLimiter.throttle();
+            rust_fps_limiter_throttle(sharedFpsLimiter);
         }
 
         tickersEnable();
@@ -435,12 +436,12 @@ static void endgameEndingRenderPanningScene(int direction, const char* narratorF
     }
 
     while (mouseGetEvent() != 0) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         inputGetInput();
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 }
 
@@ -484,7 +485,7 @@ static void endgameEndingRenderStaticScene(int fid, const char* narratorFileName
 
         int keyCode;
         while (true) {
-            sharedFpsLimiter.mark();
+            rust_fps_limiter_mark(sharedFpsLimiter);
 
             keyCode = inputGetInput();
             if (keyCode != -1) {
@@ -509,7 +510,7 @@ static void endgameEndingRenderStaticScene(int fid, const char* narratorFileName
             soundContinueAll();
 
             renderPresent();
-            sharedFpsLimiter.throttle();
+            rust_fps_limiter_throttle(sharedFpsLimiter);
         }
 
         tickersEnable();
@@ -526,12 +527,12 @@ static void endgameEndingRenderStaticScene(int fid, const char* narratorFileName
         paletteFadeTo(gPaletteBlack);
 
         while (mouseGetEvent() != 0) {
-            sharedFpsLimiter.mark();
+            rust_fps_limiter_mark(sharedFpsLimiter);
 
             inputGetInput();
 
             renderPresent();
-            sharedFpsLimiter.throttle();
+            rust_fps_limiter_throttle(sharedFpsLimiter);
         }
     }
 

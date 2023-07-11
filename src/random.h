@@ -1,6 +1,9 @@
 #ifndef RANDOM_H
 #define RANDOM_H
 
+// TODO Migrate
+
+// Migrated
 #include "db.h"
 
 namespace fallout {

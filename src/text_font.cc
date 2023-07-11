@@ -1,11 +1,13 @@
 #include "text_font.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "color.h"
-#include "db.h"
 #include "memory.h"
+
+// Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {
@@ -162,7 +164,7 @@ int textFontLoad(int font)
 
     File* stream = fileOpen(path, "rb");
     int dataSize;
-    if (stream == NULL) {
+    if (stream == nullptr) {
         goto out;
     }
 
@@ -190,7 +192,7 @@ int textFontLoad(int font)
 
     dataSize = textFontDescriptor->lineHeight * ((textFontDescriptor->glyphs[textFontDescriptor->glyphCount - 1].width + 7) >> 3) + textFontDescriptor->glyphs[textFontDescriptor->glyphCount - 1].dataOffset;
     textFontDescriptor->data = (unsigned char*)internal_malloc(dataSize);
-    if (textFontDescriptor->data == NULL) {
+    if (textFontDescriptor->data == nullptr) {
         goto out;
     }
 

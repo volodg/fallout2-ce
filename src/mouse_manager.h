@@ -76,9 +76,6 @@ void mouseManagerUpdate();
 int mouseManagerSetFrame(char* fileName, int a2);
 bool mouseManagerSetMouseShape(char* fileName, int a2, int a3);
 bool mouseManagerSetMousePointer(char* fileName);
-void mouseManagerResetMouse();
-void mouseManagerHideMouse();
-void mouseManagerShowMouse();
 
 } // namespace fallout
 

@@ -13,7 +13,6 @@ void blitBufferToBufferTrans(unsigned char* src, int width, int height, int srcP
 void bufferFill(unsigned char* buf, int width, int height, int pitch, int a5);
 void _buf_texture(unsigned char* buf, int width, int height, int pitch, void* a5, int a6, int a7);
 void _lighten_buf(unsigned char* buf, int width, int height, int pitch);
-void _swap_color_buf(unsigned char* buf, int width, int height, int pitch, int color1, int color2);
 void bufferOutline(unsigned char* buf, int width, int height, int pitch, int a5);
 void srcCopy(unsigned char* dest, int destPitch, unsigned char* src, int srcPitch, int width, int height);
 void transSrcCopy(unsigned char* dest, int destPitch, unsigned char* src, int srcPitch, int width, int height);

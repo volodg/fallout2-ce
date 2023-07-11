@@ -1,7 +1,7 @@
 #include "dbox.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include <algorithm>
 
@@ -16,11 +16,13 @@
 #include "kb.h"
 #include "message.h"
 #include "mouse.h"
-#include "platform_compat.h"
 #include "svga.h"
 #include "text_font.h"
 #include "window_manager.h"
 #include "word_wrap.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -524,7 +526,7 @@ int showDialogBox(const char* title, const char** body, int bodyLength, int x, i
 
     int rc = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -550,7 +552,7 @@ int showDialogBox(const char* title, const char** body, int bodyLength, int x, i
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     windowDestroy(win);
@@ -729,7 +731,7 @@ int showLoadFileDialog(char* title, char** fileList, char* dest, int fileListLen
 
     int rc = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         unsigned int tick = getTicks();
         int keyCode = inputGetInput();
@@ -918,7 +920,7 @@ int showLoadFileDialog(char* title, char** fileList, char* dest, int fileListLen
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     windowDestroy(win);
@@ -1125,7 +1127,7 @@ int showSaveFileDialog(char* title, char** fileList, char* dest, int fileListLen
 
     int rc = -1;
     while (rc == -1) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         unsigned int tick = getTicks();
         int keyCode = inputGetInput();
@@ -1378,7 +1380,7 @@ int showSaveFileDialog(char* title, char** fileList, char* dest, int fileListLen
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     endTextInput();

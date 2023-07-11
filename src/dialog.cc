@@ -1,14 +1,15 @@
 #include "dialog.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "memory_manager.h"
 #include "mouse.h"
 #include "movie.h"
-#include "platform_compat.h"
-#include "svga.h"
 #include "text_font.h"
 #include "window_manager.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

@@ -1,14 +1,15 @@
 #include "config.h"
 
-#include <ctype.h>
-#include <errno.h>
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cctype>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
-#include "db.h"
 #include "memory.h"
+
+// Migrated
+#include "db.h"
 #include "platform_compat.h"
 
 namespace fallout {

@@ -1,8 +1,8 @@
 #include "word_wrap.h"
 
-#include <ctype.h>
-#include <stddef.h>
-#include <string.h>
+#include <cctype>
+#include <cstddef>
+#include <cstring>
 
 #include "text_font.h"
 

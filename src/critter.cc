@@ -1,7 +1,7 @@
 #include "critter.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "animation.h"
 #include "art.h"
@@ -19,7 +19,6 @@
 #include "message.h"
 #include "object.h"
 #include "party_member.h"
-#include "platform_compat.h"
 #include "proto.h"
 #include "queue.h"
 #include "random.h"
@@ -30,6 +29,9 @@
 #include "tile.h"
 #include "trait.h"
 #include "worldmap.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

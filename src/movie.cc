@@ -1,25 +1,26 @@
 #include "movie.h"
 
-#include <string.h>
+#include <cstring>
 
 #include <SDL.h>
 
 #include "color.h"
-#include "db.h"
 #include "debug.h"
 #include "draw.h"
 #include "geometry.h"
 #include "input.h"
 #include "memory_manager.h"
-#include "movie_effect.h"
 #include "movie_lib.h"
-#include "platform_compat.h"
 #include "pointer_registry.h"
 #include "sound.h"
 #include "svga.h"
 #include "text_font.h"
 #include "window.h"
 #include "window_manager.h"
+
+// Migrated
+#include "db.h"
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -843,7 +844,6 @@ static int _movieStart(int win, char* filePath, int (*a3)())
         debugPrint("Direct ");
         windowGetRect(gMovieWindow, &gMovieWindowRect);
         debugPrint("Playing at (%d, %d)  ", _movieX + gMovieWindowRect.left, _movieY + gMovieWindowRect.top);
-        _MVE_rmCallbacks(a3);
         _MVE_sfCallbacks(movieDirectImpl);
 
         v17 = 0;
@@ -851,7 +851,6 @@ static int _movieStart(int win, char* filePath, int (*a3)())
         v15 = _movieX + gMovieWindowRect.left;
     } else {
         debugPrint("Buffered ");
-        _MVE_rmCallbacks(a3);
         _MVE_sfCallbacks(movieBufferedImpl);
         v17 = 0;
         v16 = 0;

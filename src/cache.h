@@ -1,7 +1,7 @@
 #ifndef CACHE_H
 #define CACHE_H
 
-#include <stddef.h>
+#include <cstddef>
 
 #include "heap.h"
 

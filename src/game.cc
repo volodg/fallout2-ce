@@ -1,7 +1,9 @@
 #include "game.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
+
+#include <SDL.h>
 
 #include "actions.h"
 #include "animation.h"
@@ -14,7 +16,6 @@
 #include "combat_ai.h"
 #include "critter.h"
 #include "cycle.h"
-#include "db.h"
 #include "dbox.h"
 #include "debug.h"
 #include "display_monitor.h"
@@ -43,7 +44,6 @@
 #include "party_member.h"
 #include "perk.h"
 #include "pipboy.h"
-#include "platform_compat.h"
 #include "preferences.h"
 #include "proto.h"
 #include "queue.h"
@@ -63,9 +63,18 @@
 #include "text_font.h"
 #include "tile.h"
 #include "trait.h"
-#include "version.h"
 #include "window_manager.h"
 #include "worldmap.h"
+
+// Migrated
+#include "db.h"
+#include "platform_compat.h"
+#include "version.h"
+
+extern "C"
+{
+    const char* rust_get_version_build_time();
+}
 
 namespace fallout {
 
@@ -87,7 +96,8 @@ static void showSplash();
 static char _aGame_0[] = "game\\";
 
 // 0x5020B8
-static char _aDec11199816543[] = VERSION_BUILD_TIME;
+// TODO
+static char* _aDec11199816543 = (char*)rust_get_version_build_time();
 
 // 0x5186B4
 static bool gGameUiDisabled = false;
@@ -906,7 +916,7 @@ int gameHandleKey(int eventCode, bool isInCombatMode)
         }
         break;
     case KEY_CTRL_V:
-        if (1) {
+        {
             soundPlayFile("ib1p1xx1");
 
             char version[VERSION_MAX];
@@ -1215,18 +1225,18 @@ static void showHelp()
                 windowShow(win);
 
                 while (inputGetInput() == -1 && _game_user_wants_to_quit == 0) {
-                    sharedFpsLimiter.mark();
+                    rust_fps_limiter_mark(sharedFpsLimiter);
                     renderPresent();
-                    sharedFpsLimiter.throttle();
+                    rust_fps_limiter_throttle(sharedFpsLimiter);
                 }
 
                 while (mouseGetEvent() != 0) {
-                    sharedFpsLimiter.mark();
+                    rust_fps_limiter_mark(sharedFpsLimiter);
 
                     inputGetInput();
 
                     renderPresent();
-                    sharedFpsLimiter.throttle();
+                    rust_fps_limiter_throttle(sharedFpsLimiter);
                 }
 
                 paletteSetEntries(gPaletteBlack);

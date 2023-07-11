@@ -1,7 +1,7 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
-#include <stddef.h>
+#include <cstddef>
 
 namespace fallout {
 
@@ -89,7 +89,6 @@ void messageListRepositoryReset();
 void messageListRepositoryExit();
 void messageListRepositorySetStandardMessageList(int messageListId, MessageList* messageList);
 void messageListRepositorySetProtoMessageList(int messageListId, MessageList* messageList);
-int messageListRepositoryAddExtra(int messageListId, const char* path);
 char* messageListRepositoryGetMsg(int messageListId, int messageId);
 
 } // namespace fallout

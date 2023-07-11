@@ -1,14 +1,12 @@
 #include "text_object.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "debug.h"
 #include "draw.h"
 #include "input.h"
 #include "memory.h"
-#include "object.h"
 #include "settings.h"
-#include "svga.h"
 #include "text_font.h"
 #include "tile.h"
 #include "word_wrap.h"

@@ -1,8 +1,8 @@
 #include "heap.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "debug.h"
 #include "memory.h"
@@ -1130,122 +1130,6 @@ static bool heapBuildMoveableExtentsList(Heap* heap, int* moveableExtentsLengthP
 
     *moveableExtentsLengthPtr = extentIndex;
     *maxBlocksLengthPtr = maxBlocksLength;
-
-    return true;
-}
-
-// 0x452FC4
-bool heapValidate(Heap* heap)
-{
-    debugPrint("Validating heap...\n");
-
-    int blocksCount = heap->freeBlocks + heap->moveableBlocks + heap->lockedBlocks;
-    unsigned char* ptr = heap->data;
-
-    int freeBlocks = 0;
-    int freeSize = 0;
-    int moveableBlocks = 0;
-    int moveableSize = 0;
-    int lockedBlocks = 0;
-    int lockedSize = 0;
-
-    for (int index = 0; index < blocksCount; index++) {
-        HeapBlockHeader* blockHeader = (HeapBlockHeader*)ptr;
-        if (blockHeader->guard != HEAP_BLOCK_HEADER_GUARD) {
-            debugPrint("Bad guard begin detected during validate.\n");
-            return false;
-        }
-
-        HeapBlockFooter* blockFooter = (HeapBlockFooter*)(ptr + blockHeader->size + HEAP_BLOCK_HEADER_SIZE);
-        if (blockFooter->guard != HEAP_BLOCK_FOOTER_GUARD) {
-            debugPrint("Bad guard end detected during validate.\n");
-            return false;
-        }
-
-        if (blockHeader->state == HEAP_BLOCK_STATE_FREE) {
-            freeBlocks++;
-            freeSize += blockHeader->size;
-        } else if (blockHeader->state == HEAP_BLOCK_STATE_MOVABLE) {
-            moveableBlocks++;
-            moveableSize += blockHeader->size;
-        } else if (blockHeader->state == HEAP_BLOCK_STATE_LOCKED) {
-            lockedBlocks++;
-            lockedSize += blockHeader->size;
-        }
-
-        if (index != blocksCount - 1) {
-            ptr += blockHeader->size + HEAP_BLOCK_OVERHEAD_SIZE;
-            if (ptr > (heap->data + heap->size)) {
-                debugPrint("Ran off end of heap during validate!\n");
-                return false;
-            }
-        }
-    }
-
-    if (freeBlocks != heap->freeBlocks) {
-        debugPrint("Invalid number of free blocks.\n");
-        return false;
-    }
-
-    if (freeSize != heap->freeSize) {
-        debugPrint("Invalid size of free blocks.\n");
-        return false;
-    }
-
-    if (moveableBlocks != heap->moveableBlocks) {
-        debugPrint("Invalid number of moveable blocks.\n");
-        return false;
-    }
-
-    if (moveableSize != heap->moveableSize) {
-        debugPrint("Invalid size of moveable blocks.\n");
-        return false;
-    }
-
-    if (lockedBlocks != heap->lockedBlocks) {
-        debugPrint("Invalid number of locked blocks.\n");
-        return false;
-    }
-
-    if (lockedSize != heap->lockedSize) {
-        debugPrint("Invalid size of locked blocks.\n");
-        return false;
-    }
-
-    debugPrint("Heap is O.K.\n");
-
-    int systemBlocks = 0;
-    int systemSize = 0;
-
-    for (int handleIndex = 0; handleIndex < heap->handlesLength; handleIndex++) {
-        HeapHandle* handle = &(heap->handles[handleIndex]);
-        if (handle->state != HEAP_HANDLE_STATE_INVALID && (handle->state & HEAP_BLOCK_STATE_SYSTEM) != 0) {
-            HeapBlockHeader* blockHeader = (HeapBlockHeader*)handle->data;
-            if (blockHeader->guard != HEAP_BLOCK_HEADER_GUARD) {
-                debugPrint("Bad guard begin detected in system block during validate.\n");
-                return false;
-            }
-
-            HeapBlockFooter* blockFooter = (HeapBlockFooter*)(handle->data + blockHeader->size + HEAP_BLOCK_HEADER_SIZE);
-            if (blockFooter->guard != HEAP_BLOCK_FOOTER_GUARD) {
-                debugPrint("Bad guard end detected in system block during validate.\n");
-                return false;
-            }
-
-            systemBlocks++;
-            systemSize += blockHeader->size;
-        }
-    }
-
-    if (systemBlocks != heap->systemBlocks) {
-        debugPrint("Invalid number of system blocks.\n");
-        return false;
-    }
-
-    if (systemSize != heap->systemSize) {
-        debugPrint("Invalid size of system blocks.\n");
-        return false;
-    }
 
     return true;
 }

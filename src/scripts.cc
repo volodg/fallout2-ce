@@ -1,9 +1,9 @@
 #include "scripts.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
 #include "actions.h"
 #include "animation.h"
@@ -12,7 +12,6 @@
 #include "combat.h"
 #include "critter.h"
 #include "debug.h"
-#include "dialog.h"
 #include "elevator.h"
 #include "endgame.h"
 #include "export.h"
@@ -25,7 +24,6 @@
 #include "message.h"
 #include "object.h"
 #include "party_member.h"
-#include "platform_compat.h"
 #include "proto.h"
 #include "proto_instance.h"
 #include "queue.h"
@@ -33,12 +31,14 @@
 #include "sfall_config.h"
 #include "sfall_global_scripts.h"
 #include "stat.h"
-#include "svga.h"
 #include "tile.h"
 #include "window.h"
 #include "window_manager.h"
 #include "window_manager_private.h"
 #include "worldmap.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -294,7 +294,7 @@ void gameTimeGetDate(int* monthPtr, int* dayPtr, int* yearPtr)
     int month = gStartMonth;
     int day = (gGameTime / GAME_TIME_TICKS_PER_DAY + gStartDay) % 365;
 
-    while (1) {
+    while (true) {
         int daysInMonth = gGameTimeDaysPerMonth[month];
         if (day < daysInMonth) {
             break;
@@ -1768,7 +1768,7 @@ static int _scr_header_load()
         return -1;
     }
 
-    while (1) {
+    while (true) {
         int ch = fileReadChar(stream);
         if (ch == -1) {
             break;

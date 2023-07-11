@@ -38,8 +38,6 @@ unsigned char* _getColorBlendTable(int ch);
 void _freeColorBlendTable(int a1);
 void colorPaletteSetMemoryProcs(MallocProc* mallocProc, ReallocProc* reallocProc, FreeProc* freeProc);
 void colorSetBrightness(double value);
-bool colorPushColorPalette();
-bool colorPopColorPalette();
 bool _initColors();
 void _colorsClose();
 

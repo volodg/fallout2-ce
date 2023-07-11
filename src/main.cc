@@ -1,7 +1,7 @@
 #include "main.h"
 
-#include <limits.h>
-#include <string.h>
+#include <climits>
+#include <cstring>
 
 #include "art.h"
 #include "autorun.h"
@@ -9,7 +9,6 @@
 #include "color.h"
 #include "credits.h"
 #include "cycle.h"
-#include "db.h"
 #include "debug.h"
 #include "draw.h"
 #include "endgame.h"
@@ -25,7 +24,6 @@
 #include "mouse.h"
 #include "object.h"
 #include "palette.h"
-#include "platform_compat.h"
 #include "preferences.h"
 #include "proto.h"
 #include "random.h"
@@ -36,11 +34,14 @@
 #include "sfall_global_scripts.h"
 #include "svga.h"
 #include "text_font.h"
-#include "window.h"
 #include "window_manager.h"
 #include "window_manager_private.h"
 #include "word_wrap.h"
 #include "worldmap.h"
+
+// Migrated
+#include "db.h"
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -358,7 +359,7 @@ static void mainLoop()
     scriptsEnable();
 
     while (_game_user_wants_to_quit == 0) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -382,7 +383,7 @@ static void mainLoop()
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     scriptsDisable();
@@ -536,12 +537,12 @@ static void showDeath()
             }
 
             while (mouseGetEvent() != 0) {
-                sharedFpsLimiter.mark();
+                rust_fps_limiter_mark(sharedFpsLimiter);
 
                 inputGetInput();
 
                 renderPresent();
-                sharedFpsLimiter.throttle();
+                rust_fps_limiter_throttle(sharedFpsLimiter);
             }
 
             keyboardReset();
@@ -595,12 +596,12 @@ static void showDeath()
             unsigned int time = getTicks();
             int keyCode;
             do {
-                sharedFpsLimiter.mark();
+                rust_fps_limiter_mark(sharedFpsLimiter);
 
                 keyCode = inputGetInput();
 
                 renderPresent();
-                sharedFpsLimiter.throttle();
+                rust_fps_limiter_throttle(sharedFpsLimiter);
             } while (keyCode == -1 && !_main_death_voiceover_done && getTicksSince(time) < delay);
 
             speechSetEndCallback(NULL);
@@ -608,12 +609,12 @@ static void showDeath()
             speechDelete();
 
             while (mouseGetEvent() != 0) {
-                sharedFpsLimiter.mark();
+                rust_fps_limiter_mark(sharedFpsLimiter);
 
                 inputGetInput();
 
                 renderPresent();
-                sharedFpsLimiter.throttle();
+                rust_fps_limiter_throttle(sharedFpsLimiter);
             }
 
             if (keyCode == -1) {

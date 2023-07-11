@@ -43,8 +43,6 @@ void regionAddPoint(Region* region, int x, int y);
 void regionDelete(Region* region);
 void regionSetName(Region* region, const char* src);
 char* regionGetName(Region* region);
-void* regionGetUserData(Region* region);
-void regionSetUserData(Region* region, void* data);
 void regionAddFlag(Region* region, int value);
 
 } // namespace fallout

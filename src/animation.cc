@@ -1,12 +1,11 @@
 #include "animation.h"
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "art.h"
 #include "color.h"
 #include "combat.h"
-#include "combat_ai.h"
 #include "critter.h"
 #include "debug.h"
 #include "display_monitor.h"
@@ -30,9 +29,7 @@
 #include "settings.h"
 #include "stat.h"
 #include "svga.h"
-#include "text_object.h"
 #include "tile.h"
-#include "trait.h"
 #include "vcr.h"
 
 namespace fallout {
@@ -503,11 +500,11 @@ int reg_anim_end()
 // 0x413D6C
 static int _anim_preload(Object* object, int fid, CacheEntry** cacheEntryPtr)
 {
-    *cacheEntryPtr = NULL;
+    *cacheEntryPtr = nullptr;
 
-    if (artLock(fid, cacheEntryPtr) != NULL) {
+    if (artLock(fid, cacheEntryPtr) != nullptr) {
         artUnlock(*cacheEntryPtr);
-        *cacheEntryPtr = NULL;
+        *cacheEntryPtr = nullptr;
         return 0;
     }
 
@@ -528,7 +525,7 @@ static void _anim_cleanup()
     AnimationSequence* animationSequence = &(gAnimationSequences[gAnimationSequenceCurrentIndex]);
     for (int index = 0; index < gAnimationDescriptionCurrentIndex; index++) {
         AnimationDescription* animationDescription = &(animationSequence->animations[index]);
-        if (animationDescription->artCacheKey != NULL) {
+        if (animationDescription->artCacheKey != nullptr) {
             artUnlock(animationDescription->artCacheKey);
         }
 
@@ -551,7 +548,7 @@ static int _check_registry(Object* obj)
         return -1;
     }
 
-    if (obj == NULL) {
+    if (obj == nullptr) {
         return 0;
     }
 
@@ -580,7 +577,7 @@ static int _check_registry(Object* obj)
 // 0x413EC8
 int animationIsBusy(Object* a1)
 {
-    if (gAnimationDescriptionCurrentIndex >= ANIMATION_DESCRIPTION_LIST_CAPACITY || a1 == NULL) {
+    if (gAnimationDescriptionCurrentIndex >= ANIMATION_DESCRIPTION_LIST_CAPACITY || a1 == nullptr) {
         return 0;
     }
 
@@ -990,28 +987,6 @@ int animationRegisterRotateCounterClockwise(Object* owner)
     return 0;
 }
 
-// NOTE: Unused.
-//
-// 0x414DA8
-int animationRegisterHideObject(Object* object)
-{
-    if (_check_registry(object) == -1) {
-        _anim_cleanup();
-        return -1;
-    }
-
-    AnimationSequence* animationSequence = &(gAnimationSequences[gAnimationSequenceCurrentIndex]);
-    AnimationDescription* animationDescription = &(animationSequence->animations[gAnimationDescriptionCurrentIndex]);
-    animationDescription->kind = ANIM_KIND_HIDE;
-    animationDescription->delay = -1;
-    animationDescription->artCacheKey = NULL;
-    animationDescription->extendedFlags = 0;
-    animationDescription->owner = object;
-    gAnimationDescriptionCurrentIndex++;
-
-    return 0;
-}
-
 // 0x414E20
 int animationRegisterHideObjectForced(Object* object)
 {
@@ -1097,33 +1072,6 @@ int animationRegisterCallbackForced(void* a1, void* a2, AnimationCallback* proc,
     animationDescription->param2 = a2;
     animationDescription->param1 = a1;
     animationDescription->callback = proc;
-    animationDescription->delay = delay;
-
-    gAnimationDescriptionCurrentIndex++;
-
-    return 0;
-}
-
-// NOTE: Unused.
-//
-// The [flag] parameter should be one of OBJECT_* flags. The way it's handled
-// down the road implies it should not be a group of flags (joined with bitwise
-// OR), but a one particular flag.
-//
-// 0x415034
-int animationRegisterSetFlag(Object* object, int flag, int delay)
-{
-    if (_check_registry(object) == -1) {
-        _anim_cleanup();
-        return -1;
-    }
-
-    AnimationSequence* animationSequence = &(gAnimationSequences[gAnimationSequenceCurrentIndex]);
-    AnimationDescription* animationDescription = &(animationSequence->animations[gAnimationDescriptionCurrentIndex]);
-    animationDescription->kind = ANIM_KIND_SET_FLAG;
-    animationDescription->artCacheKey = NULL;
-    animationDescription->owner = object;
-    animationDescription->objectFlag = flag;
     animationDescription->delay = delay;
 
     gAnimationDescriptionCurrentIndex++;
@@ -1237,29 +1185,6 @@ int animationRegisterSetLightDistance(Object* owner, int lightDistance, int dela
     return 0;
 }
 
-// NOTE: Unused.
-//
-// 0x4153A8
-int animationRegisterToggleOutline(Object* object, bool outline, int delay)
-{
-    if (_check_registry(object) == -1) {
-        _anim_cleanup();
-        return -1;
-    }
-
-    AnimationSequence* animationSequence = &(gAnimationSequences[gAnimationSequenceCurrentIndex]);
-    AnimationDescription* animationDescription = &(animationSequence->animations[gAnimationDescriptionCurrentIndex]);
-    animationDescription->kind = ANIM_KIND_TOGGLE_OUTLINE;
-    animationDescription->artCacheKey = NULL;
-    animationDescription->owner = object;
-    animationDescription->outline = outline;
-    animationDescription->delay = delay;
-
-    gAnimationDescriptionCurrentIndex++;
-
-    return 0;
-}
-
 // 0x41541C
 int animationRegisterPlaySoundEffect(Object* owner, const char* soundEffectName, int delay)
 {
@@ -1360,7 +1285,7 @@ static int animationRunSequence(int animationSequenceIndex)
         return -1;
     }
 
-    while (1) {
+    while (true) {
         if (animationSequence->field_0 >= animationSequence->length) {
             return 0;
         }
@@ -1751,7 +1676,7 @@ int pathfinderFindPath(Object* object, int from, int to, unsigned char* rotation
     int openPathNodeListLength = 1;
     PathNode temp;
 
-    while (1) {
+    while (true) {
         int v63 = -1;
 
         PathNode* prev = NULL;

@@ -1,0 +1,5 @@
+
+1. Fix android compilation
+2. Fix ios compilation
+3. Fix linux compilation
+4. Try to compile android app

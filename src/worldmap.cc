@@ -1,10 +1,10 @@
 #include "worldmap.h"
 
-#include <assert.h>
-#include <ctype.h>
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
+#include <cassert>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
 
 #include <algorithm>
 
@@ -16,7 +16,6 @@
 #include "combat_ai.h"
 #include "critter.h"
 #include "cycle.h"
-#include "db.h"
 #include "dbox.h"
 #include "debug.h"
 #include "display_monitor.h"
@@ -49,6 +48,9 @@
 #include "text_font.h"
 #include "tile.h"
 #include "window_manager.h"
+
+// Migrated
+#include "db.h"
 
 namespace fallout {
 
@@ -1635,7 +1637,7 @@ static int wmReadEncBaseType(char* name, int* valuePtr)
 
     strncpy(encounter->name, name, 40);
 
-    while (1) {
+    while (true) {
         if (wmParseEncBaseSubTypeStr(&(encounter->entries[encounter->entriesLength]), &string) == -1) {
             return -1;
         }
@@ -2980,7 +2982,7 @@ static int wmWorldMapFunc(int a1)
     int rc = 0;
 
     while (true) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
 
@@ -3257,7 +3259,7 @@ static int wmWorldMapFunc(int a1)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (wmInterfaceExit() == -1) {
@@ -5727,7 +5729,7 @@ static int wmTownMapFunc(int* mapIdxPtr)
     CityInfo* city = &(wmAreaInfoList[wmGenData.currentAreaId]);
 
     for (;;) {
-        sharedFpsLimiter.mark();
+        rust_fps_limiter_mark(sharedFpsLimiter);
 
         int keyCode = inputGetInput();
         if (keyCode == KEY_CTRL_Q || keyCode == KEY_CTRL_X || keyCode == KEY_F10) {
@@ -5805,7 +5807,7 @@ static int wmTownMapFunc(int* mapIdxPtr)
         }
 
         renderPresent();
-        sharedFpsLimiter.throttle();
+        rust_fps_limiter_throttle(sharedFpsLimiter);
     }
 
     if (wmTownMapExit() == -1) {

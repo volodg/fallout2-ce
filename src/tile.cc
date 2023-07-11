@@ -1,24 +1,22 @@
 #include "tile.h"
 
-#include <assert.h>
-#include <math.h>
-#include <string.h>
+#include <cassert>
+#include <cmath>
 
 #include <algorithm>
 #include <stack>
 
 #include "art.h"
 #include "color.h"
-#include "config.h"
-#include "debug.h"
 #include "draw.h"
 #include "game_mouse.h"
 #include "light.h"
 #include "map.h"
 #include "object.h"
-#include "platform_compat.h"
 #include "settings.h"
-#include "svga.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

@@ -1,13 +1,15 @@
 #include "trait.h"
 
-#include <stdio.h>
+#include <cstdio>
 
 #include "game.h"
 #include "message.h"
 #include "object.h"
-#include "platform_compat.h"
 #include "skill.h"
 #include "stat.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

@@ -5,11 +5,13 @@
 #include <string>
 #include <vector>
 
-#include "db.h"
 #include "input.h"
-#include "platform_compat.h"
 #include "scripts.h"
 #include "sfall_config.h"
+
+// Migrated
+#include "db.h"
+#include "platform_compat.h"
 
 namespace fallout {
 

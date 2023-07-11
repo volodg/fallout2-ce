@@ -7,9 +7,9 @@
 
 #include "sound_decoder.h"
 
-#include <limits.h>
-#include <stdlib.h>
-#include <string.h>
+#include <climits>
+#include <cstdlib>
+#include <cstring>
 
 namespace fallout {
 

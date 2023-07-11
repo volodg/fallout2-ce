@@ -1,12 +1,11 @@
 #include "skill.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "actions.h"
 #include "color.h"
-#include "combat.h"
 #include "critter.h"
 #include "debug.h"
 #include "display_monitor.h"
@@ -19,13 +18,15 @@
 #include "party_member.h"
 #include "perk.h"
 #include "pipboy.h"
-#include "platform_compat.h"
 #include "proto.h"
 #include "random.h"
 #include "scripts.h"
 #include "settings.h"
 #include "stat.h"
 #include "trait.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 

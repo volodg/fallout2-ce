@@ -1,18 +1,17 @@
 #include "svga.h"
 
-#include <limits.h>
-#include <string.h>
-
 #include <SDL.h>
 
 #include "config.h"
 #include "draw.h"
 #include "interface.h"
-#include "memory.h"
 #include "mouse.h"
-#include "win32.h"
-#include "window_manager.h"
 #include "window_manager_private.h"
+
+extern "C"
+{
+    bool rust_c_get_program_is_active();
+}
 
 namespace fallout {
 
@@ -26,16 +25,16 @@ Rect _scr_size;
 void (*_scr_blit)(unsigned char* src, int src_pitch, int a3, int src_x, int src_y, int src_width, int src_height, int dest_x, int dest_y) = _GNW95_ShowRect;
 
 // 0x6ACA1C
-void (*_zero_mem)() = NULL;
+void (*_zero_mem)() = nullptr;
 
-SDL_Window* gSdlWindow = NULL;
-SDL_Surface* gSdlSurface = NULL;
-SDL_Renderer* gSdlRenderer = NULL;
-SDL_Texture* gSdlTexture = NULL;
-SDL_Surface* gSdlTextureSurface = NULL;
+SDL_Window* gSdlWindow = nullptr;
+SDL_Surface* gSdlSurface = nullptr;
+SDL_Renderer* gSdlRenderer = nullptr;
+SDL_Texture* gSdlTexture = nullptr;
+SDL_Surface* gSdlTextureSurface = nullptr;
 
 // TODO: Remove once migration to update-render cycle is completed.
-FpsLimiter sharedFpsLimiter;
+FpsLimiter* sharedFpsLimiter = rust_create_default_fps_limiter();
 
 // 0x4CAD08
 int _init_mode_320_200()
@@ -155,7 +154,7 @@ int _GNW95_init_mode_ex(int width, int height, int bpp)
     _scr_size.right = width - 1;
     _scr_size.bottom = height - 1;
 
-    _mouse_blit_trans = NULL;
+    _mouse_blit_trans = nullptr;
     _scr_blit = _GNW95_ShowRect;
     _zero_mem = _GNW95_zero_vid_mem;
     _mouse_blit = _GNW95_ShowRect;
@@ -172,7 +171,7 @@ int _init_vesa_mode(int width, int height)
 // 0x4CAEDC
 int _GNW95_init_window(int width, int height, bool fullscreen, int scale)
 {
-    if (gSdlWindow == NULL) {
+    if (gSdlWindow == nullptr) {
         SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 
         if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -186,7 +185,7 @@ int _GNW95_init_window(int width, int height, bool fullscreen, int scale)
         }
 
         gSdlWindow = SDL_CreateWindow(gProgramWindowTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width * scale, height * scale, windowFlags);
-        if (gSdlWindow == NULL) {
+        if (gSdlWindow == nullptr) {
             return -1;
         }
 
@@ -194,7 +193,7 @@ int _GNW95_init_window(int width, int height, bool fullscreen, int scale)
             destroyRenderer();
 
             SDL_DestroyWindow(gSdlWindow);
-            gSdlWindow = NULL;
+            gSdlWindow = nullptr;
 
             return -1;
         }
@@ -206,7 +205,7 @@ int _GNW95_init_window(int width, int height, bool fullscreen, int scale)
 // 0x4CAF9C
 int directDrawInit(int width, int height, int bpp)
 {
-    if (gSdlSurface != NULL) {
+    if (gSdlSurface != nullptr) {
         unsigned char* palette = directDrawGetPalette();
         directDrawFree();
 
@@ -237,16 +236,16 @@ int directDrawInit(int width, int height, int bpp)
 // 0x4CB1B0
 void directDrawFree()
 {
-    if (gSdlSurface != NULL) {
+    if (gSdlSurface != nullptr) {
         SDL_FreeSurface(gSdlSurface);
-        gSdlSurface = NULL;
+        gSdlSurface = nullptr;
     }
 }
 
 // 0x4CB310
 void directDrawSetPaletteInRange(unsigned char* palette, int start, int count)
 {
-    if (gSdlSurface != NULL && gSdlSurface->format->palette != NULL) {
+    if (gSdlSurface != nullptr && gSdlSurface->format->palette != nullptr) {
         SDL_Color colors[256];
 
         if (count != 0) {
@@ -259,14 +258,14 @@ void directDrawSetPaletteInRange(unsigned char* palette, int start, int count)
         }
 
         SDL_SetPaletteColors(gSdlSurface->format->palette, colors, start, count);
-        SDL_BlitSurface(gSdlSurface, NULL, gSdlTextureSurface, NULL);
+        SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
     }
 }
 
 // 0x4CB568
 void directDrawSetPalette(unsigned char* palette)
 {
-    if (gSdlSurface != NULL && gSdlSurface->format->palette != NULL) {
+    if (gSdlSurface != nullptr && gSdlSurface->format->palette != nullptr) {
         SDL_Color colors[256];
 
         for (int index = 0; index < 256; index++) {
@@ -277,7 +276,7 @@ void directDrawSetPalette(unsigned char* palette)
         }
 
         SDL_SetPaletteColors(gSdlSurface->format->palette, colors, 0, 256);
-        SDL_BlitSurface(gSdlSurface, NULL, gSdlTextureSurface, NULL);
+        SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
     }
 }
 
@@ -287,7 +286,7 @@ unsigned char* directDrawGetPalette()
     // 0x6ACA24
     static unsigned char palette[768];
 
-    if (gSdlSurface != NULL && gSdlSurface->format->palette != NULL) {
+    if (gSdlSurface != nullptr && gSdlSurface->format->palette != nullptr) {
         SDL_Color* colors = gSdlSurface->format->palette->colors;
 
         for (int index = 0; index < 256; index++) {
@@ -323,7 +322,7 @@ void _GNW95_ShowRect(unsigned char* src, int srcPitch, int a3, int srcX, int src
 // 0x4CBBC8
 void _GNW95_zero_vid_mem()
 {
-    if (!gProgramIsActive) {
+    if (!rust_c_get_program_is_active()) {
         return;
     }
 
@@ -333,7 +332,7 @@ void _GNW95_zero_vid_mem()
         surface += gSdlSurface->pitch;
     }
 
-    SDL_BlitSurface(gSdlSurface, NULL, gSdlTextureSurface, NULL);
+    SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
 }
 
 int screenGetWidth()
@@ -361,7 +360,7 @@ int screenGetVisibleHeight()
 static bool createRenderer(int width, int height)
 {
     gSdlRenderer = SDL_CreateRenderer(gSdlWindow, -1, 0);
-    if (gSdlRenderer == NULL) {
+    if (gSdlRenderer == nullptr) {
         return false;
     }
 
@@ -370,17 +369,17 @@ static bool createRenderer(int width, int height)
     }
 
     gSdlTexture = SDL_CreateTexture(gSdlRenderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, width, height);
-    if (gSdlTexture == NULL) {
+    if (gSdlTexture == nullptr) {
         return false;
     }
 
     Uint32 format;
-    if (SDL_QueryTexture(gSdlTexture, &format, NULL, NULL, NULL) != 0) {
+    if (SDL_QueryTexture(gSdlTexture, &format, nullptr, nullptr, nullptr) != 0) {
         return false;
     }
 
     gSdlTextureSurface = SDL_CreateRGBSurfaceWithFormat(0, width, height, SDL_BITSPERPIXEL(format), format);
-    if (gSdlTextureSurface == NULL) {
+    if (gSdlTextureSurface == nullptr) {
         return false;
     }
 
@@ -389,19 +388,19 @@ static bool createRenderer(int width, int height)
 
 static void destroyRenderer()
 {
-    if (gSdlTextureSurface != NULL) {
+    if (gSdlTextureSurface != nullptr) {
         SDL_FreeSurface(gSdlTextureSurface);
-        gSdlTextureSurface = NULL;
+        gSdlTextureSurface = nullptr;
     }
 
-    if (gSdlTexture != NULL) {
+    if (gSdlTexture != nullptr) {
         SDL_DestroyTexture(gSdlTexture);
-        gSdlTexture = NULL;
+        gSdlTexture = nullptr;
     }
 
-    if (gSdlRenderer != NULL) {
+    if (gSdlRenderer != nullptr) {
         SDL_DestroyRenderer(gSdlRenderer);
-        gSdlRenderer = NULL;
+        gSdlRenderer = nullptr;
     }
 }
 
@@ -413,9 +412,9 @@ void handleWindowSizeChanged()
 
 void renderPresent()
 {
-    SDL_UpdateTexture(gSdlTexture, NULL, gSdlTextureSurface->pixels, gSdlTextureSurface->pitch);
+    SDL_UpdateTexture(gSdlTexture, nullptr, gSdlTextureSurface->pixels, gSdlTextureSurface->pitch);
     SDL_RenderClear(gSdlRenderer);
-    SDL_RenderCopy(gSdlRenderer, gSdlTexture, NULL, NULL);
+    SDL_RenderCopy(gSdlRenderer, gSdlTexture, nullptr, nullptr);
     SDL_RenderPresent(gSdlRenderer);
 }
 

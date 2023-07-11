@@ -1,8 +1,8 @@
 #include "combat_ai.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "actions.h"
 #include "animation.h"
@@ -23,7 +23,6 @@
 #include "message.h"
 #include "object.h"
 #include "party_member.h"
-#include "platform_compat.h"
 #include "proto.h"
 #include "proto_instance.h"
 #include "random.h"
@@ -31,9 +30,11 @@
 #include "settings.h"
 #include "skill.h"
 #include "stat.h"
-#include "svga.h"
 #include "text_object.h"
 #include "tile.h"
+
+// Migrated
+#include "platform_compat.h"
 
 namespace fallout {
 
@@ -387,7 +388,7 @@ int aiInit()
     }
 
     gAiPackets = (AiPacket*)internal_malloc(sizeof(*gAiPackets) * config.entriesLength);
-    if (gAiPackets == NULL) {
+    if (gAiPackets == nullptr) {
         goto err;
     }
 
@@ -2673,8 +2674,8 @@ static int _ai_try_attack(Object* a1, Object* a2)
     bool taunt = true;
 
     Object* weapon = critterGetItem2(a1);
-    if (weapon != NULL && itemGetType(weapon) != ITEM_TYPE_WEAPON) {
-        weapon = NULL;
+    if (weapon != nullptr && itemGetType(weapon) != ITEM_TYPE_WEAPON) {
+        weapon = nullptr;
     }
 
     int hitMode = _ai_pick_hit_mode(a1, weapon, a2);
@@ -2683,7 +2684,7 @@ static int _ai_try_attack(Object* a1, Object* a2)
     int actionPoints = a1->data.critter.combat.ap;
     int safeDistance = 0;
     int v42 = 0;
-    if (weapon != NULL
+    if (weapon != nullptr
         || (critterGetBodyType(a2) == BODY_TYPE_BIPED
             && ((a2->fid & 0xF000) >> 12 == 0)
             && artExists(buildFid(OBJ_TYPE_CRITTER, a1->fid & 0xFFF, ANIM_THROW_PUNCH, 0, a1->rotation + 1)))) {
@@ -3010,7 +3011,7 @@ int _cai_perform_distance_prefs(Object* a1, Object* a2)
 // 0x42B100
 static int _cai_get_min_hp(AiPacket* ai)
 {
-    if (ai == NULL) {
+    if (ai == nullptr) {
         return 0;
     }
 
@@ -3059,25 +3060,25 @@ void _combat_ai(Object* a1, Object* a2)
         debugPrint("%s: FLEEING: I need DRUGS!", critterGetName(a1));
         _ai_run_away(a1, a2);
     } else {
-        if (a2 == NULL) {
+        if (a2 == nullptr) {
             a2 = _ai_danger_source(a1);
         }
 
         _cai_perform_distance_prefs(a1, a2);
 
-        if (a2 != NULL) {
+        if (a2 != nullptr) {
             _ai_try_attack(a1, a2);
         }
     }
 
-    if (a2 != NULL
+    if (a2 != nullptr
         && (a2->data.critter.combat.results & DAM_DEAD) == 0
         && a1->data.critter.combat.ap != 0
         && objectGetDistanceBetween(a1, a2) > ai->max_dist) {
         Object* friendlyDead = aiInfoGetFriendlyDead(a1);
-        if (friendlyDead != NULL) {
+        if (friendlyDead != nullptr) {
             _ai_move_away(a1, friendlyDead, 10);
-            aiInfoSetFriendlyDead(a1, NULL);
+            aiInfoSetFriendlyDead(a1, nullptr);
         } else {
             int perception = critterGetStat(a1, STAT_PERCEPTION);
             if (!_ai_find_friend(a1, perception * 2, 5)) {
@@ -3086,27 +3087,27 @@ void _combat_ai(Object* a1, Object* a2)
         }
     }
 
-    if (a2 == NULL && !objectIsPartyMember(a1)) {
+    if (a2 == nullptr && !objectIsPartyMember(a1)) {
         Object* whoHitMe = combatData->whoHitMe;
-        if (whoHitMe != NULL) {
+        if (whoHitMe != nullptr) {
             if ((whoHitMe->data.critter.combat.results & DAM_DEAD) == 0 && combatData->damageLastTurn > 0) {
                 Object* friendlyDead = aiInfoGetFriendlyDead(a1);
-                if (friendlyDead != NULL) {
+                if (friendlyDead != nullptr) {
                     _ai_move_away(a1, friendlyDead, 10);
-                    aiInfoSetFriendlyDead(a1, NULL);
+                    aiInfoSetFriendlyDead(a1, nullptr);
                 } else {
                     debugPrint("%s: FLEEING: Somebody is shooting at me that I can't see!", critterGetName(a1));
-                    _ai_run_away(a1, NULL);
+                    _ai_run_away(a1, nullptr);
                 }
             }
         }
     }
 
     Object* friendlyDead = aiInfoGetFriendlyDead(a1);
-    if (friendlyDead != NULL) {
+    if (friendlyDead != nullptr) {
         _ai_move_away(a1, friendlyDead, 10);
         if (objectGetDistanceBetween(a1, friendlyDead) >= 10) {
-            aiInfoSetFriendlyDead(a1, NULL);
+            aiInfoSetFriendlyDead(a1, nullptr);
         }
     }
 
@@ -3125,7 +3126,7 @@ void _combat_ai(Object* a1, Object* a2)
         }
     }
 
-    if (a2 == NULL && nearestTeammate != NULL && objectGetDistanceBetween(a1, nearestTeammate) > maxTeammateDistance) {
+    if (a2 == nullptr && nearestTeammate != nullptr && objectGetDistanceBetween(a1, nearestTeammate) > maxTeammateDistance) {
         int currentDistance = objectGetDistanceBetween(a1, nearestTeammate);
         _ai_move_steps_closer(a1, nearestTeammate, currentDistance - maxTeammateDistance, false);
     } else {
@@ -3158,7 +3159,7 @@ bool _combatai_want_to_join(Object* a1)
     }
 
     if (a1->sid != -1) {
-        scriptSetObjects(a1->sid, NULL, NULL);
+        scriptSetObjects(a1->sid, nullptr, nullptr);
         scriptSetFixedParam(a1->sid, 5);
         scriptExecProc(a1->sid, SCRIPT_PROC_COMBAT);
     }
@@ -3175,7 +3176,7 @@ bool _combatai_want_to_join(Object* a1)
         return false;
     }
 
-    if (_ai_danger_source(a1) == NULL) {
+    if (_ai_danger_source(a1) == nullptr) {
         return false;
     }
 
@@ -3200,7 +3201,7 @@ bool _combatai_want_to_stop(Object* a1)
     }
 
     Object* enemy = _ai_danger_source(a1);
-    return enemy == NULL || !isWithinPerception(a1, enemy);
+    return enemy == nullptr || !isWithinPerception(a1, enemy);
 }
 
 // 0x42B504
@@ -3213,24 +3214,24 @@ int critterSetTeam(Object* obj, int team)
     obj->data.critter.combat.team = team;
 
     if (obj->data.critter.combat.whoHitMeCid == -1) {
-        _critter_set_who_hit_me(obj, NULL);
+        _critter_set_who_hit_me(obj, nullptr);
         debugPrint("\nError: CombatData found with invalid who_hit_me!");
         return -1;
     }
 
     Object* whoHitMe = obj->data.critter.combat.whoHitMe;
-    if (whoHitMe != NULL) {
+    if (whoHitMe != nullptr) {
         if (whoHitMe->data.critter.combat.team == team) {
-            _critter_set_who_hit_me(obj, NULL);
+            _critter_set_who_hit_me(obj, nullptr);
         }
     }
 
-    aiInfoSetLastTarget(obj, NULL);
+    aiInfoSetLastTarget(obj, nullptr);
 
     if (isInCombat()) {
         bool outlineWasEnabled = obj->outline != 0 && (obj->outline & OUTLINE_DISABLED) == 0;
 
-        objectClearOutline(obj, NULL);
+        objectClearOutline(obj, nullptr);
 
         int outlineType;
         if (obj->data.critter.combat.team == gDude->data.critter.combat.team) {
@@ -3239,7 +3240,7 @@ int critterSetTeam(Object* obj, int team)
             outlineType = OUTLINE_TYPE_HOSTILE;
         }
 
-        objectSetOutline(obj, outlineType, NULL);
+        objectSetOutline(obj, outlineType, nullptr);
 
         if (outlineWasEnabled) {
             Rect rect;
@@ -3390,7 +3391,7 @@ Object* _combat_ai_random_target(Attack* attack)
     // later moved into 0x426614, but remained here.
     weaponGetRange(attack->attacker, attack->hitMode);
 
-    Object* critter = NULL;
+    Object* critter = nullptr;
 
     if (_curr_crit_num != 0) {
         // Randomize starting critter.
